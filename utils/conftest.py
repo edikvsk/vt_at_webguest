@@ -1,56 +1,73 @@
-import os
+import logging
+import subprocess
+import time
 
+import psutil
 import pytest
 from selenium import webdriver
 from selenium.common import NoSuchElementException, TimeoutException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.wait import WebDriverWait
 
-from pages.login_page import LoginPage
-from utils.config import CHROME_DRIVER_PATH, USERNAME, LOCATION
-from utils.logger_config import setup_logger
+from pages.base_page import BasePage
+from pages.web_guest_page import WebGuestPage
+from utils.config import CHROME_DRIVER_PATH
 from utils.urls import LOGIN_PAGE_URL
+
+BAT_FILE_PATH = r"C:\Users\Demo\Desktop\VT builds\start_vt.bat"
+PROCESS_NAME = "VT_Publisher.exe"
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def is_process_running(process_name):
+    """Проверяет, запущен ли процесс с заданным именем."""
+    for proc in psutil.process_iter(attrs=['name']):
+        if proc.info['name'].lower() == process_name.lower():
+            return True
+    return False
+
+
+def run_vt_from_bat():
+    """Функция для запуска BAT файла, если процесс не запущен."""
+    if not is_process_running(PROCESS_NAME):
+        try:
+            subprocess.Popen(BAT_FILE_PATH, shell=True)
+            time.sleep(10)
+            logger.info(f"{PROCESS_NAME} был запущен.")
+        except Exception as e:
+            logger.error(f"Ошибка при запуске BAT файла: {e}")
+    else:
+        logger.info(f"{PROCESS_NAME} уже запущен. BAT файл не будет запущен.")
 
 
 @pytest.fixture(scope="function")
 def driver():
+    run_vt_from_bat()
     chrome_options = Options()
+    chrome_options.add_argument("--use-fake-ui-for-media-stream")
     chrome_options.add_argument("--use-fake-device-for-media-stream")
-    chrome_options.add_argument("--media-stream-id=62e81b2a3bfe8844470fbfc1739f77582582b4142c0e7e1df6da772dc6648855")
-    chrome_options.add_argument(
-        "--media-device-id-video=62e81b2a3bfe8844470fbfc1739f77582582b4142c0e7e1df6da772dc6648855")
-    chrome_options.add_argument(
-        "--media-device-id-audio=62e81b2a3bfe8844470fbfc1739f77582582b4142c0e7e1df6da772dc6648855")
-    chrome_options.add_argument("--use-fake-ui-for-media-stream")  # Разрешить доступ к камере и микрофону
     service = Service(CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     yield driver
     driver.quit()
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def login_fixture(driver):
-    test_name = os.path.splitext(os.path.basename(__file__))[0]
-    logger = setup_logger(test_name)
+    wg_page = WebGuestPage(driver)
+    base_page = BasePage(driver)
 
     try:
+        logger.info("Переходим на страницу логина")
         driver.get(LOGIN_PAGE_URL)
-        login_page = LoginPage(driver)
-        login_page.enter_username(USERNAME)
-        login_page.enter_location(LOCATION)
-        login_page.click_login_button()
-
-        wait = WebDriverWait(driver, 20)
-        # wait.until(EC.url_contains(XMEDIA_PAGE_URL))
-
-        yield login_page
-    except NoSuchElementException as e:
-        logger.error("Element not found: %s", e)
-        raise
-    except TimeoutException as e:
-        logger.error("Timeout exceeded: %s", e)
+        base_page.click(wg_page.LOGIN_BUTTON)
+        yield wg_page
+    except (NoSuchElementException, TimeoutException) as e:
+        logger.error(f"Ошибка при выполнении логина: {e}")
         raise
     except Exception as e:
-        logger.error("An error occurred during the fixture execution: %s", e)
+        logger.error(f"Неизвестная ошибка: {e}")
         raise
