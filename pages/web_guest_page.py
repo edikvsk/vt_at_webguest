@@ -25,6 +25,8 @@ class WebGuestPage(BasePage):
                                 "flex-grow-1 position-relative']")
     CAMERA_TOOLTIP = (By.XPATH, "//div[@id='CameraTooltipId']//span[@class='text-uppercase tooltip-title']")
     MICROPHONE_TOOLTIP = (By.XPATH, "//div[@id='MicTooltipId']//span[@class='text-uppercase tooltip-title']")
+    NOTIFICATION_ELEMENT = (By.XPATH, "//div[@class='notification-container-top-right']//div[contains(@class, "
+                                      "'notification-parent')]")
 
     def get_username(self):
         return self.get_text(self.LOGIN_FIELD)

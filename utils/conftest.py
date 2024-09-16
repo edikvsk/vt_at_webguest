@@ -12,6 +12,7 @@ from selenium.webdriver.chrome.service import Service
 from pages.base_page import BasePage
 from pages.web_guest_page import WebGuestPage
 from utils.config import CHROME_DRIVER_PATH
+from utils.notificaton_handler import NotificationHandler
 from utils.urls import LOGIN_PAGE_URL
 
 BAT_FILE_PATH = r"C:\Users\Demo\Desktop\VT builds\start_vt.bat"
@@ -56,15 +57,21 @@ def driver():
 
 
 @pytest.fixture(scope="function")
-def login_fixture(driver):
-    wg_page = WebGuestPage(driver)
-    base_page = BasePage(driver)
+def login_fixture(driver, logger):  # Убедитесь, что logger передается
+    web_guest_page = WebGuestPage(driver)
+    notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)  # Передаем логгер
 
     try:
         logger.info("Переходим на страницу логина")
         driver.get(LOGIN_PAGE_URL)
-        base_page.click(wg_page.LOGIN_BUTTON)
-        yield wg_page
+
+        # Проверяем уведомления
+        notification_handler.check_notification()
+
+        base_page = BasePage(driver)
+        base_page.click(web_guest_page.LOGIN_BUTTON)
+
+        yield web_guest_page
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении логина: {e}")
         raise
