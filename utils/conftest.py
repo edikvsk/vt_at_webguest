@@ -13,7 +13,8 @@ from pages.base_page import BasePage
 from pages.web_guest_page import WebGuestPage
 from utils.config import CHROME_DRIVER_PATH
 from utils.notificaton_handler import NotificationHandler
-from utils.urls import LOGIN_PAGE_URL
+from utils.stream_handler import StreamHandler
+from utils.urls import WEB_GUEST_PAGE_URL
 
 BAT_FILE_PATH = r"C:\Users\Demo\Desktop\VT builds\start_vt.bat"
 PROCESS_NAME = "VT_Publisher.exe"
@@ -46,7 +47,7 @@ def run_vt_from_bat():
 
 @pytest.fixture(scope="function")
 def driver():
-    run_vt_from_bat()
+    #    run_vt_from_bat()
     chrome_options = Options()
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
     chrome_options.add_argument("--use-fake-device-for-media-stream")
@@ -57,23 +58,29 @@ def driver():
 
 
 @pytest.fixture(scope="function")
-def login_fixture(driver, logger):  # Убедитесь, что logger передается
+def login_fixture(driver, logger):
     web_guest_page = WebGuestPage(driver)
-    notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)  # Передаем логгер
+    notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
+    stream_handler = StreamHandler(driver)
 
     try:
-        logger.info("Переходим на страницу логина")
-        driver.get(LOGIN_PAGE_URL)
-
-        # Проверяем уведомления
-        notification_handler.check_notification()
+        logger.info("Переходим на страницу Web Guest")
+        driver.get(WEB_GUEST_PAGE_URL)
 
         base_page = BasePage(driver)
+
+        # Проверка уведомлений
+        notification_handler.check_notification()
+
         base_page.click(web_guest_page.LOGIN_BUTTON)
+
+        # Ожидание подключения WebRTC стрима
+        stream_handler.wait_for_webrtc_connection(timeout=10)
+        logger.info("Стрим запущен")
 
         yield web_guest_page
     except (NoSuchElementException, TimeoutException) as e:
-        logger.error(f"Ошибка при выполнении логина: {e}")
+        logger.error(f"Ошибка при переходе на страницу: {e}")
         raise
     except Exception as e:
         logger.error(f"Неизвестная ошибка: {e}")
