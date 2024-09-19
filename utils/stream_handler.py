@@ -22,3 +22,11 @@ class StreamHandler:
         return (videoElement && videoElement.srcObject !== null);
         """
         return self.driver.execute_script(script)
+
+    def is_audio_stream_active(self):
+        script = """
+        var videoElement = document.querySelector('video[data-cy="remote-video"]');
+        return (videoElement && videoElement.srcObject !== null &&
+                videoElement.srcObject.getAudioTracks().length > 0);
+        """
+        return self.driver.execute_script(script)
