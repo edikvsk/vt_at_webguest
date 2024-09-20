@@ -16,7 +16,6 @@ class WebGuestPage(BasePage):
     CAMERA_BUTTON = (By.XPATH, "//button[@id='CameraButtonId']")
     MICROPHONE_BUTTON = (By.XPATH, "//button[@id='MicButtonId']")
     FULLSCREEN_BUTTON = (By.XPATH, "//button[@id='FullscreenButtonId']")
-    STOP_BUTTON = (By.XPATH, "//button[.//span[text()='Stop']]")
     VOLUME_FADER = (By.XPATH, "//div[@data-cy='sound-settings']")
     MINIMIZE_PREVIEW_BUTTON = (By.XPATH, "//button[@class='d-flex border-0 outline-none base-button "
                                          "align-items-center justify-content-center custom-button p-0 icon-button "
@@ -27,6 +26,8 @@ class WebGuestPage(BasePage):
     MICROPHONE_TOOLTIP = (By.XPATH, "//div[@id='MicTooltipId']//span[@class='text-uppercase tooltip-title']")
     NOTIFICATION_ELEMENT = (By.XPATH, "//div[@class='notification-container-top-right']//div[contains(@class, "
                                       "'notification-parent')]")
+    STOP_BUTTON = (By.XPATH, "//button[.//span[text()='Stop']]")
+    START_BUTTON = (By.XPATH, "//button[.//span[text()='Start']]")
 
     def get_username(self):
         return self.get_text(self.LOGIN_FIELD)
