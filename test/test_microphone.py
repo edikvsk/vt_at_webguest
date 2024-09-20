@@ -31,7 +31,7 @@ def test_microphone(driver, logger):
 
     @log_step(logger, "ШАГ 2. Проверка значка кнопки MICROPHONE - состояние: ВКЛ.")
     def check_mic_image_state_on():
-        assert wg_page.is_button_pressed(wg_page.MICROPHONE_BUTTON)
+        assert wg_page.is_button_pressed(wg_page.MICROPHONE_BUTTON), "Кнопка камеры в состонии ВЫКЛ."
 
     @log_step(logger, "ШАГ 3. Проверка tooltip")
     def check_tooltip(expected_text):
@@ -44,7 +44,7 @@ def test_microphone(driver, logger):
 
     @log_step(logger, "ШАГ 5. Проверка значка кнопки MICROPHONE - состояние: ВЫКЛ.")
     def check_mic_image_state_off():
-        assert not wg_page.is_button_pressed(wg_page.MICROPHONE_BUTTON)
+        assert not wg_page.is_button_pressed(wg_page.MICROPHONE_BUTTON), "Кнопка микрофона в состонии ВКЛ."
 
     @log_step(logger, "ШАГ 6. Включение микрофона")
     def turn_on_mic():
