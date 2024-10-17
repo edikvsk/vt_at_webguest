@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from selenium.common import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from pages.base_page import BasePage
 from pages.web_guest_page import WebGuestPage

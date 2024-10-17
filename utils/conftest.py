@@ -5,7 +5,7 @@ import time
 import psutil
 import pytest
 from selenium import webdriver
-from selenium.common import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
