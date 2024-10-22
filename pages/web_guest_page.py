@@ -12,7 +12,7 @@ class WebGuestPage(BasePage):
     LOGIN_BUTTON = (By.XPATH, "//button[@type='submit' and @data-cy='connect-button']")
     SETTINGS_BUTTON = (By.XPATH, "//button[@id='SettingsButtonId']")
     NAME_FIELD_SETTINGS = (By.XPATH, "//input[@data-cy='name-input']")
-    MUTE_BUTTON = (By.XPATH, "//button[@id='PlayButtonId']")
+    MUTE_BUTTON = (By.XPATH, "//button[@id='PlayButtonId' and @data-cy='mute-remote-button']")
     CAMERA_BUTTON = (By.XPATH, "//button[@id='CameraButtonId']")
     MICROPHONE_BUTTON = (By.XPATH, "//button[@id='MicButtonId']")
     FULLSCREEN_BUTTON = (By.XPATH, "//button[@id='FullscreenButtonId']")
