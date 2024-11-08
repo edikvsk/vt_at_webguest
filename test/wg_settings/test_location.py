@@ -34,7 +34,7 @@ def test_location(driver, logger):
     def input_location(location):
         wg_page.input_location(location)
 
-    @log_step(logger, "ШАГ 4. Проверка значения поля имени")
+    @log_step(logger, "ШАГ 4. Проверка значения поля Location")
     def check_location_field_value(expected_value):
         actual_value = wg_page.get_location_field_value()  # Получаем текущее значение поля Location
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
@@ -42,8 +42,8 @@ def test_location(driver, logger):
     try:
         check_settings_button()
         click_settings_button()
-        input_location("Test Location")
-        check_location_field_value("Test Location")
+        input_location("Test Location123!@#$%^")
+        check_location_field_value("Test Location123!@#$%^")
 
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении теста: {e}")
