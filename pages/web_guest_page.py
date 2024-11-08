@@ -62,3 +62,33 @@ class WebGuestPage(BasePage):
         except Exception as e:
             print(f"Ошибка при проверке состояния кнопки: {e}")
             return False
+
+    def input_name(self, name):
+        """Вводит указанное имя в поле имени."""
+        try:
+            # Ожидаем появления поля для ввода имени
+            name_field = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located(self.NAME_FIELD_SETTINGS)
+            )
+            # Очищаем поле перед вводом
+            name_field.clear()
+            # Вводим имя
+            name_field.send_keys(name)
+        except Exception as e:
+            print(f"Ошибка при вводе имени: {e}")
+
+    def get_input_value(self, input_locator):
+        """Получение значения поля input по указанному локатору."""
+        try:
+            # Ожидаем появления элемента
+            input_element = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located(input_locator)
+            )
+            return input_element.get_attribute('value')
+        except Exception as e:
+            print(f"Ошибка при получении значения input: {e}")
+            return None
+
+    def get_name_field_value(self):
+        """Получение значения поля имени."""
+        return self.get_input_value(self.NAME_FIELD_SETTINGS)
