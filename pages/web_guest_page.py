@@ -72,6 +72,12 @@ class WebGuestPage(BasePage):
             )
             # Очищаем поле перед вводом
             name_field.clear()
+
+            # Ожидаем, что поле снова станет доступным для ввода
+            WebDriverWait(self.driver, 10).until(
+                EC.text_to_be_present_in_element_value(self.NAME_FIELD_SETTINGS, "")
+            )
+
             # Вводим имя
             name_field.send_keys(name)
         except Exception as e:
