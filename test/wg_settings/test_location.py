@@ -30,7 +30,7 @@ def test_location(driver, logger):
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
 
-    @log_step(logger, "ШАГ 3. Ввод Loaction")
+    @log_step(logger, "ШАГ 3. Ввод Location")
     def input_location(location):
         wg_page.input_location(location)
 
