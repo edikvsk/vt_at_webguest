@@ -12,6 +12,7 @@ class WebGuestPage(BasePage):
     LOGIN_BUTTON = (By.XPATH, "//button[@type='submit' and @data-cy='connect-button']")
     SETTINGS_BUTTON = (By.XPATH, "//button[@id='SettingsButtonId']")
     NAME_FIELD_SETTINGS = (By.XPATH, "//input[@data-cy='name-input']")
+    LOCATION_FIELD_SETTINGS = (By.XPATH, "//input[@data-cy='location-input']")
     MUTE_BUTTON = (By.XPATH, "//button[@id='PlayButtonId' and @data-cy='mute-remote-button']")
     CAMERA_BUTTON = (By.XPATH, "//button[@id='CameraButtonId']")
     MICROPHONE_BUTTON = (By.XPATH, "//button[@id='MicButtonId']")
@@ -83,6 +84,20 @@ class WebGuestPage(BasePage):
         except Exception as e:
             print(f"Ошибка при вводе имени: {e}")
 
+    def input_location(self, location):
+        """Вводит указанное местоположение в поле локации."""
+        try:
+            location_field = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located(self.LOCATION_FIELD_SETTINGS)
+            )
+            location_field.clear()
+            WebDriverWait(self.driver, 10).until(
+                EC.text_to_be_present_in_element_value(self.LOCATION_FIELD_SETTINGS, "")
+            )
+            location_field.send_keys(location)
+        except Exception as e:
+            print(f"Ошибка при вводе локации: {e}")
+
     def get_input_value(self, input_locator):
         """Получение значения поля input по указанному локатору."""
         try:
@@ -98,3 +113,7 @@ class WebGuestPage(BasePage):
     def get_name_field_value(self):
         """Получение значения поля имени."""
         return self.get_input_value(self.NAME_FIELD_SETTINGS)
+
+    def get_location_field_value(self):
+        """Получение значения поля Location."""
+        return self.get_input_value(self.LOCATION_FIELD_SETTINGS)
