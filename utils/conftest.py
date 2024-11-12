@@ -1,8 +1,5 @@
 import logging
-import subprocess
-import time
 
-import psutil
 import pytest
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -13,41 +10,23 @@ from pages.base_page import BasePage
 from pages.web_guest_page import WebGuestPage
 from utils.config import CHROME_DRIVER_PATH
 from utils.notificaton_handler import NotificationHandler
+from utils.process_utils import ProcessManager
 from utils.stream_handler import StreamHandler
-from utils.urls import WEB_GUEST_PAGE_URL
-
-BAT_FILE_PATH = r"C:\Users\Demo\Desktop\VT builds\start_vt.bat"
-PROCESS_NAME = "VT_Publisher.exe"
+from utils.urls import WEB_GUEST_PAGE_URL, PROCESS_PATH, PROCESS_NAME
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def is_process_running(process_name):
-    """Проверяет, запущен ли процесс с заданным именем."""
-    for proc in psutil.process_iter(attrs=['name']):
-        if proc.info['name'].lower() == process_name.lower():
-            return True
-    return False
-
-
-def run_vt_from_bat():
-    """Функция для запуска BAT файла, если процесс не запущен."""
-    if not is_process_running(PROCESS_NAME):
-        try:
-            subprocess.Popen(BAT_FILE_PATH, shell=True)
-            time.sleep(10)
-            logger.info(f"{PROCESS_NAME} был запущен.")
-        except Exception as e:
-            logger.error(f"Ошибка при запуске BAT файла: {e}")
-    else:
-        logger.info(f"{PROCESS_NAME} уже запущен. BAT файл не будет запущен.")
-
-
 @pytest.fixture(scope="function")
 def driver():
-    #    run_vt_from_bat()
+    # Создаем экземпляр ProcessManager
+    process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME)
+
+    # Запускаем процесс, если он не запущен
+    process_manager.start_process()
+
     chrome_options = Options()
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
     chrome_options.add_argument("--use-fake-device-for-media-stream")
