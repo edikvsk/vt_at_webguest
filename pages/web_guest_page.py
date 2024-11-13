@@ -1,3 +1,6 @@
+import random
+from time import sleep
+
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -53,36 +56,35 @@ class WebGuestPage(BasePage):
     def is_button_pressed(self, button_locator):
         """Проверяет, нажата ли кнопка, используя указанный локатор."""
         try:
-            # Ожидаем появления кнопки
             button = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located(button_locator)
             )
-
-            # Проверяем, содержит ли кнопка класс, указывающий на активное состояние
             return 'bg-danger' not in button.get_attribute('class')
         except Exception as e:
             print(f"Ошибка при проверке состояния кнопки: {e}")
             return False
 
     def input_name(self, name):
-        """Вводит указанное имя в поле имени."""
+        """Вводит указанное имя в поле имени по одной букве."""
         try:
-            # Ожидаем появления поля для ввода имени
             name_field = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located(self.NAME_FIELD_SETTINGS)
             )
-            # Очищаем поле перед вводом
             name_field.clear()
-
-            # Ожидаем, что поле снова станет доступным для ввода
             WebDriverWait(self.driver, 10).until(
                 EC.text_to_be_present_in_element_value(self.NAME_FIELD_SETTINGS, "")
             )
+            for letter in name:
+                name_field.send_keys(letter)
+                sleep(0.7)
 
-            # Вводим имя
-            name_field.send_keys(name)
         except Exception as e:
             print(f"Ошибка при вводе имени: {e}")
+
+    def generate_random_name(self):
+        """Генерирует случайное имя в формате 'NameXXXX', где XXXX - случайное число."""
+        random_value = random.randint(1000, 9999)
+        return f"Name{random_value}"
 
     def input_location(self, location):
         """Вводит указанное местоположение в поле локации."""
@@ -101,7 +103,6 @@ class WebGuestPage(BasePage):
     def get_input_value(self, input_locator):
         """Получение значения поля input по указанному локатору."""
         try:
-            # Ожидаем появления элемента
             input_element = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located(input_locator)
             )

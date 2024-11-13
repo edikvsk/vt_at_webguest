@@ -2,6 +2,9 @@ import subprocess
 import time
 
 import psutil
+import win32con
+import win32gui
+import win32process
 
 from utils.logger_config import setup_logger
 
@@ -33,13 +36,27 @@ class ProcessManager:
             self.logger.info(f"{self.process_name} уже запущен. Процесс не будет запущен.")
 
     def kill_process(self):
-        """Завершает процесс с заданным именем."""
+        """Завершает дерево процессов с заданным именем."""
         process = self.is_process_running()
         if process:
             try:
-                process.terminate()  # Рассмотреть process.kill() для принудительного завершения
+                # Функция для отправки сообщения WM_CLOSE
+                def close_process(proc):
+                    hwnd = self.get_window_handle(proc.pid)
+                    if hwnd:
+                        win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+                    else:
+                        proc.terminate()  # Если окна нет, принудительно завершаем
+
+                # Попытка закрыть дочерние процессы
+                for child in process.children(recursive=True):
+                    close_process(child)
+
+                # Попытка закрыть основной процесс
+                close_process(process)
+
                 process.wait()  # Ждем завершения процесса
-                self.logger.info(f"Процесс '{self.process_name}' завершен.")
+                self.logger.info(f"Процесс '{self.process_name}' и его дочерние процессы завершены.")
             except psutil.NoSuchProcess:
                 self.logger.info("Процесс уже завершен.")
             except psutil.AccessDenied:
@@ -48,3 +65,16 @@ class ProcessManager:
                 self.logger.error(f"Ошибка при завершении процесса: {e}")
         else:
             self.logger.info(f"Процесс '{self.process_name}' не найден.")
+
+    def get_window_handle(self, pid):
+        """Возвращает дескриптор окна для процесса по его PID."""
+
+        def enum_windows(hwnd, pid):
+            if win32gui.IsWindow(hwnd) and win32gui.IsWindowVisible(hwnd):
+                _, found_pid = win32process.GetWindowThreadProcessId(hwnd)
+                if found_pid == pid:
+                    handles.append(hwnd)
+
+        handles = []
+        win32gui.EnumWindows(enum_windows, pid)
+        return handles[0] if handles else None
