@@ -1,4 +1,3 @@
-import random
 from time import sleep
 
 from selenium.webdriver import ActionChains
@@ -10,6 +9,7 @@ from pages.base_page import BasePage
 
 
 class WebGuestPage(BasePage):
+    # Локаторы:
     LOGIN_FIELD = (By.XPATH, "//input[@data-cy='banner-name-input']")
     LOCATION_FIELD = (By.XPATH, "//input[@data-cy='banner-location-input']")
     LOGIN_BUTTON = (By.XPATH, "//button[@type='submit' and @data-cy='connect-button']")
@@ -33,6 +33,7 @@ class WebGuestPage(BasePage):
     STOP_BUTTON = (By.XPATH, "//button[.//span[text()='Stop']]")
     START_BUTTON = (By.XPATH, "//button[.//span[text()='Start']]")
 
+    # Методы:
     def get_username(self):
         return self.get_text(self.LOGIN_FIELD)
 
@@ -81,13 +82,8 @@ class WebGuestPage(BasePage):
         except Exception as e:
             print(f"Ошибка при вводе имени: {e}")
 
-    def generate_random_name(self):
-        """Генерирует случайное имя в формате 'NameXXXX', где XXXX - случайное число."""
-        random_value = random.randint(1000, 9999)
-        return f"Name{random_value}"
-
-    def input_location(self, location):
-        """Вводит указанное местоположение в поле локации."""
+    def input_location(self, name):
+        """Вводит location по одной букве."""
         try:
             location_field = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located(self.LOCATION_FIELD_SETTINGS)
@@ -96,9 +92,12 @@ class WebGuestPage(BasePage):
             WebDriverWait(self.driver, 10).until(
                 EC.text_to_be_present_in_element_value(self.LOCATION_FIELD_SETTINGS, "")
             )
-            location_field.send_keys(location)
+            for letter in name:
+                location_field.send_keys(letter)
+                sleep(0.7)
+
         except Exception as e:
-            print(f"Ошибка при вводе локации: {e}")
+            print(f"Ошибка при вводе имени: {e}")
 
     def get_input_value(self, input_locator):
         """Получение значения поля input по указанному локатору."""

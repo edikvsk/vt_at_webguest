@@ -1,22 +1,21 @@
 import os
-import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from pages.base_page import BasePage
+from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
 from utils.conftest import driver, login_fixture
+from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
-from utils.process_utils import ProcessManager
-from utils.urls import PROCESS_NAME, PROCESS_PATH, XML_FILE_PATH
-from utils.xml_utils import XMLReader
+from utils.urls import PROCESS_PATH
 
 
 @pytest.fixture(scope="function")
 def logger(caplog):
-    test_name = os.path.splitext(os.path.basename(__file__))[0]
+    test_name = os.path.splitext(os.path.basename(__file__))[0]  # Исправлено на __file__
     logger = setup_logger(test_name)
     return logger
 
@@ -25,8 +24,11 @@ def logger(caplog):
 def test_name(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
-    process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME)
-    xml_reader = XMLReader(XML_FILE_PATH, logger)
+    desktop_app = DesktopApp(PROCESS_PATH)
+    desktop_app_page = DesktopAppPage(desktop_app.main_window)
+
+    name_value = "01TEST_NAME"
+    vt_web_guest_source_name = "01TEST_NAME"
 
     @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
     def check_settings_button():
@@ -37,33 +39,38 @@ def test_name(driver, logger):
         base_page.click(wg_page.SETTINGS_BUTTON)
 
     @log_step(logger, "ШАГ 3. Ввод имени")
-    def input_name(name):
-        wg_page.input_name(name)
+    def input_name():
+        wg_page.input_name(name_value)
 
     @log_step(logger, "ШАГ 4. Проверка значения поля имени")
-    def check_name_field_value(expected_value):
-        wg_actual_value = wg_page.get_name_field_value()
-        assert wg_actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{wg_actual_value}'"
-        return wg_actual_value
+    def check_name_field_value():
+        expected_value = name_value
+        actual_value = wg_page.get_name_field_value()
+        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 5. Проверка channel_label в XML")
-    def check_channel_label_in_xml(expected_label):
-        channel_label = xml_reader.find_channel_by_label(expected_label)  # Вызываем метод для поиска канала
-        assert channel_label is not None, f"Канал с label '{expected_label}' не найден в XML."
-        assert channel_label == expected_label, f"Ожидалось значение '{expected_label}', но получено '{channel_label}'."
+    @log_step(logger, "ШАГ 5. Проверка значения поля Name в VT WebGuest Settings")
+    def check_name_field_vt():
+        desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
+        desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
+        expected_value = vt_web_guest_source_name
+        actual_value = desktop_app_page.get_vt_wg_settings_field_value(0)
+        desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
+        assert actual_value == expected_value, f"Значение поля не совпадает: ожидаемое '{expected_value}', полученное '{actual_value}'"
 
     try:
         check_settings_button()
         click_settings_button()
-
-        # Генерация случайного имени
-        random_name = wg_page.generate_random_name()  # Используем метод генерации имени
-        input_name(random_name)  # Вводим сгенерированное имя
-        actual_name = check_name_field_value(random_name)  # Проверяем значение поля имени
-        process_manager.kill_process()
-        time.sleep(7)
-        check_channel_label_in_xml(actual_name)  # Проверяем channel_label в XML
+        input_name()
+        check_name_field_value()
+        check_name_field_vt()
 
     except (NoSuchElementException, TimeoutException) as e:
+
         logger.error(f"Ошибка при выполнении теста: {e}")
+
         pytest.fail(f"Ошибка при выполнении теста: {e}")
+
+    # При необходимости закрыть VT
+    # finally:
+
+    # desktop_app.close_application()
