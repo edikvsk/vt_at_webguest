@@ -15,7 +15,7 @@ from utils.urls import PROCESS_PATH
 
 @pytest.fixture(scope="function")
 def logger(caplog):
-    test_name = os.path.splitext(os.path.basename(__file__))[0]  # Исправлено на __file__
+    test_name = os.path.splitext(os.path.basename(__file__))[0]
     logger = setup_logger(test_name)
     return logger
 
@@ -45,7 +45,7 @@ def test_name(driver, logger):
     @log_step(logger, "ШАГ 4. Проверка значения поля имени")
     def check_name_field_value():
         expected_value = name_value
-        actual_value = wg_page.get_name_field_value()
+        actual_value = wg_page.get_input_value(wg_page.NAME_FIELD_SETTINGS)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
     @log_step(logger, "ШАГ 5. Проверка значения поля Name в VT WebGuest Settings")

@@ -1,4 +1,5 @@
 import os
+import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -21,14 +22,14 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("login_fixture")
-def test_location(driver, logger):
+def test_resolution_640x480(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
-    location_value = "01TEST_LOCATION"
-    vt_web_guest_source_location = "01TEST_LOCATION"
+    vt_web_guest_source_name = "Web Guest"
+    resolution = "640X480"
 
     @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
     def check_settings_button():
@@ -38,31 +39,34 @@ def test_location(driver, logger):
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
 
-    @log_step(logger, "ШАГ 3. Ввод Location")
-    def input_location():
-        wg_page.input_location(location_value)
-
-    @log_step(logger, "ШАГ 4. Проверка значения поля Location")
-    def check_location_field_value():
-        expected_value = location_value
-        actual_value = wg_page.get_input_value(wg_page.LOCATION_FIELD_SETTINGS)
+    @log_step(logger, "ШАГ 3. Выбор разрешения")
+    def select_resolution():
+        time.sleep(3.5)
+        wg_page.select_resolution(resolution)
+        base_page.click(wg_page.RESOLUTION_COMBOBOX_BACK_BUTTON)
+        expected_value = resolution
+        actual_value = wg_page.get_settings_item_value_text(wg_page.RESOLUTION_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 5. Проверка значений поля Location в VT WebGuest Settings")
-    def check_location_field_vt():
-        desktop_app_page.right_click_vt_source_item(vt_web_guest_source_location)
+    @log_step(logger, "ШАГ 4. Проверка значения Resolution в VT WebGuest Settings")
+    def check_resolution_field_value_vt():
+        desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
-        expected_value = vt_web_guest_source_location
-        actual_value = desktop_app_page.get_vt_wg_settings_field_value(1)
+        desktop_app_page.select_combobox_item_by_index(0, 2)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
-        assert actual_value == expected_value, f"Значение поля не совпадает: ожидаемое '{expected_value}', полученное '{actual_value}'"
+
+    @log_step(logger, "ШАГ 5. Проверка значения поля Resolution")
+    def check_resolution_field_value():
+        expected_value = resolution
+        actual_value = wg_page.get_settings_item_value_text(wg_page.RESOLUTION_VALUE)
+        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
     try:
         check_settings_button()
         click_settings_button()
-        input_location()
-        check_location_field_value()
-        check_location_field_vt()
+        select_resolution()
+        check_resolution_field_value_vt()
+        check_resolution_field_value()
 
     except (NoSuchElementException, TimeoutException) as e:
 
