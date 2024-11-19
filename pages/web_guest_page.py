@@ -1,5 +1,6 @@
 from time import sleep
 
+from selenium.common import TimeoutException
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -32,6 +33,10 @@ class WebGuestPage(BasePage):
                                       "'notification-parent')]")
     STOP_BUTTON = (By.XPATH, "//button[.//span[text()='Stop']]")
     START_BUTTON = (By.XPATH, "//button[.//span[text()='Start']]")
+    RESOLUTION_COMBOBOX = (By.XPATH, "//span[@class='text-uppercase font-weight-semi-bold menu-item-title text-white' "
+                                     "and text()='Resolution']")
+    RESOLUTION_VALUE = (By.XPATH, "//span[@class='text-uppercase font-weight-semi-bold text-ellipsis text-white']")
+    RESOLUTION_COMBOBOX_BACK_BUTTON = (By.XPATH, "//div[@class='mr-1']")
 
     # Методы:
     def get_username(self):
@@ -78,11 +83,10 @@ class WebGuestPage(BasePage):
             for letter in name:
                 name_field.send_keys(letter)
                 sleep(0.7)
-
         except Exception as e:
-            print(f"Ошибка при вводе имени: {e}")
+            raise RuntimeError(f"Ошибка при вводе имени: {e}")
 
-    def input_location(self, name):
+    def input_location(self, location):
         """Вводит location по одной букве."""
         try:
             location_field = WebDriverWait(self.driver, 10).until(
@@ -92,12 +96,11 @@ class WebGuestPage(BasePage):
             WebDriverWait(self.driver, 10).until(
                 EC.text_to_be_present_in_element_value(self.LOCATION_FIELD_SETTINGS, "")
             )
-            for letter in name:
+            for letter in location:
                 location_field.send_keys(letter)
-                sleep(0.7)
-
+                sleep(0.5)
         except Exception as e:
-            print(f"Ошибка при вводе имени: {e}")
+            raise RuntimeError(f"Ошибка при вводе местоположения: {e}")
 
     def get_input_value(self, input_locator):
         """Получение значения поля input по указанному локатору."""
@@ -107,13 +110,44 @@ class WebGuestPage(BasePage):
             )
             return input_element.get_attribute('value')
         except Exception as e:
-            print(f"Ошибка при получении значения input: {e}")
-            return None
+            raise RuntimeError(f"Ошибка при получении значения input: {e}")
 
-    def get_name_field_value(self):
-        """Получение значения поля имени."""
-        return self.get_input_value(self.NAME_FIELD_SETTINGS)
+    def get_settings_item_value_text(self, element_locator):
+        """Получение текста элемента по указанному локатору."""
+        try:
+            element = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located(element_locator)
+            )
+            return element.text
+        except TimeoutException:
+            raise RuntimeError(f"Элемент не найден по локатору: {element_locator}")
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при получении текста элемента: {e}")
 
-    def get_location_field_value(self):
-        """Получение значения поля Location."""
-        return self.get_input_value(self.LOCATION_FIELD_SETTINGS)
+    def select_resolution(self, resolution_text):
+        """Выбирает разрешение из выпадающего списка по заданному тексту."""
+        try:
+            # Ожидаем, пока комбобокс станет кликабельным и кликаем на него
+            resolution_combobox = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable(self.RESOLUTION_COMBOBOX)
+            )
+            resolution_combobox.click()  # Открываем выпадающий список
+
+            # Генерируем правильный текст с символом "×"
+            resolution_text = resolution_text.replace("X", " × ")  # Заменяем 'x' на ' × '
+
+            # Ожидаем, пока элемент с нужным разрешением станет видимым
+            resolution_option_locator = (
+                By.XPATH, f"//span[contains(@class, 'menu-item-title') and text()='{resolution_text}']")
+
+            resolution_option = WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located(resolution_option_locator)
+            )
+
+            # Ожидаем, пока элемент станет кликабельным и кликаем на него
+            WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable(resolution_option)
+            ).click()
+
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при выборе разрешения '{resolution_text}': {e}")
