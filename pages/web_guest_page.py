@@ -138,7 +138,7 @@ class WebGuestPage(BasePage):
             resolution_combobox.click()  # Открываем выпадающий список
 
             # Генерируем правильный текст с символом "×"
-            resolution_text = resolution_text.replace("X", " × ")  # Заменяем 'x' на ' × '
+            resolution_text = resolution_text.replace("X", " × ")
 
             # Ожидаем, пока элемент с нужным разрешением станет видимым
             resolution_option_locator = (
@@ -166,7 +166,7 @@ class WebGuestPage(BasePage):
             framerate_combobox.click()  # Открываем выпадающий список
 
             # Генерируем правильный текст с символом
-            framerate_text = framerate_text.replace("FPS", "fps")  # Заменяем 'x' на ' × '
+            framerate_text = framerate_text.replace("FPS", "fps")
 
             # Ожидаем, пока элемент с нужным Framerate станет видимым
             framerate_option_locator = (
