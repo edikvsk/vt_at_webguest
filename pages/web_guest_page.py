@@ -35,8 +35,12 @@ class WebGuestPage(BasePage):
     START_BUTTON = (By.XPATH, "//button[.//span[text()='Start']]")
     RESOLUTION_COMBOBOX = (By.XPATH, "//span[@class='text-uppercase font-weight-semi-bold menu-item-title text-white' "
                                      "and text()='Resolution']")
-    RESOLUTION_VALUE = (By.XPATH, "//span[@class='text-uppercase font-weight-semi-bold text-ellipsis text-white']")
+    RESOLUTION_VALUE = (By.XPATH, "//div[@data-cy='resolution']//span[contains(@class, 'text-ellipsis')]")
     RESOLUTION_COMBOBOX_BACK_BUTTON = (By.XPATH, "//div[@class='mr-1']")
+    FRAMERATE_COMBOBOX = (By.XPATH, "//div[@class='d-flex flex-grow-1 flex-shrink-1 align-items-center']//span[text("
+                                    ")='Frame Rate']")
+    FRAMERATE_VALUE = (By.XPATH, "//div[@data-cy='frameRate']//span[contains(text(), 'FPS')]")
+    COMBOBOX_BACK_BUTTON = (By.XPATH, "//div[@class='mr-1']")
 
     # Методы:
     def get_username(self):
@@ -151,3 +155,31 @@ class WebGuestPage(BasePage):
 
         except Exception as e:
             raise RuntimeError(f"Ошибка при выборе разрешения '{resolution_text}': {e}")
+
+    def select_framerate(self, framerate_text):
+        """Выбирает Framerate из выпадающего списка по заданному тексту."""
+        try:
+            # Ожидаем, пока комбобокс станет кликабельным и кликаем на него
+            framerate_combobox = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable(self.FRAMERATE_COMBOBOX)
+            )
+            framerate_combobox.click()  # Открываем выпадающий список
+
+            # Генерируем правильный текст с символом
+            framerate_text = framerate_text.replace("FPS", "fps")  # Заменяем 'x' на ' × '
+
+            # Ожидаем, пока элемент с нужным Framerate станет видимым
+            framerate_option_locator = (
+                By.XPATH, f"//span[contains(@class, 'menu-item-title') and text()='{framerate_text}']")
+
+            framerate_option = WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located(framerate_option_locator)
+            )
+
+            # Ожидаем, пока элемент станет кликабельным и кликаем на него
+            WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable(framerate_option)
+            ).click()
+
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при выборе Framerate '{framerate_text}': {e}")
