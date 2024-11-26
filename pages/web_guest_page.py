@@ -188,7 +188,7 @@ class WebGuestPage(BasePage):
             raise RuntimeError(f"Ошибка при выборе Framerate '{framerate_text}': {e}")
 
     def select_audio_bitrate(self, audio_bitrate_text):
-        """Выбирает Framerate из выпадающего списка по заданному тексту."""
+        """Выбирает Audio Bitrate из выпадающего списка по заданному тексту."""
         try:
             # Ожидаем, пока комбобокс станет кликабельным и кликаем на него
             audio_bitrate_combobox = WebDriverWait(self.driver, 10).until(
@@ -196,12 +196,27 @@ class WebGuestPage(BasePage):
             )
             audio_bitrate_combobox.click()  # Открываем выпадающий список
 
-            # Генерируем правильный текст с символом
-            audio_bitrate_text = audio_bitrate_text.replace("AUDIO BITRATE\n6K", "6k")
+            # Словарь для замены значений
+            replacements = {
+                "AUDIO BITRATE\n6K": "6k",
+                "AUDIO BITRATE\n10K": "10k",
+                "AUDIO BITRATE\n20K": "20k",
+                "AUDIO BITRATE\n40K": "40k",
+                "AUDIO BITRATE\n96K": "96k",
+                "AUDIO BITRATE\n192K": "192k",
+                "AUDIO BITRATE\n510K": "510k"
+            }
+
+            # Заменяем значения в соответствии со словарем
+            for original, replacement in replacements.items():
+                if original in audio_bitrate_text:
+                    audio_bitrate_text = audio_bitrate_text.replace(original, replacement)
+                    break  # Выходим из цикла, если замена выполнена
 
             # Ожидаем, пока элемент с нужным Audio Bitrate станет видимым
             audio_bitrate_option_locator = (
-                By.XPATH, f"//span[contains(@class, 'menu-item-title') and text()='{audio_bitrate_text}']")
+                By.XPATH, f"//span[contains(@class, 'menu-item-title') and text()='{audio_bitrate_text}']"
+            )
 
             audio_bitrate_option = WebDriverWait(self.driver, 10).until(
                 EC.visibility_of_element_located(audio_bitrate_option_locator)
@@ -214,4 +229,5 @@ class WebGuestPage(BasePage):
 
         except Exception as e:
             raise RuntimeError(f"Ошибка при выборе Audio Bitrate '{audio_bitrate_text}': {e}")
+
 

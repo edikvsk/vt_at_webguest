@@ -29,7 +29,7 @@ def test_audio_bitrate_6k(driver, logger):
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
     vt_web_guest_source_name = "Web Guest"
-    audio_bitrate = "AUDIO BITRATE\n6K"
+    audio_bitrate = "AUDIO BITRATE\n40K"
 
     @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
     def check_settings_button():
@@ -52,7 +52,7 @@ def test_audio_bitrate_6k(driver, logger):
     def check_audio_bitrate_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
-        desktop_app_page.select_combobox_item_by_index(6, 0)
+        desktop_app_page.select_combobox_item_by_index(6, 3)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
 
     @log_step(logger, "ШАГ 5. Проверка значения поля Audio Bitrate")
