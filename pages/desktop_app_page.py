@@ -36,16 +36,20 @@ class DesktopAppPage:
         except Exception as e:
             raise RuntimeError(f"Ошибка при клике на элемент меню '{menu_item_title}': {e}")
 
-    def click_button_by_name(self, button_name):
-        """Кликает по кнопке с заданным именем."""
-        try:
+    def click_button_by_name(self, button_name, timeout=10):
+        """Кликает по кнопке с заданным именем, ожидая её доступности."""
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
             button = self.main_window.child_window(title=button_name, control_type="Button")
+
             if button.exists() and button.is_enabled():
                 button.click_input()
-            else:
-                raise ElementNotFoundError(f"Кнопка с именем '{button_name}' не доступна для клика.")
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при клике на кнопку с именем '{button_name}': {e}")
+                return
+
+            time.sleep(0.5)
+
+        raise ElementNotFoundError(f"Кнопка с именем '{button_name}' не доступна для клика в течение {timeout} секунд.")
 
     def click_vt_wg_settings_item(self, menu_item_title):
         """Кликает по элементу меню с заданным заголовком."""
