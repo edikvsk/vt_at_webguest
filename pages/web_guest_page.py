@@ -131,103 +131,65 @@ class WebGuestPage(BasePage):
         except Exception as e:
             raise RuntimeError(f"Ошибка при получении текста элемента: {e}")
 
-    def select_resolution(self, resolution_text):
-        """Выбирает разрешение из выпадающего списка по заданному тексту."""
+    def select_from_combobox(self, combobox_locator, text, replacements=None):
+        """Выбирает значение из выпадающего списка по заданному тексту."""
         try:
             # Ожидаем, пока комбобокс станет кликабельным и кликаем на него
-            resolution_combobox = WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable(self.RESOLUTION_COMBOBOX)
+            combobox = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable(combobox_locator)
             )
-            resolution_combobox.click()  # Открываем выпадающий список
+            combobox.click()  # Открываем выпадающий список
 
-            # Генерируем правильный текст с символом "×"
-            resolution_text = resolution_text.replace("X", " × ")
+            # Если предоставлен словарь замен, выполняем замену текста
+            if replacements:
+                for original, replacement in replacements.items():
+                    if original in text:
+                        text = text.replace(original, replacement)
+                        break  # Выходим из цикла, если замена выполнена
 
-            # Ожидаем, пока элемент с нужным разрешением станет видимым
-            resolution_option_locator = (
-                By.XPATH, f"//span[contains(@class, 'menu-item-title') and text()='{resolution_text}']")
-
-            resolution_option = WebDriverWait(self.driver, 10).until(
-                EC.visibility_of_element_located(resolution_option_locator)
+            # Ожидаем, пока элемент с нужным значением станет видимым
+            option_locator = (
+                By.XPATH, f"//span[contains(@class, 'menu-item-title') and text()='{text}']"
+            )
+            option = WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located(option_locator)
             )
 
             # Ожидаем, пока элемент станет кликабельным и кликаем на него
             WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable(resolution_option)
+                EC.element_to_be_clickable(option)
             ).click()
 
         except Exception as e:
-            raise RuntimeError(f"Ошибка при выборе разрешения '{resolution_text}': {e}")
+            raise RuntimeError(f"Ошибка при выборе '{text}': {e}")
+
+    def select_resolution(self, resolution_text):
+        """Выбирает разрешение из выпадающего списка по заданному тексту."""
+        self.select_from_combobox(
+            self.RESOLUTION_COMBOBOX,
+            resolution_text.replace("X", " × ")
+        )
 
     def select_framerate(self, framerate_text):
         """Выбирает Framerate из выпадающего списка по заданному тексту."""
-        try:
-            # Ожидаем, пока комбобокс станет кликабельным и кликаем на него
-            framerate_combobox = WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable(self.FRAMERATE_COMBOBOX)
-            )
-            framerate_combobox.click()  # Открываем выпадающий список
-
-            # Генерируем правильный текст с символом
-            framerate_text = framerate_text.replace("FPS", "fps")
-
-            # Ожидаем, пока элемент с нужным Framerate станет видимым
-            framerate_option_locator = (
-                By.XPATH, f"//span[contains(@class, 'menu-item-title') and text()='{framerate_text}']")
-
-            framerate_option = WebDriverWait(self.driver, 10).until(
-                EC.visibility_of_element_located(framerate_option_locator)
-            )
-
-            # Ожидаем, пока элемент станет кликабельным и кликаем на него
-            WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable(framerate_option)
-            ).click()
-
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при выборе Framerate '{framerate_text}': {e}")
+        self.select_from_combobox(
+            self.FRAMERATE_COMBOBOX,
+            framerate_text.replace("FPS", "fps")
+        )
 
     def select_audio_bitrate(self, audio_bitrate_text):
         """Выбирает Audio Bitrate из выпадающего списка по заданному тексту."""
-        try:
-            # Ожидаем, пока комбобокс станет кликабельным и кликаем на него
-            audio_bitrate_combobox = WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable(self.AUDIO_BITRATE_COMBOBOX)
-            )
-            audio_bitrate_combobox.click()  # Открываем выпадающий список
-
-            # Словарь для замены значений
-            replacements = {
-                "AUDIO BITRATE\n6K": "6k",
-                "AUDIO BITRATE\n10K": "10k",
-                "AUDIO BITRATE\n20K": "20k",
-                "AUDIO BITRATE\n40K": "40k",
-                "AUDIO BITRATE\n96K": "96k",
-                "AUDIO BITRATE\n192K": "192k",
-                "AUDIO BITRATE\n510K": "510k"
-            }
-
-            # Заменяем значения в соответствии со словарем
-            for original, replacement in replacements.items():
-                if original in audio_bitrate_text:
-                    audio_bitrate_text = audio_bitrate_text.replace(original, replacement)
-                    break  # Выходим из цикла, если замена выполнена
-
-            # Ожидаем, пока элемент с нужным Audio Bitrate станет видимым
-            audio_bitrate_option_locator = (
-                By.XPATH, f"//span[contains(@class, 'menu-item-title') and text()='{audio_bitrate_text}']"
-            )
-
-            audio_bitrate_option = WebDriverWait(self.driver, 10).until(
-                EC.visibility_of_element_located(audio_bitrate_option_locator)
-            )
-
-            # Ожидаем, пока элемент станет кликабельным и кликаем на него
-            WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable(audio_bitrate_option)
-            ).click()
-
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при выборе Audio Bitrate '{audio_bitrate_text}': {e}")
-
-
+        replacements = {
+            "AUDIO BITRATE\n6K": "6k",
+            "AUDIO BITRATE\n10K": "10k",
+            "AUDIO BITRATE\n20K": "20k",
+            "AUDIO BITRATE\n40K": "40k",
+            "AUDIO BITRATE\n96K": "96k",
+            "AUDIO BITRATE\n192K": "192k",
+            "AUDIO BITRATE\n510K": "510k"
+        }
+        self.select_from_combobox(
+            self.AUDIO_BITRATE_COMBOBOX,
+            audio_bitrate_text,
+            replacements
+        )
