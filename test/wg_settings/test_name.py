@@ -40,7 +40,7 @@ def test_name(driver, logger):
 
     @log_step(logger, "ШАГ 3. Ввод имени")
     def input_name():
-        wg_page.input_name(name_value)
+        wg_page.input_text(wg_page.NAME_FIELD_SETTINGS, name_value)
 
     @log_step(logger, "ШАГ 4. Проверка значения поля имени")
     def check_name_field_value():

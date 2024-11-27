@@ -40,7 +40,7 @@ def test_location(driver, logger):
 
     @log_step(logger, "ШАГ 3. Ввод Location")
     def input_location():
-        wg_page.input_location(location_value)
+        wg_page.input_text(wg_page.LOCATION_FIELD_SETTINGS, location_value)
 
     @log_step(logger, "ШАГ 4. Проверка значения поля Location")
     def check_location_field_value():

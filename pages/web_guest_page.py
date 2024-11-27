@@ -77,37 +77,21 @@ class WebGuestPage(BasePage):
             print(f"Ошибка при проверке состояния кнопки: {e}")
             return False
 
-    def input_name(self, name):
-        """Вводит указанное имя в поле имени по одной букве."""
+    def input_text(self, field_locator, text):
+        """Вводит указанный текст в заданное поле по одной букве."""
         try:
-            name_field = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located(self.NAME_FIELD_SETTINGS)
+            text_field = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located(field_locator)
             )
-            name_field.clear()
+            text_field.clear()
             WebDriverWait(self.driver, 10).until(
-                EC.text_to_be_present_in_element_value(self.NAME_FIELD_SETTINGS, "")
+                EC.text_to_be_present_in_element_value(field_locator, "")
             )
-            for letter in name:
-                name_field.send_keys(letter)
-                sleep(0.7)
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при вводе имени: {e}")
-
-    def input_location(self, location):
-        """Вводит location по одной букве."""
-        try:
-            location_field = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located(self.LOCATION_FIELD_SETTINGS)
-            )
-            location_field.clear()
-            WebDriverWait(self.driver, 10).until(
-                EC.text_to_be_present_in_element_value(self.LOCATION_FIELD_SETTINGS, "")
-            )
-            for letter in location:
-                location_field.send_keys(letter)
+            for letter in text:
+                text_field.send_keys(letter)
                 sleep(0.5)
         except Exception as e:
-            raise RuntimeError(f"Ошибка при вводе местоположения: {e}")
+            raise RuntimeError(f"Ошибка при вводе текста: {e}")
 
     def get_input_value(self, input_locator):
         """Получение значения поля input по указанному локатору."""
