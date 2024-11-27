@@ -89,7 +89,7 @@ class WebGuestPage(BasePage):
             )
             for letter in text:
                 text_field.send_keys(letter)
-                sleep(0.5)
+                sleep(0.6)
         except Exception as e:
             raise RuntimeError(f"Ошибка при вводе текста: {e}")
 
