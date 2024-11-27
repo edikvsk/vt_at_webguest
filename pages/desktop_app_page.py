@@ -148,3 +148,27 @@ class DesktopAppPage:
 
         except Exception as e:
             raise RuntimeError(f"Ошибка при выполнении прокрутки вниз: {e}")
+
+    def get_vt_wg_button_state(self, index):
+        """Получает состояние кнопки по заданному индексу."""
+        try:
+            button = self.main_window.child_window(control_type="Button", found_index=index)
+            if button.exists() and button.is_enabled():
+                state = button.get_toggle_state()
+                return state
+            else:
+                raise ElementNotFoundError(f"Элемент кнопки с индексом {index} не найден или недоступен.")
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при получении состояния кнопки с индексом {index}: {e}")
+
+    def toggle_vt_wg_button(self, index):
+        """Переключает состояние кнопки в WebGuest Settings по заданному индексу."""
+        try:
+            button = self.main_window.child_window(control_type="Button", found_index=index)
+            if button.exists() and button.is_enabled():
+                button.toggle()  # Щелкаем по кнопке для переключения состояния
+                print(f"Состояние кнопки с индексом {index} переключено.")
+            else:
+                raise ElementNotFoundError(f"Элемент кнопки с индексом {index} не найден или недоступен.")
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при переключении состояния кнопки с индексом {index}: {e}")
