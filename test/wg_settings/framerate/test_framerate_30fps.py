@@ -22,7 +22,7 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("login_fixture")
-def test_framerate_15fps(driver, logger):
+def test_framerate_30fps(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
