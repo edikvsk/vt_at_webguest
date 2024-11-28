@@ -13,6 +13,17 @@ class DesktopAppPage:
         self.main_window = main_window
 
     # Методы:
+    def check_element_exists_by_title_part(self, title_part):
+        """Проверяет наличие элемента с заданной частью заголовка."""
+        try:
+            text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*', control_type="Text")
+            if text_element.exists():
+                return True
+            else:
+                return False
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при проверке наличия элемента: {e}")
+
     def right_click_vt_source_item(self, title_part):
         """Выполняет правый клик на элементе с заданной частью заголовка."""
         try:
