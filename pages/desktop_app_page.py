@@ -6,6 +6,7 @@ from pywinauto.findwindows import ElementNotFoundError
 
 class DesktopAppPage:
     # Локаторы:
+
     VT_WEB_GUEST_SETTINGS = "Web Guest Settings"
     VT_OK_BUTTON = "OK"
 
