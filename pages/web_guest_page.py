@@ -106,6 +106,22 @@ class WebGuestPage(BasePage):
         except Exception as e:
             raise RuntimeError(f"Ошибка при получении значения input: {e}")
 
+    def get_volume_fader_value(self, fader_locator):
+        """Получение значения aria-valuenow из слайдера по указанному локатору."""
+        try:
+            # Находим элемент с указанным локатором
+            volume_fader = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located(fader_locator)
+            )
+
+            # Находим внутри него элемент с классом thumb
+            thumb_element = volume_fader.find_element(By.XPATH, ".//div[contains(@class, 'thumb')]")
+
+            # Получаем значение aria-valuenow
+            return thumb_element.get_attribute('aria-valuenow')
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при получении значения aria-valuenow: {e}")
+
     def get_settings_item_value_text(self, element_locator):
         """Получение текста элемента по указанному локатору."""
         try:
