@@ -44,6 +44,9 @@ class WebGuestPage(BasePage):
     AUDIO_BITRATE_COMBOBOX = (By.XPATH, "//div[@class='d-flex flex-grow-1 flex-shrink-1 align-items-center']//span["
                                         "text("")='Audio Bitrate']")
     AUDIO_BITRATE_VALUE = (By.XPATH, "//div[@data-cy='audioBitrate']")
+    VIDEO_BITRATE_COMBOBOX = (By.XPATH, "//div[@class='d-flex flex-grow-1 flex-shrink-1 align-items-center']//span["
+                                        "text("")='Video Bitrate']")
+    VIDEO_BITRATE_VALUE = (By.XPATH, "//div[@data-cy='videoBitrate']")
 
     # Методы:
     def get_username(self):
@@ -175,5 +178,16 @@ class WebGuestPage(BasePage):
         self.select_from_combobox(
             self.AUDIO_BITRATE_COMBOBOX,
             audio_bitrate_text,
+            replacements
+        )
+
+    def select_video_bitrate(self, video_bitrate_text):
+        """Выбирает Video Bitrate из выпадающего списка по заданному тексту."""
+        replacements = {
+            "VIDEO BITRATE\n0.5M": "0.5M",
+        }
+        self.select_from_combobox(
+            self.VIDEO_BITRATE_COMBOBOX,
+            video_bitrate_text,
             replacements
         )
