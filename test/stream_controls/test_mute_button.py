@@ -67,7 +67,6 @@ def test_mute_volume(driver, logger):
         check_volume_fader_value_state_off()
 
     except (NoSuchElementException, TimeoutException) as e:
-
         logger.error(f"Ошибка при выполнении теста: {e}")
 
         pytest.fail(f"Ошибка при выполнении теста: {e}")
