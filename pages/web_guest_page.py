@@ -201,7 +201,12 @@ class WebGuestPage(BasePage):
         """Выбирает Video Bitrate из выпадающего списка по заданному тексту."""
         replacements = {
             "VIDEO BITRATE\n0.5M": "0.5M",
-            "VIDEO BITRATE\n0.75M": "0.75M"
+            "VIDEO BITRATE\n0.75M": "0.75M",
+            "VIDEO BITRATE\n1M": "1M",
+            "VIDEO BITRATE\n1.5M": "1.5M",
+            "VIDEO BITRATE\n2.5M": "2.5M",
+            "VIDEO BITRATE\n5M": "5M",
+            "VIDEO BITRATE\n7.5M": "7.5M"
         }
         self.select_from_combobox(
             self.VIDEO_BITRATE_COMBOBOX,

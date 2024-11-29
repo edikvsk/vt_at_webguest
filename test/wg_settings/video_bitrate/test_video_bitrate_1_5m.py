@@ -22,7 +22,7 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("login_fixture")
-def test_video_bitrate_0_1_5m(driver, logger):
+def test_video_bitrate_1_5m(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
     desktop_app = DesktopApp(PROCESS_PATH)

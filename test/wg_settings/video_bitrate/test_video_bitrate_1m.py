@@ -22,14 +22,14 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("login_fixture")
-def test_video_bitrate_0_2_5m(driver, logger):
+def test_video_bitrate_1m(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
     vt_web_guest_source_name = "Web Guest"
-    video_bitrate = "VIDEO BITRATE\n2.5M"
+    video_bitrate = "VIDEO BITRATE\n1M"
 
     @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
     def check_settings_button():
@@ -52,7 +52,7 @@ def test_video_bitrate_0_2_5m(driver, logger):
     def check_video_bitrate_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
-        desktop_app_page.select_combobox_item_by_index(4, 4)
+        desktop_app_page.select_combobox_item_by_index(4, 2)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
 
     @log_step(logger, "ШАГ 5. Проверка значения поля Video Bitrate")
