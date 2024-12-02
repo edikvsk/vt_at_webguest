@@ -47,6 +47,9 @@ class WebGuestPage(BasePage):
     VIDEO_BITRATE_COMBOBOX = (By.XPATH, "//div[@class='d-flex flex-grow-1 flex-shrink-1 align-items-center']//span["
                                         "text("")='Video Bitrate']")
     VIDEO_BITRATE_VALUE = (By.XPATH, "//div[@data-cy='videoBitrate']")
+    VIDEO_ENCODER_COMBOBOX = (By.XPATH, "//div[@class='d-flex flex-grow-1 flex-shrink-1 align-items-center']//span["
+                                        "text("")='Video Encoder']")
+    VIDEO_ENCODER_VALUE = (By.XPATH, "//div[@data-cy='encoder']//span[contains(@class, 'text-ellipsis')]")
 
     # Методы:
     def get_username(self):
@@ -216,4 +219,11 @@ class WebGuestPage(BasePage):
             self.VIDEO_BITRATE_COMBOBOX,
             video_bitrate_text,
             replacements
+        )
+
+    def select_video_encoder(self, video_encoder_text):
+        """Выбирает Video Encoder из выпадающего списка по заданному тексту."""
+        self.select_from_combobox(
+            self.VIDEO_ENCODER_COMBOBOX,
+            video_encoder_text
         )
