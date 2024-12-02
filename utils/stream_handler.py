@@ -66,3 +66,24 @@ class StreamHandler:
         return 'No peers found';
         """
         return self.driver.execute_script(script)
+
+    def get_current_video_frame_rate(self):
+        script = """
+        const peers = window.peers;
+        if (peers && peers.length > 0) {
+            const peer = peers[0];
+            const pc = peer.pc;
+
+            return pc.getStats(null).then(stats => {
+                let frameRate = null;
+                stats.forEach(report => {
+                    if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                        frameRate = report.framesPerSecond; // Получаем частоту кадров
+                    }
+                });
+                return frameRate;
+            });
+        }
+        return 'No peers found';
+        """
+        return self.driver.execute_script(script)
