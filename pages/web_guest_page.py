@@ -202,7 +202,7 @@ class WebGuestPage(BasePage):
         replacements = {
             "VIDEO BITRATE\n0.5M": "0.5M",
             "VIDEO BITRATE\n0.75M": "0.75M",
-            "VIDEO BITRATE\n1M": "1M",
+            "VIDEO BITRATE\n1.0M": "1.0M",
             "VIDEO BITRATE\n1.5M": "1.5M",
             "VIDEO BITRATE\n2.5M": "2.5M",
             "VIDEO BITRATE\n5M": "5M",

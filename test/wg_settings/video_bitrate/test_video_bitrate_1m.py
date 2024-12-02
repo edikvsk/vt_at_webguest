@@ -29,7 +29,7 @@ def test_video_bitrate_1m(driver, logger):
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
     vt_web_guest_source_name = "Web Guest"
-    video_bitrate = "VIDEO BITRATE\n1M"
+    video_bitrate = "VIDEO BITRATE\n1.0M"
 
     @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
     def check_settings_button():
