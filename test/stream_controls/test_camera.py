@@ -77,23 +77,25 @@ def test_camera(driver, logger):
         desktop_app_page.click_button_by_name(desktop_app_page.VT_OK_BUTTON)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    try:
-        check_camera_button()
-        check_camera_image_state_on()
-        check_tooltip_state_on()
-        check_preview_window_state_on()
-        turn_off_camera()
-        check_camera_image_state_off()
-        check_tooltip_state_off()
-        check_camera_toggle_button_state_off()
+    steps = [
+        check_camera_button,
+        check_camera_image_state_on,
+        check_tooltip_state_on,
+        check_preview_window_state_on,
+        turn_off_camera,
+        check_camera_image_state_off,
+        check_tooltip_state_off,
+        check_camera_toggle_button_state_off
+    ]
 
-    except (NoSuchElementException, TimeoutException) as e:
+    for step in steps:
+        try:
+            step()
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"Ошибка при выполнении теста: {e}")
+            pytest.fail(f"Ошибка при выполнении теста: {e}")
 
-        logger.error(f"Ошибка при выполнении теста: {e}")
+        # При необходимости закрыть VT
+        # finally:
 
-        pytest.fail(f"Ошибка при выполнении теста: {e}")
-
-    # При необходимости закрыть VT
-    # finally:
-
-    # desktop_app.close_application()
+            # desktop_app.close_application()

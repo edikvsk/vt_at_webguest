@@ -75,25 +75,27 @@ def test_start_stream(driver, logger):
         assert not desktop_app_page.check_element_exists_by_title_part(vt_web_guest_source_name), \
             f"Источник WebGuest отображается в VT"
 
-    try:
-        check_stop_button()
-        check_audio_stream_available()
-        check_video_stream_available()
-        check_stop_button_image()
-        check_vt_webguest_state_on()
-        turn_off_stream()
-        check_audio_stream_unavailable()
-        check_video_stream_unavailable()
-        check_start_button_image()
-        check_vt_webguest_state_off()
+    steps = [
+        check_stop_button,
+        check_audio_stream_available,
+        check_video_stream_available,
+        check_stop_button_image,
+        check_vt_webguest_state_on,
+        turn_off_stream,
+        check_audio_stream_unavailable,
+        check_video_stream_unavailable,
+        check_start_button_image,
+        check_vt_webguest_state_off
+    ]
 
-    except (NoSuchElementException, TimeoutException) as e:
+    for step in steps:
+        try:
+            step()
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"Ошибка при выполнении теста: {e}")
+            pytest.fail(f"Ошибка при выполнении теста: {e}")
 
-        logger.error(f"Ошибка при выполнении теста: {e}")
+        # При необходимости закрыть VT
+        # finally:
 
-        pytest.fail(f"Ошибка при выполнении теста: {e}")
-
-    # При необходимости закрыть VT
-    # finally:
-
-    # desktop_app.close_application()
+            # desktop_app.close_application()
