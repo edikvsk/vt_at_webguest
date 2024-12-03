@@ -57,20 +57,22 @@ def test_location(driver, logger):
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
         assert actual_value == expected_value, f"Значение поля не совпадает: ожидаемое '{expected_value}', полученное '{actual_value}'"
 
-    try:
-        check_settings_button()
-        click_settings_button()
-        input_location()
-        check_location_field_value()
-        check_location_field_vt()
+    steps = [
+        check_settings_button,
+        click_settings_button,
+        input_location,
+        check_location_field_value,
+        check_location_field_vt
+    ]
 
-    except (NoSuchElementException, TimeoutException) as e:
+    for step in steps:
+        try:
+            step()
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"Ошибка при выполнении теста: {e}")
+            pytest.fail(f"Ошибка при выполнении теста: {e}")
 
-        logger.error(f"Ошибка при выполнении теста: {e}")
+        # При необходимости закрыть VT
+        # finally:
 
-        pytest.fail(f"Ошибка при выполнении теста: {e}")
-
-    # При необходимости закрыть VT
-    # finally:
-
-    # desktop_app.close_application()
+        # desktop_app.close_application()

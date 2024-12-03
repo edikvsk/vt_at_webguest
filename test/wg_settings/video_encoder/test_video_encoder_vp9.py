@@ -71,21 +71,23 @@ def test_video_encoder_vp9(driver, logger):
         actual_value = codec['outbound']
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    try:
-        check_settings_button()
-        click_settings_button()
-        select_video_encoder()
-        check_video_encoder_field_value_vt()
-        check_video_encoder_field_value()
-        check_video_encoder_webrtc()
+    steps = [
+        check_settings_button,
+        click_settings_button,
+        select_video_encoder,
+        check_video_encoder_field_value_vt,
+        check_video_encoder_field_value,
+        check_video_encoder_webrtc
+    ]
 
-    except (NoSuchElementException, TimeoutException) as e:
+    for step in steps:
+        try:
+            step()
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"Ошибка при выполнении теста: {e}")
+            pytest.fail(f"Ошибка при выполнении теста: {e}")
 
-        logger.error(f"Ошибка при выполнении теста: {e}")
+        # При необходимости закрыть VT
+        # finally:
 
-        pytest.fail(f"Ошибка при выполнении теста: {e}")
-
-    # При необходимости закрыть VT
-    # finally:
-
-    # desktop_app.close_application()
+        # desktop_app.close_application()
