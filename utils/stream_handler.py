@@ -87,3 +87,31 @@ class StreamHandler:
         return 'No peers found';
         """
         return self.driver.execute_script(script)
+
+    def get_video_frame_dimensions(self):
+        script = """
+        const peers = window.peers;
+        if (peers && peers.length > 0) {
+            const peer = peers[0];
+            const pc = peer.pc;
+
+            return pc.getStats(null).then(stats => {
+                let frameDimensions = null;
+
+                stats.forEach(report => {
+                    // Ищем данные для исходящего видеопотока
+                    if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                        const width = report.frameWidth || null; // Ширина исходящего видео
+                        const height = report.frameHeight || null; // Высота исходящего видео
+                        if (width && height) {
+                            frameDimensions = `${width}x${height}`; // Форматируем размеры
+                        }
+                    }
+                });
+
+                return frameDimensions || 'No dimensions found'; // Возвращаем размеры или сообщение об отсутствии
+            });
+        }
+        return 'No peers found'; // Если пиры не найдены
+        """
+        return self.driver.execute_script(script)
