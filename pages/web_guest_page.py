@@ -77,7 +77,7 @@ class WebGuestPage(BasePage):
             text_field.clear()
             for letter in text:
                 text_field.send_keys(letter)
-                sleep(0.1)  # Замените на более подходящее время ожидания
+                sleep(0.5)
         except Exception as e:
             raise RuntimeError(f"Ошибка при вводе текста: {e}")
 
