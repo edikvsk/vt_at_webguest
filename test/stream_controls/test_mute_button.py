@@ -53,9 +53,10 @@ def test_mute_volume(driver, logger):
 
     @log_step(logger, "ШАГ 8. Проверка отображения Volume Fader - состояние: ВЫКЛ.")
     def check_volume_fader_value_state_off():
+        expected_value = volume_fader_value_state_off
         actual_value = wg_page.get_volume_fader_value(wg_page.VOLUME_FADER)
-        assert actual_value == volume_fader_value_state_off, (f"Ожидалось значение '{volume_fader_value_state_off}', "
-                                                              f"но получено '{actual_value}'")
+        assert actual_value == expected_value, (f"Ожидалось значение '{expected_value}', "
+                                                f"но получено '{actual_value}'")
 
     steps = [
         check_mute_button,
