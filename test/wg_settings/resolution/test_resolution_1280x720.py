@@ -61,20 +61,22 @@ def test_resolution_1280x720(driver, logger):
         actual_value = wg_page.get_settings_item_value_text(wg_page.RESOLUTION_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    try:
-        check_settings_button()
-        click_settings_button()
-        select_resolution()
-        check_resolution_field_value_vt()
-        check_resolution_field_value()
+    steps = [
+        check_settings_button,
+        click_settings_button,
+        select_resolution,
+        check_resolution_field_value_vt,
+        check_resolution_field_value
+    ]
 
-    except (NoSuchElementException, TimeoutException) as e:
+    for step in steps:
+        try:
+            step()
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"Ошибка при выполнении теста: {e}")
+            pytest.fail(f"Ошибка при выполнении теста: {e}")
 
-        logger.error(f"Ошибка при выполнении теста: {e}")
+        # При необходимости закрыть VT
+        # finally:
 
-        pytest.fail(f"Ошибка при выполнении теста: {e}")
-
-    # При необходимости закрыть VT
-    # finally:
-
-    # desktop_app.close_application()
+        # desktop_app.close_application()
