@@ -104,7 +104,7 @@ class StreamHandler:
                         const width = report.frameWidth || null; // Ширина исходящего видео
                         const height = report.frameHeight || null; // Высота исходящего видео
                         if (width && height) {
-                            frameDimensions = `${width}x${height}`; // Форматируем размеры
+                            frameDimensions = `${width}X${height}`; // Форматируем размеры
                         }
                     }
                 });
@@ -114,4 +114,10 @@ class StreamHandler:
         }
         return 'No peers found'; // Если пиры не найдены
         """
+
+        # Ожидаем, пока peers не будут доступны
+        WebDriverWait(self.driver, 10).until(
+            lambda driver: driver.execute_script("return window.peers && window.peers.length > 0;")
+        )
+
         return self.driver.execute_script(script)
