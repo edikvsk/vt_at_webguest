@@ -11,6 +11,7 @@ from utils.conftest import driver, login_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
+from utils.stream_handler import StreamHandler
 from utils.urls import PROCESS_PATH
 
 
@@ -25,6 +26,7 @@ def logger(caplog):
 def test_framerate_60fps(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
+    stream_handler = StreamHandler(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
@@ -61,12 +63,21 @@ def test_framerate_60fps(driver, logger):
         actual_value = wg_page.get_settings_item_value_text(wg_page.FRAMERATE_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
+    @log_step(logger, "ШАГ 6. Проверка значения Framerate в WebRTC")
+    def check_webrtc_framerate():
+        expected_value = framerate
+        base_page.click(wg_page.STOP_BUTTON)
+        base_page.click(wg_page.START_BUTTON)
+        actual_value = stream_handler.get_video_frame_rate()
+        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+
     steps = [
         check_settings_button,
         click_settings_button,
         select_framerate,
         check_framerate_field_value_vt,
-        check_framerate_field_value
+        check_framerate_field_value,
+        check_webrtc_framerate
     ]
 
     for step in steps:
