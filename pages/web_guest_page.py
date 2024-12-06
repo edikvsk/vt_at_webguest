@@ -170,3 +170,45 @@ class WebGuestPage(BasePage):
     def select_video_encoder(self, video_encoder_text):
         """Выбирает Video Encoder из выпадающего списка по заданному тексту."""
         self.select_from_combobox(self.VIDEO_ENCODER_COMBOBOX, video_encoder_text)
+
+    def hover_element_(self, element):
+        """Наведение курсора на указанный элемент."""
+        ActionChains(self.driver).move_to_element(self.wait_for_element(element)).perform()
+
+    def get_tooltip_text_(self, element, tooltip_locator):
+        """Получение текста тултипа после наведения на указанный элемент."""
+        try:
+            self.hover_element(element)
+            tooltip_element = self.wait_for_element(tooltip_locator)
+            return tooltip_element.text
+        except (TimeoutException, NoSuchElementException) as e:
+            print(f"Ошибка при получении текста tooltip: {e}")
+            return None
+
+    def is_button_pressed_(self, button_locator):
+        """Проверяет, нажата ли кнопка, используя указанный локатор."""
+        try:
+            button = self.wait_for_element(button_locator)
+            return 'bg-danger' not in button.get_attribute('class')
+        except NoSuchElementException as e:
+            print(f"Ошибка при проверке состояния кнопки: {e}")
+            return False
+
+    def input_text_(self, field_locator, text):
+        """Вводит указанный текст в заданное поле по одной букве."""
+        try:
+            text_field = self.wait_for_element(field_locator)
+            text_field.clear()
+            for letter in text:
+                text_field.send_keys(letter)
+                sleep(0.5)
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при вводе текста: {e}")
+
+    def get_input_value_(self, input_locator):
+        """Получение значения поля input по указанному локатору."""
+        try:
+            input_element = self.wait_for_element(input_locator)
+            return input_element.get_attribute('value')
+        except NoSuchElementException as e:
+            raise RuntimeError(f"Ошибка при получении значения input: {e}")
