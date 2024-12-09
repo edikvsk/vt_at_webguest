@@ -42,6 +42,8 @@ class WebGuestPage(BasePage):
     VIDEO_ENCODER_VALUE = (By.XPATH, "//div[@data-cy='encoder']//span[contains(@class, 'text-ellipsis')]")
     COMBOBOX_BACK_BUTTON = (By.XPATH, "//div[@class='mr-1']")
     MIRRORING_SWITCHER = (By.XPATH, "//div[@data-cy='mirroring']//div[contains(@class, 'custom-switcher')]")
+    AUDIO_ENHANCEMENTS_SWITCHER = (By.XPATH, "//div[@data-cy='audioEnhancements']//div[contains(@class, "
+                                             "'custom-switcher')]")
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
