@@ -41,8 +41,29 @@ class WebGuestPage(BasePage):
     VIDEO_ENCODER_COMBOBOX = (By.XPATH, "//span[text()='Video Encoder']")
     VIDEO_ENCODER_VALUE = (By.XPATH, "//div[@data-cy='encoder']//span[contains(@class, 'text-ellipsis')]")
     COMBOBOX_BACK_BUTTON = (By.XPATH, "//div[@class='mr-1']")
+    MIRRORING_SWITCHER = (By.XPATH, "//div[@data-cy='mirroring']//div[contains(@class, 'custom-switcher')]")
 
     # Методы:
+    def click_element_with_scroll(self, element_locator, timeout=10):
+        """Кликает по элементу, если он доступен, с заданным временем ожидания и прокруткой к элементу"""
+        try:
+            # Ожидаем, пока элемент станет кликабельным
+            element = WebDriverWait(self.driver, timeout).until(
+                EC.element_to_be_clickable(element_locator)
+            )
+
+            # Прокручиваем к элементу, если он не виден
+            self.driver.execute_script("arguments[0].scrollIntoView();", element)
+
+            # Используем ActionChains для клика
+            actions = ActionChains(self.driver)
+            actions.move_to_element(element).click().perform()
+
+        except TimeoutException:
+            print(f"Элемент {element_locator} не доступен для клика в течение {timeout} секунд.")
+        except Exception as e:
+            print(f"Ошибка при клике на элемент {element_locator}: {e}")
+
     def wait_for_element(self, locator, timeout=10):
         """Ожидание элемента по локатору."""
         return WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
@@ -171,44 +192,12 @@ class WebGuestPage(BasePage):
         """Выбирает Video Encoder из выпадающего списка по заданному тексту."""
         self.select_from_combobox(self.VIDEO_ENCODER_COMBOBOX, video_encoder_text)
 
-    def hover_element_(self, element):
-        """Наведение курсора на указанный элемент."""
-        ActionChains(self.driver).move_to_element(self.wait_for_element(element)).perform()
-
-    def get_tooltip_text_(self, element, tooltip_locator):
-        """Получение текста тултипа после наведения на указанный элемент."""
+    def is_switcher_active(self, switcher_locator):
+        """Проверяет, активен ли свитчер, используя указанный локатор."""
         try:
-            self.hover_element(element)
-            tooltip_element = self.wait_for_element(tooltip_locator)
-            return tooltip_element.text
-        except (TimeoutException, NoSuchElementException) as e:
-            print(f"Ошибка при получении текста tooltip: {e}")
-            return None
-
-    def is_button_pressed_(self, button_locator):
-        """Проверяет, нажата ли кнопка, используя указанный локатор."""
-        try:
-            button = self.wait_for_element(button_locator)
-            return 'bg-danger' not in button.get_attribute('class')
+            switcher = self.wait_for_element(switcher_locator)
+            return 'bg-success' in switcher.get_attribute('class') and 'bg-danger' not in switcher.get_attribute(
+                'class')
         except NoSuchElementException as e:
-            print(f"Ошибка при проверке состояния кнопки: {e}")
+            print(f"Ошибка при проверке состояния свитчера: {e}")
             return False
-
-    def input_text_(self, field_locator, text):
-        """Вводит указанный текст в заданное поле по одной букве."""
-        try:
-            text_field = self.wait_for_element(field_locator)
-            text_field.clear()
-            for letter in text:
-                text_field.send_keys(letter)
-                sleep(0.5)
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при вводе текста: {e}")
-
-    def get_input_value_(self, input_locator):
-        """Получение значения поля input по указанному локатору."""
-        try:
-            input_element = self.wait_for_element(input_locator)
-            return input_element.get_attribute('value')
-        except NoSuchElementException as e:
-            raise RuntimeError(f"Ошибка при получении значения input: {e}")

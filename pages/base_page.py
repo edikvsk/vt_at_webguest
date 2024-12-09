@@ -17,13 +17,16 @@ class BasePage:
         element.clear()  # Очистка поля перед вводом текста
         element.send_keys(text)
 
-    def click(self, element_locator):
-        """Кликает по элементу, если он доступен"""
+    def click(self, element_locator, timeout=10):
+        """Кликает по элементу, если он доступен, с заданным временем ожидания"""
         try:
-            element = self.wait_for_element(element_locator)  # Ждем, пока элемент станет доступным
+            # Ожидаем, пока элемент станет кликабельным
+            element = WebDriverWait(self.driver, timeout).until(
+                EC.element_to_be_clickable(element_locator)
+            )
             element.click()  # Выполняем клик по элементу
         except TimeoutException:
-            print(f"Элемент {element_locator} не доступен для клика.")
+            print(f"Элемент {element_locator} не доступен для клика в течение {timeout} секунд.")
 
     def get_text(self, locator):
         return self.wait_for_element(locator).text
