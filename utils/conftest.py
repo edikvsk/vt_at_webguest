@@ -29,7 +29,22 @@ def driver():
 
     chrome_options = Options()
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
-    chrome_options.add_argument("--use-fake-device-for-media-stream")
+    # chrome_options.add_argument("--use-fake-device-for-media-stream") # Использовать если недоступно физ. устройство
+    media_constraints = {
+        "video": {
+            "deviceId": {
+                "exact": "8381375a5322592502987a99a4a57727661cfbf29116e845f10b766767ae596f"
+            }
+        },
+        "audio": {
+            "deviceId": {
+                "exact": "e583fb0c4b6e4c2aa41ebbab2784cc771351bc711de849a1d2dd86f21529bd11"
+            }
+        }
+    }
+
+    # Включите в опции обработку медиа-стрима с вашими устройствами
+    chrome_options.add_argument(f"mediaStreamConstraints={media_constraints}")
     service = Service(CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     yield driver

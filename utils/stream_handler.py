@@ -156,62 +156,65 @@ class StreamHandler:
 
         return self.driver.execute_script(script)
 
-    def get_average_bitrate(self):
+    def start_monitoring_bitrate(self):
         script = """
-        const peers = window.peers;
-        if (peers && peers.length > 0) {
-            const peer = peers[0];
-            const pc = peer.pc;
-            const intervalDuration = 1000; // Интервал в миллисекундах
-            let totalBitrate = 0;
-            let count = 0;
-            let iterations = 0; // Счетчик итераций
-            const maxIterations = 10; // Максимальное количество итераций
+        return new Promise((resolve, reject) => {
+            const peers = window.peers;
+            if (!peers || peers.length === 0) {
+                return reject('No peers found');
+            }
 
-            return new Promise((resolve, reject) => {
-                const intervalId = setInterval(() => {
-                    if (iterations >= maxIterations) {
-                        clearInterval(intervalId);
-                        reject('Max iterations reached without valid bitrate data');
-                        return;
-                    }
+            const pc = peers[0].pc;
+            const bitrateValues = [];
+            const monitoringDuration = 15; // seconds
+            const intervalDuration = 1000; // milliseconds
 
-                    pc.getStats(null).then(stats => {
-                        stats.forEach(report => {
-                            if (report.type === 'outbound-rtp' && report.kind === 'video') {
-                                const bytesSent = report.bytesSent; // Получаем количество отправленных байт
-                                if (bytesSent) {
-                                    const bitrate = (bytesSent * 8) / intervalDuration; // Вычисляем битрейт в битах в секунду
-                                    totalBitrate += bitrate; // Суммируем битрейт
-                                    count++;
+            let previousBytesSent = 0;
+            let previousTimestamp = null;
+            let intervalCount = 0;
+            let maxBitrate = 0;
+
+            const intervalId = setInterval(() => {
+                pc.getStats(null).then(stats => {
+                    stats.forEach(report => {
+                        if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                            const currentBytesSent = report.bytesSent;
+                            const currentTimestamp = report.timestamp;
+
+                            if (previousTimestamp !== null) {
+                                const bytesDifference = currentBytesSent - previousBytesSent;
+                                const timeDifference = (currentTimestamp - previousTimestamp) / 1000;
+
+                                if (bytesDifference > 0 && timeDifference > 0) {
+                                    const videoBitrate = (bytesDifference * 8) / timeDifference;
+                                    bitrateValues.push(videoBitrate);
+                                    if (videoBitrate > maxBitrate) {
+                                        maxBitrate = videoBitrate;
+                                    }
                                 }
                             }
-                        });
 
-                        iterations++; // Увеличиваем счетчик итераций
-
-                        if (count > 0) {
-                            clearInterval(intervalId); // Останавливаем интервал
-                            const averageBitrate = totalBitrate / count; // Вычисляем средний битрейт
-                            const averageBitrateInMb = averageBitrate / 1e6; // Преобразуем в мегабиты
-                            resolve(averageBitrateInMb.toFixed(2)); // Возвращаем результат
+                            previousBytesSent = currentBytesSent;
+                            previousTimestamp = currentTimestamp;
                         }
-                    }).catch(error => {
-                        clearInterval(intervalId); // Останавливаем интервал в случае ошибки
-                        reject('Error getting stats: ' + error);
                     });
-                }, intervalDuration);
-            });
-        } else {
-            return Promise.reject('No peers found');
-        }
+                }).catch(error => console.error('Error getting stats:', error));
+
+                if (++intervalCount >= monitoringDuration) {
+                    clearInterval(intervalId);
+                    if (bitrateValues.length > 0) {
+                        const averageBitrate = bitrateValues.reduce((a, b) => a + b, 0) / bitrateValues.length;
+                        resolve({
+                            average: (averageBitrate / 1e6).toFixed(2),
+                            max: (maxBitrate / 1e6).toFixed(2)
+                        });
+                    } else {
+                        reject('No bitrate data collected');
+                    }
+                }
+            }, intervalDuration);
+        });
         """
 
-        # Ожидаем, пока peers не будут доступны
-        WebDriverWait(self.driver, 10).until(
-            lambda driver: driver.execute_script("return window.peers && window.peers.length > 0;")
-        )
-
-        # Выполняем скрипт и ждем результат
-        average_bitrate = self.driver.execute_async_script(script)
-        return average_bitrate
+        result = self.driver.execute_script(script)
+        return result
