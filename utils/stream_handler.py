@@ -156,7 +156,67 @@ class StreamHandler:
 
         return self.driver.execute_script(script)
 
-    def start_monitoring_bitrate(self):
+    def start_monitoring_audio_bitrate(self):
+        script = """
+        return new Promise((resolve, reject) => {
+            const peers = window.peers;
+            if (!peers || peers.length === 0) {
+                return reject('No peers found');
+            }
+
+            const pc = peers[0].pc;
+            const audioBitrateValues = [];
+            const monitoringDuration = 15; // seconds
+            const intervalDuration = 1000; // milliseconds
+
+            let previousAudioBytesSent = 0;
+            let previousTimestamp = null;
+            let intervalCount = 0;
+            let maxAudioBitrate = 0;
+
+            const intervalId = setInterval(() => {
+                pc.getStats(null).then(stats => {
+                    stats.forEach(report => {
+                        if (report.type === 'outbound-rtp' && report.kind === 'audio') {
+                            const currentBytesSent = report.bytesSent;
+                            const currentTimestamp = report.timestamp;
+
+                            if (previousTimestamp !== null) {
+                                const bytesDifference = currentBytesSent - previousAudioBytesSent;
+                                const timeDifference = (currentTimestamp - previousTimestamp) / 1000;
+
+                                if (bytesDifference > 0 && timeDifference > 0) {
+                                    const audioBitrate = (bytesDifference * 8) / timeDifference; // in bits per second
+                                    audioBitrateValues.push(audioBitrate);
+                                    if (audioBitrate > maxAudioBitrate) {
+                                        maxAudioBitrate = audioBitrate;
+                                    }
+                                }
+                            }
+                            previousAudioBytesSent = currentBytesSent;
+                            previousTimestamp = currentTimestamp;
+                        }
+                    });
+                }).catch(error => console.error('Error getting stats:', error));
+
+                if (++intervalCount >= monitoringDuration) {
+                    clearInterval(intervalId);
+                    const averageAudioBitrate = audioBitrateValues.length > 0 
+                        ? audioBitrateValues.reduce((a, b) => a + b, 0) / audioBitrateValues.length 
+                        : 0;
+                    resolve({
+                        averageAudio: (averageAudioBitrate / 1e3).toFixed(2), // in Kb/s
+                        maxAudio: (maxAudioBitrate / 1e3).toFixed(2) // in Kb/s
+                    });
+                }
+            }, intervalDuration);
+        });
+        """
+
+        result = self.driver.execute_script(script)
+        return result
+
+    def start_monitoring_video_bitrate(self):
         script = """
         return new Promise((resolve, reject) => {
             const peers = window.peers;
@@ -166,53 +226,34 @@ class StreamHandler:
 
             const pc = peers[0].pc;
             const videoBitrateValues = [];
-            const audioBitrateValues = [];
             const monitoringDuration = 15; // seconds
             const intervalDuration = 1000; // milliseconds
 
             let previousVideoBytesSent = 0;
-            let previousAudioBytesSent = 0;
             let previousTimestamp = null;
             let intervalCount = 0;
             let maxVideoBitrate = 0;
-            let maxAudioBitrate = 0;
 
             const intervalId = setInterval(() => {
                 pc.getStats(null).then(stats => {
                     stats.forEach(report => {
-                        if (report.type === 'outbound-rtp') {
+                        if (report.type === 'outbound-rtp' && report.kind === 'video') {
                             const currentBytesSent = report.bytesSent;
                             const currentTimestamp = report.timestamp;
 
-                            if (report.kind === 'video') {
-                                if (previousTimestamp !== null) {
-                                    const bytesDifference = currentBytesSent - previousVideoBytesSent;
-                                    const timeDifference = (currentTimestamp - previousTimestamp) / 1000;
+                            if (previousTimestamp !== null) {
+                                const bytesDifference = currentBytesSent - previousVideoBytesSent;
+                                const timeDifference = (currentTimestamp - previousTimestamp) / 1000;
 
-                                    if (bytesDifference > 0 && timeDifference > 0) {
-                                        const videoBitrate = (bytesDifference * 8) / timeDifference; // in bits per second
-                                        videoBitrateValues.push(videoBitrate);
-                                        if (videoBitrate > maxVideoBitrate) {
-                                            maxVideoBitrate = videoBitrate;
-                                        }
+                                if (bytesDifference > 0 && timeDifference > 0) {
+                                    const videoBitrate = (bytesDifference * 8) / timeDifference; // in bits per second
+                                    videoBitrateValues.push(videoBitrate);
+                                    if (videoBitrate > maxVideoBitrate) {
+                                        maxVideoBitrate = videoBitrate;
                                     }
                                 }
-                                previousVideoBytesSent = currentBytesSent;
-                            } else if (report.kind === 'audio') {
-                                if (previousTimestamp !== null) {
-                                    const bytesDifference = currentBytesSent - previousAudioBytesSent;
-                                    const timeDifference = (currentTimestamp - previousTimestamp) / 1000;
-
-                                    if (bytesDifference > 0 && timeDifference > 0) {
-                                        const audioBitrate = (bytesDifference * 8) / timeDifference; // in bits per second
-                                        audioBitrateValues.push(audioBitrate);
-                                        if (audioBitrate > maxAudioBitrate) {
-                                            maxAudioBitrate = audioBitrate;
-                                        }
-                                    }
-                                }
-                                previousAudioBytesSent = currentBytesSent;
                             }
+                            previousVideoBytesSent = currentBytesSent;
                             previousTimestamp = currentTimestamp;
                         }
                     });
@@ -223,20 +264,14 @@ class StreamHandler:
                     const averageVideoBitrate = videoBitrateValues.length > 0 
                         ? videoBitrateValues.reduce((a, b) => a + b, 0) / videoBitrateValues.length 
                         : 0;
-                    const averageAudioBitrate = audioBitrateValues.length > 0 
-                        ? audioBitrateValues.reduce((a, b) => a + b, 0) / audioBitrateValues.length 
-                    : 0;
-
-                resolve({
-                    averageVideo: (averageVideoBitrate / 1e6).toFixed(2), // in Mb/s
-                    maxVideo: (maxVideoBitrate / 1e6).toFixed(2), // in Mb/s
-                    averageAudio: (averageAudioBitrate / 1e3).toFixed(2), // in kb/s
-                    maxAudio: (maxAudioBitrate / 1e3).toFixed(2) // in kb/s
-                });
-            }
-        }, intervalDuration);
-    });
-    """
+                    resolve({
+                        averageVideo: (averageVideoBitrate / 1e6).toFixed(2), // in Mb/s
+                        maxVideo: (maxVideoBitrate / 1e6).toFixed(2) // in Mb/s
+                    });
+                }
+            }, intervalDuration);
+        });
+        """
 
         result = self.driver.execute_script(script)
         return result

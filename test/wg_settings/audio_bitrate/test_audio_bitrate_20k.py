@@ -63,16 +63,16 @@ def test_audio_bitrate_20k(driver, logger):
 
     @log_step(logger, "ШАГ 6. Запуск мониторинга битрейта")
     def monitor_bitrate():
-        result = stream_handler.start_monitoring_bitrate()
-        formatted_audio_bitrate = stream_handler.format_audio_bitrate(result['maxAudio'])
-        average_audio_bitrate = result['averageAudio']
-        max_audio_bitrate = result['maxAudio']
+        result = stream_handler.start_monitoring_audio_bitrate()
+        formatted_bitrate = stream_handler.format_audio_bitrate(result['maxAudio'])
+        average_bitrate = result['averageAudio']
+        max_bitrate = result['maxAudio']
 
-        logger.info(f'Average Audio Bitrate: {average_audio_bitrate} kb/s')
-        logger.info(f'Max Audio Bitrate: {max_audio_bitrate} kb/s')
+        logger.info(f'Average Audio Bitrate: {average_bitrate} kb/s')
+        logger.info(f'Max Audio Bitrate: {max_bitrate} kb/s')
 
-        assert formatted_audio_bitrate == audio_bitrate, (f"Ожидалось значение '{audio_bitrate}',"
-                                                          f" но получено '{formatted_audio_bitrate}'")
+        assert formatted_bitrate == audio_bitrate, (f"Ожидалось значение '{audio_bitrate}',"
+                                                    f" но получено '{formatted_bitrate}'")
 
     steps = [
         check_settings_button,

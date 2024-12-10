@@ -1,4 +1,5 @@
 import os
+import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -63,12 +64,12 @@ def test_video_bitrate_5m(driver, logger):
 
     @log_step(logger, "ШАГ 6. Запуск мониторинга битрейта")
     def monitor_bitrate():
-        result = stream_handler.start_monitoring_bitrate()
+        result = stream_handler.start_monitoring_video_bitrate()
         average_bitrate = result['averageVideo']
         max_bitrate = result['maxVideo']
 
-        logger.info(f'Average Bitrate: {average_bitrate} Mb/s')
-        logger.info(f'Max Bitrate: {max_bitrate} Mb/s')
+        logger.info(f'Average Video Bitrate: {average_bitrate} Mb/s')
+        logger.info(f'Max Video Bitrate: {max_bitrate} Mb/s')
 
     steps = [
         check_settings_button,

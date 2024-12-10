@@ -1,3 +1,4 @@
+import time
 from time import sleep
 
 from selenium.common import TimeoutException, NoSuchElementException
@@ -181,6 +182,9 @@ class WebGuestPage(BasePage):
             "AUDIO BITRATE\n192K": "192k",
             "AUDIO BITRATE\n510K": "510k"
         }
+
+        time.sleep(1.5)
+
         self.select_from_combobox(self.AUDIO_BITRATE_COMBOBOX, audio_bitrate_text, replacements)
 
     def select_video_bitrate(self, video_bitrate_text):
@@ -198,6 +202,9 @@ class WebGuestPage(BasePage):
             "VIDEO BITRATE\n15M": "15M",
             "VIDEO BITRATE\n20M": "20M"
         }
+
+        time.sleep(1.5)
+
         self.select_from_combobox(self.VIDEO_BITRATE_COMBOBOX, video_bitrate_text, replacements)
 
     def select_video_encoder(self, video_encoder_text):
