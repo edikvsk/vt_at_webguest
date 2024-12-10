@@ -11,6 +11,7 @@ from utils.conftest import driver, login_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
+from utils.stream_handler import StreamHandler
 from utils.urls import PROCESS_PATH
 
 
@@ -25,6 +26,7 @@ def logger(caplog):
 def test_audio_bitrate_20k(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
+    stream_handler = StreamHandler(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
@@ -61,12 +63,26 @@ def test_audio_bitrate_20k(driver, logger):
         actual_value = wg_page.get_settings_item_value_text(wg_page.AUDIO_BITRATE_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
+    @log_step(logger, "ШАГ 6. Запуск мониторинга битрейта")
+    def monitor_bitrate():
+        result = stream_handler.start_monitoring_bitrate()
+        formatted_audio_bitrate = stream_handler.format_audio_bitrate(result['maxAudio'])
+        average_audio_bitrate = result['averageAudio']
+        max_audio_bitrate = result['maxAudio']
+
+        logger.info(f'Average Audio Bitrate: {average_audio_bitrate} kb/s')
+        logger.info(f'Max Audio Bitrate: {max_audio_bitrate} kb/s')
+
+        assert formatted_audio_bitrate == audio_bitrate, (f"Ожидалось значение '{audio_bitrate}',"
+                                                          f" но получено '{formatted_audio_bitrate}'")
+
     steps = [
         check_settings_button,
         click_settings_button,
         select_audio_bitrate,
         check_audio_bitrate_field_value_vt,
-        check_audio_bitrate_field_value
+        check_audio_bitrate_field_value,
+        monitor_bitrate
     ]
 
     for step in steps:

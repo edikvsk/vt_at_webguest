@@ -165,36 +165,54 @@ class StreamHandler:
             }
 
             const pc = peers[0].pc;
-            const bitrateValues = [];
+            const videoBitrateValues = [];
+            const audioBitrateValues = [];
             const monitoringDuration = 15; // seconds
             const intervalDuration = 1000; // milliseconds
 
-            let previousBytesSent = 0;
+            let previousVideoBytesSent = 0;
+            let previousAudioBytesSent = 0;
             let previousTimestamp = null;
             let intervalCount = 0;
-            let maxBitrate = 0;
+            let maxVideoBitrate = 0;
+            let maxAudioBitrate = 0;
 
             const intervalId = setInterval(() => {
                 pc.getStats(null).then(stats => {
                     stats.forEach(report => {
-                        if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                        if (report.type === 'outbound-rtp') {
                             const currentBytesSent = report.bytesSent;
                             const currentTimestamp = report.timestamp;
 
-                            if (previousTimestamp !== null) {
-                                const bytesDifference = currentBytesSent - previousBytesSent;
-                                const timeDifference = (currentTimestamp - previousTimestamp) / 1000;
+                            if (report.kind === 'video') {
+                                if (previousTimestamp !== null) {
+                                    const bytesDifference = currentBytesSent - previousVideoBytesSent;
+                                    const timeDifference = (currentTimestamp - previousTimestamp) / 1000;
 
-                                if (bytesDifference > 0 && timeDifference > 0) {
-                                    const videoBitrate = (bytesDifference * 8) / timeDifference;
-                                    bitrateValues.push(videoBitrate);
-                                    if (videoBitrate > maxBitrate) {
-                                        maxBitrate = videoBitrate;
+                                    if (bytesDifference > 0 && timeDifference > 0) {
+                                        const videoBitrate = (bytesDifference * 8) / timeDifference; // in bits per second
+                                        videoBitrateValues.push(videoBitrate);
+                                        if (videoBitrate > maxVideoBitrate) {
+                                            maxVideoBitrate = videoBitrate;
+                                        }
                                     }
                                 }
-                            }
+                                previousVideoBytesSent = currentBytesSent;
+                            } else if (report.kind === 'audio') {
+                                if (previousTimestamp !== null) {
+                                    const bytesDifference = currentBytesSent - previousAudioBytesSent;
+                                    const timeDifference = (currentTimestamp - previousTimestamp) / 1000;
 
-                            previousBytesSent = currentBytesSent;
+                                    if (bytesDifference > 0 && timeDifference > 0) {
+                                        const audioBitrate = (bytesDifference * 8) / timeDifference; // in bits per second
+                                        audioBitrateValues.push(audioBitrate);
+                                        if (audioBitrate > maxAudioBitrate) {
+                                            maxAudioBitrate = audioBitrate;
+                                        }
+                                    }
+                                }
+                                previousAudioBytesSent = currentBytesSent;
+                            }
                             previousTimestamp = currentTimestamp;
                         }
                     });
@@ -202,19 +220,43 @@ class StreamHandler:
 
                 if (++intervalCount >= monitoringDuration) {
                     clearInterval(intervalId);
-                    if (bitrateValues.length > 0) {
-                        const averageBitrate = bitrateValues.reduce((a, b) => a + b, 0) / bitrateValues.length;
-                        resolve({
-                            average: (averageBitrate / 1e6).toFixed(2),
-                            max: (maxBitrate / 1e6).toFixed(2)
-                        });
-                    } else {
-                        reject('No bitrate data collected');
-                    }
-                }
-            }, intervalDuration);
-        });
-        """
+                    const averageVideoBitrate = videoBitrateValues.length > 0 
+                        ? videoBitrateValues.reduce((a, b) => a + b, 0) / videoBitrateValues.length 
+                        : 0;
+                    const averageAudioBitrate = audioBitrateValues.length > 0 
+                        ? audioBitrateValues.reduce((a, b) => a + b, 0) / audioBitrateValues.length 
+                    : 0;
+
+                resolve({
+                    averageVideo: (averageVideoBitrate / 1e6).toFixed(2), // in Mb/s
+                    maxVideo: (maxVideoBitrate / 1e6).toFixed(2), // in Mb/s
+                    averageAudio: (averageAudioBitrate / 1e3).toFixed(2), // in kb/s
+                    maxAudio: (maxAudioBitrate / 1e3).toFixed(2) // in kb/s
+                });
+            }
+        }, intervalDuration);
+    });
+    """
 
         result = self.driver.execute_script(script)
         return result
+
+    @staticmethod
+    def format_audio_bitrate(max_audio_bitrate):
+        max_audio_bitrate = float(max_audio_bitrate)
+        if 4 <= max_audio_bitrate < 8:
+            return "AUDIO BITRATE\n6K"
+        elif 8 <= max_audio_bitrate < 14:
+            return "AUDIO BITRATE\n10K"
+        elif 18 <= max_audio_bitrate < 25:
+            return "AUDIO BITRATE\n20K"
+        elif 36 <= max_audio_bitrate < 46:
+            return "AUDIO BITRATE\n40K"
+        elif 90 <= max_audio_bitrate < 104:
+            return "AUDIO BITRATE\n96K"
+        elif 180 <= max_audio_bitrate < 205:
+            return "AUDIO BITRATE\n192K"
+        elif 490 <= max_audio_bitrate < 530:
+            return "AUDIO BITRATE\n510K"
+        else:
+            return f"AUDIO BITRATE {max_audio_bitrate}K"  # для значений вне указанных диапазонов
