@@ -1,5 +1,4 @@
 import os
-import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
