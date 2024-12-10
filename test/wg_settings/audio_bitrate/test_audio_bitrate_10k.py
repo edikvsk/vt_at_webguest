@@ -1,5 +1,4 @@
 import os
-import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -39,11 +38,10 @@ def test_audio_bitrate_10k(driver, logger):
 
     @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
     def click_settings_button():
-        base_page.click(wg_page.SETTINGS_BUTTON)
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
 
     @log_step(logger, "ШАГ 3. Выбор Audio Bitrate")
     def select_audio_bitrate():
-        time.sleep(3.5)
         wg_page.select_audio_bitrate(audio_bitrate)
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
         expected_value = audio_bitrate

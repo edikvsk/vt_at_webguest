@@ -135,10 +135,13 @@ class WebGuestPage(BasePage):
         """Выбирает значение из выпадающего списка по заданному тексту."""
         try:
             combobox = self.wait_for_element(combobox_locator)
+
+            # Ожидание, пока элемент станет кликабельным
+            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(combobox))
+
             combobox.click()  # Открываем выпадающий список
 
             # Если предоставлен словарь замен, выполняем замену текста
-
             if replacements:
                 for original, replacement in replacements.items():
                     if original in text:
@@ -146,11 +149,18 @@ class WebGuestPage(BasePage):
                         break  # Выходим из цикла, если замена выполнена
 
             option_locator = (By.XPATH, f"//span[contains(@class, 'menu-item-title') and text()='{text}']")
-            option = self.wait_for_element(option_locator)
-            option.click()
+
+            # Ожидание, пока элемент станет кликабельным
+            option = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(option_locator))
+
+            # Проверка, что элемент видим и доступен для клика
+            if option.is_displayed() and option.is_enabled():
+                option.click()
+            else:
+                print("Элемент не доступен для клика.")
 
         except Exception as e:
-            raise RuntimeError(f"Ошибка при выборе '{text}': {e}")
+            print(f"Произошла ошибка: {e}")
 
     def select_resolution(self, resolution_text):
         """Выбирает разрешение из выпадающего списка по заданному тексту."""

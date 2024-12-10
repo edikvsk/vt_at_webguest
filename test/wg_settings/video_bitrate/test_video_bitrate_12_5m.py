@@ -39,11 +39,10 @@ def test_video_bitrate_12_5m(driver, logger):
 
     @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
     def click_settings_button():
-        base_page.click(wg_page.SETTINGS_BUTTON)
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
 
     @log_step(logger, "ШАГ 3. Выбор Video Bitrate")
     def select_video_bitrate():
-        time.sleep(3.5)
         wg_page.select_video_bitrate(video_bitrate)
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
         expected_value = video_bitrate
@@ -66,8 +65,8 @@ def test_video_bitrate_12_5m(driver, logger):
     @log_step(logger, "ШАГ 6. Запуск мониторинга битрейта")
     def monitor_bitrate():
         result = stream_handler.start_monitoring_bitrate()
-        average_bitrate = result['average']
-        max_bitrate = result['max']
+        average_bitrate = result['averageVideo']
+        max_bitrate = result['maxVideo']
 
         logger.info(f'Average Bitrate: {average_bitrate} Mb/s')
         logger.info(f'Max Bitrate: {max_bitrate} Mb/s')
