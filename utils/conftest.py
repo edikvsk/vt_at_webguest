@@ -1,4 +1,6 @@
 import logging
+import subprocess
+import time
 
 import pytest
 from selenium import webdriver
@@ -79,3 +81,17 @@ def login_fixture(driver, logger):
     except Exception as e:
         logger.error(f"Неизвестная ошибка: {e}")
         raise
+
+    def start_process(self):
+        """Запускает процесс, если он не запущен."""
+        if not self.is_process_running():
+            try:
+                subprocess.Popen(self.process_path)  # Запускаем процесс напрямую
+                time.sleep(15)  # Задержка для ожидания запуска процесса
+                self.logger.info(f"{self.process_name} был запущен.")
+            except Exception as e:
+                self.logger.error(f"Ошибка при запуске процесса: {e}")
+                raise  # Поднимаем исключение, чтобы остановить тест
+        else:
+            self.logger.info(f"{self.process_name} уже запущен. Процесс не будет запущен.")
+
