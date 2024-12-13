@@ -77,7 +77,8 @@ def test_url_resolution_1280_720(modified_url_fixture, driver, logger):
         check_settings_button,
         click_settings_button,
         check_resolution_field_value_vt,
-        check_resolution_field_value
+        check_resolution_field_value,
+        check_webrtc_frame_dimensions
     ]
 
     for step in steps:
