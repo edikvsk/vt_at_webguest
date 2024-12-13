@@ -13,7 +13,7 @@ from utils.urls import WEB_GUEST_PAGE_URL
 
 @pytest.fixture(scope="function")
 def logger(caplog):
-    test_name = os.path.splitext(os.path.basename(__file__))[0]  # Исправлено на __file__
+    test_name = os.path.splitext(os.path.basename(__file__))[0]
     logger = setup_logger(test_name)
     return logger
 
