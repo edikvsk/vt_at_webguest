@@ -51,20 +51,26 @@ def test_url_resolution_1280_720(modified_url_fixture, driver, logger):
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
 
-    @log_step(logger, "ШАГ 4. Проверка значения Resolution в VT WebGuest Settings")
+    @log_step(logger, "ШАГ 4. Проверка значения поля Resolution")
+    def check_resolution_settings():
+        expected_value = resolution
+        actual_value = wg_page.get_settings_item_value_text(wg_page.RESOLUTION_VALUE)
+        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+
+    @log_step(logger, "ШАГ 5. Проверка значения Resolution в VT WebGuest Settings")
     def check_resolution_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
         desktop_app_page.select_combobox_item_by_index(0, 3)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
 
-    @log_step(logger, "ШАГ 5. Проверка значения поля Resolution")
+    @log_step(logger, "ШАГ 6. Проверка значения поля Resolution")
     def check_resolution_field_value():
         expected_value = resolution
         actual_value = wg_page.get_settings_item_value_text(wg_page.RESOLUTION_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 6. Проверка значения Resolution в WebRTC")
+    @log_step(logger, "ШАГ 7. Проверка значения Resolution в WebRTC")
     def check_webrtc_frame_dimensions():
         expected_value = resolution
         base_page.click(wg_page.STOP_BUTTON)
@@ -76,6 +82,7 @@ def test_url_resolution_1280_720(modified_url_fixture, driver, logger):
         lambda: check_url(driver),
         check_settings_button,
         click_settings_button,
+        check_resolution_settings,
         check_resolution_field_value_vt,
         check_resolution_field_value,
         check_webrtc_frame_dimensions

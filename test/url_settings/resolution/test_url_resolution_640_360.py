@@ -22,12 +22,12 @@ def logger(caplog):
 
 
 @pytest.mark.parametrize("modified_url_fixture",
-                         [f"{WEB_GUEST_PAGE_URL}?resolution=320x240"],
+                         [f"{WEB_GUEST_PAGE_URL}?resolution=640x360"],
                          indirect=True)
-def test_url_resolution_320_240(modified_url_fixture, driver, logger):
+def test_url_resolution_640_360(modified_url_fixture, driver, logger):
     @log_step(logger, "ШАГ 1. Проверка URL")
     def check_url(driver):
-        expected_url = f"{WEB_GUEST_PAGE_URL}?resolution=320x240"
+        expected_url = f"{WEB_GUEST_PAGE_URL}?resolution=640x360"
 
         current_url = driver.current_url
         logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")
@@ -41,7 +41,7 @@ def test_url_resolution_320_240(modified_url_fixture, driver, logger):
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
     vt_web_guest_source_name = "Web Guest"
-    resolution = "320X240"
+    resolution = "640X360"
 
     @log_step(logger, "ШАГ 2. Проверка отображения кнопки SETTINGS")
     def check_settings_button():
@@ -61,7 +61,7 @@ def test_url_resolution_320_240(modified_url_fixture, driver, logger):
     def check_resolution_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
-        desktop_app_page.select_combobox_item_by_index(0, 0)
+        desktop_app_page.select_combobox_item_by_index(0, 1)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
 
     @log_step(logger, "ШАГ 6. Проверка значения поля Resolution")
