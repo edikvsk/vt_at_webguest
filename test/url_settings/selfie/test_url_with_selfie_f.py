@@ -19,12 +19,12 @@ def logger(caplog):
 
 
 @pytest.mark.parametrize("modified_url_fixture",
-                         [f"{WEB_GUEST_PAGE_URL}?selfie=0"],
+                         [f"{WEB_GUEST_PAGE_URL}?selfie=f"],
                          indirect=True)
-def test_url_selfie_0(modified_url_fixture, driver, logger):
+def test_url_selfie_f(modified_url_fixture, driver, logger):
     @log_step(logger, "ШАГ 1. Проверка URL")
     def check_url(driver):
-        expected_url = f"{WEB_GUEST_PAGE_URL}?selfie=0"
+        expected_url = f"{WEB_GUEST_PAGE_URL}?selfie=f"
 
         current_url = driver.current_url
         logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")
