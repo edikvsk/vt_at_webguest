@@ -1,6 +1,4 @@
 import logging
-import subprocess
-import time
 
 import pytest
 from selenium import webdriver
@@ -82,16 +80,33 @@ def login_fixture(driver, logger):
         logger.error(f"Неизвестная ошибка: {e}")
         raise
 
-    def start_process(self):
-        """Запускает процесс, если он не запущен."""
-        if not self.is_process_running():
-            try:
-                subprocess.Popen(self.process_path)  # Запускаем процесс напрямую
-                time.sleep(15)  # Задержка для ожидания запуска процесса
-                self.logger.info(f"{self.process_name} был запущен.")
-            except Exception as e:
-                self.logger.error(f"Ошибка при запуске процесса: {e}")
-                raise  # Поднимаем исключение, чтобы остановить тест
-        else:
-            self.logger.info(f"{self.process_name} уже запущен. Процесс не будет запущен.")
 
+@pytest.fixture(scope="function")
+def modified_url_fixture(driver, logger, request):
+    url = request.param  # Получаем параметр из запроса
+    web_guest_page = WebGuestPage(driver)
+    notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
+    stream_handler = StreamHandler(driver)
+
+    try:
+        logger.info("Переходим на страницу Web Guest")
+        driver.get(url)  # Используем переданный URL
+
+        base_page = BasePage(driver)
+
+        # Проверка уведомлений
+        notification_handler.check_notification()
+
+        base_page.click(web_guest_page.LOGIN_BUTTON)
+
+        # Ожидание подключения WebRTC стрима
+        stream_handler.wait_for_webrtc_connection(timeout=10)
+        logger.info("Стрим запущен")
+
+        yield web_guest_page
+    except (NoSuchElementException, TimeoutException) as e:
+        logger.error(f"Ошибка при переходе на страницу: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Неизвестная ошибка: {e}")
+        raise
