@@ -33,8 +33,6 @@ def test_url_audio_0(modified_url_fixture, driver, logger):
     wg_page = WebGuestPage(driver)
     volume_fader_value_state_off = '0'
 
-    # base_page = BasePage(driver)
-
     @log_step(logger, "ШАГ 2. Проверка значка кнопки MUTE - состояние: ВКЛ.")
     def check_mute_image_state_on():
         assert not wg_page.is_button_pressed(wg_page.MUTE_BUTTON), "Кнопка MUTE в состоянии ВЫКЛ."
