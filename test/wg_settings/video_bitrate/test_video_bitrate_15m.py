@@ -63,7 +63,7 @@ def test_video_bitrate_15m(driver, logger):
 
     @log_step(logger, "ШАГ 6. Запуск мониторинга битрейта")
     def monitor_bitrate():
-        result = stream_handler.start_monitoring_bitrate()
+        result = stream_handler.start_monitoring_video_bitrate()
         average_bitrate = result['averageVideo']
         max_bitrate = result['maxVideo']
 
