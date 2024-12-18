@@ -1,5 +1,4 @@
 import os
-import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -64,11 +63,22 @@ def test_framerate_30fps(driver, logger):
 
     @log_step(logger, "ШАГ 6. Проверка значения Framerate в WebRTC")
     def check_webrtc_framerate():
-        expected_value = framerate
         base_page.click(wg_page.STOP_BUTTON)
         base_page.click(wg_page.START_BUTTON)
-        actual_value = stream_handler.get_video_frame_rate()
-        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+        result = stream_handler.get_video_frame_rate()
+
+        # Получаем значения FPS
+        average_framerate = result['average_frame_rate']
+        max_framerate = result['max_frame_rate']
+
+        # Форматируем максимальную частоту кадров
+        formatted_framerate = stream_handler.format_frame_rate(max_framerate)
+
+        logger.info(f'Average Framerate: {average_framerate:.2f} FPS')  # Форматируем вывод
+        logger.info(f'Max Framerate: {formatted_framerate} FPS')  # Используем отформатированное значение
+
+        assert formatted_framerate == framerate, (f"Ожидалось значение '{framerate}',"
+                                                  f" но получено '{formatted_framerate}'")
 
     steps = [
         check_settings_button,

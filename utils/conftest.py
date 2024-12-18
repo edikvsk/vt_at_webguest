@@ -43,7 +43,6 @@ def driver():
         }
     }
 
-    # Включите в опции обработку медиа-стрима с вашими устройствами
     chrome_options.add_argument(f"mediaStreamConstraints={media_constraints}")
     service = Service(CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=chrome_options)

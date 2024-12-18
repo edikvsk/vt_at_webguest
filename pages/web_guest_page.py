@@ -169,6 +169,7 @@ class WebGuestPage(BasePage):
 
     def select_framerate(self, framerate_text):
         """Выбирает Framerate из выпадающего списка по заданному тексту."""
+        time.sleep(1.5)
         self.select_from_combobox(self.FRAMERATE_COMBOBOX, framerate_text.replace("FPS", "fps"))
 
     def select_audio_bitrate(self, audio_bitrate_text):

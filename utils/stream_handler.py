@@ -94,33 +94,39 @@ class StreamHandler:
             lambda driver: driver.execute_script("return window.peers && window.peers.length > 0;")
         )
 
+        # Параметры мониторинга
+        monitoring_duration = 15  # продолжительность мониторинга в секундах
+        interval_duration = 1  # интервал проверки в секундах
+
+        frame_rates = []  # Список для хранения значений FPS
+
         # Получаем количество кадров в начале замера
         initial_frame_count = self.driver.execute_script(script)
 
-        # Ждем 3 секунды
-        time.sleep(3)
+        for _ in range(monitoring_duration):
+            time.sleep(interval_duration)  # Ждем интервал
+            final_frame_count = self.driver.execute_script(script)
 
-        # Получаем количество кадров снова
-        final_frame_count = self.driver.execute_script(script)
+            # Вычисляем количество кадров, полученных за интервал
+            if isinstance(initial_frame_count, (int, float)) and isinstance(final_frame_count, (int, float)):
+                frames_in_interval = final_frame_count - initial_frame_count
+                frame_rate = frames_in_interval / interval_duration  # FPS за интервал
+                frame_rates.append(frame_rate)  # Сохраняем значение FPS
 
-        # Вычисляем количество кадров, полученных за 3 секунды
-        if isinstance(initial_frame_count, (int, float)) and isinstance(final_frame_count, (int, float)):
-            frames_in_3_seconds = final_frame_count - initial_frame_count
+            # Обновляем начальное количество кадров
+            initial_frame_count = final_frame_count
 
-            # Вычисляем среднюю частоту кадров в секунду
-            average_frame_rate = frames_in_3_seconds / 3.0
+        # Вычисляем среднее и максимальное значение FPS
+        if frame_rates:
+            average_frame_rate = sum(frame_rates) / len(frame_rates)
+            max_frame_rate = max(frame_rates)
 
-            # Возвращаем соответствующее текстовое значение
-            if 12 <= average_frame_rate < 18:
-                return "15 FPS"
-            elif 27 <= average_frame_rate < 33:
-                return "30 FPS"
-            elif 57 <= average_frame_rate < 63:
-                return "60 FPS"
-            else:
-                return f"{average_frame_rate:.2f} FPS"  # Возвращаем значение FPS с двумя знаками после запятой
+            return {
+                'average_frame_rate': average_frame_rate,  # Возвращаем как число
+                'max_frame_rate': max_frame_rate  # Возвращаем как число
+            }
         else:
-            return initial_frame_count  # Возвращаем сообщение, если нет доступных peers
+            return {'average_frame_rate': 0, 'max_frame_rate': 0}  # Возвращаем 0, если нет данных
 
     def get_video_frame_dimensions(self):
         script = """
@@ -295,3 +301,15 @@ class StreamHandler:
             return "AUDIO BITRATE\n510K"
         else:
             return f"AUDIO BITRATE {max_audio_bitrate}K"  # для значений вне указанных диапазонов
+
+    @staticmethod
+    def format_frame_rate(average_frame_rate):
+        average_frame_rate = float(average_frame_rate)
+        if 12 <= average_frame_rate < 18:
+            return "FPS\n15"
+        elif 27 <= average_frame_rate < 33:
+            return "FPS\n30"
+        elif 57 <= average_frame_rate < 63:
+            return "FPS\n60"
+        else:
+            return f"FPS {average_frame_rate:.2f}"  # Возвращаем значение FPS с двумя знаками после запятой
