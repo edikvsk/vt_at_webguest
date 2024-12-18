@@ -306,10 +306,10 @@ class StreamHandler:
     def format_frame_rate(average_frame_rate):
         average_frame_rate = float(average_frame_rate)
         if 12 <= average_frame_rate < 18:
-            return "FPS\n15"
+            return "15 FPS"
         elif 27 <= average_frame_rate < 33:
-            return "FPS\n30"
+            return "30 FPS"
         elif 57 <= average_frame_rate < 63:
-            return "FPS\n60"
+            return "60 FPS"
         else:
             return f"FPS {average_frame_rate:.2f}"  # Возвращаем значение FPS с двумя знаками после запятой
