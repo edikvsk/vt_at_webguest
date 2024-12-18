@@ -27,7 +27,7 @@ class BasePage:
             )
             element.click()  # Выполняем клик по элементу
         except TimeoutException:
-            print(f"Элемент {element_locator} не доступен для клика в течение {timeout} секунд.")
+            raise RuntimeError(f"Ошибка при клике на элемент: {element_locator}")
 
     def get_text(self, locator):
         return self.wait_for_element(locator).text
