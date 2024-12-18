@@ -39,11 +39,10 @@ def test_framerate_15fps(driver, logger):
 
     @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
     def click_settings_button():
-        base_page.click(wg_page.SETTINGS_BUTTON)
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
 
     @log_step(logger, "ШАГ 3. Выбор Framerate")
     def select_framerate():
-        time.sleep(3.5)
         wg_page.select_framerate(framerate)
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
         expected_value = framerate
