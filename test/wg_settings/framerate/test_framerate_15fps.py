@@ -10,6 +10,7 @@ from utils.conftest import driver, login_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
+from utils.notificaton_handler import NotificationHandler
 from utils.stream_handler import StreamHandler
 from utils.urls import PROCESS_PATH
 
@@ -26,6 +27,7 @@ def test_framerate_15fps(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
     stream_handler = StreamHandler(driver)
+    notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
@@ -43,6 +45,7 @@ def test_framerate_15fps(driver, logger):
     @log_step(logger, "ШАГ 3. Выбор Framerate")
     def select_framerate():
         wg_page.select_framerate(framerate)
+        notification_handler.check_notification()
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
         expected_value = framerate
         actual_value = wg_page.get_settings_item_value_text(wg_page.FRAMERATE_VALUE)
