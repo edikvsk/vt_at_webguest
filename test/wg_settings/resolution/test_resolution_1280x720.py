@@ -63,11 +63,15 @@ def test_resolution_1280x720(driver, logger):
         actual_value = wg_page.get_settings_item_value_text(wg_page.RESOLUTION_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 6. Проверка значения Resolution в WebRTC")
-    def check_webrtc_frame_dimensions():
-        expected_value = resolution
+    @log_step(logger, "ШАГ 6. Перезапуск стрима для обновления WebRTC stats")
+    def restart_streaming():
         base_page.click(wg_page.STOP_BUTTON)
         base_page.click(wg_page.START_BUTTON)
+        assert wg_page.is_button_pressed(wg_page.STOP_BUTTON), "Кнопка STOP не отображается"
+
+    @log_step(logger, "ШАГ 7. Проверка значения Resolution в WebRTC")
+    def check_webrtc_frame_dimensions():
+        expected_value = resolution
         actual_value = stream_handler.get_video_frame_dimensions()
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
@@ -77,6 +81,7 @@ def test_resolution_1280x720(driver, logger):
         select_resolution,
         check_resolution_field_value_vt,
         check_resolution_field_value,
+        restart_streaming,
         check_webrtc_frame_dimensions
     ]
 
