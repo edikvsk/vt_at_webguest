@@ -135,24 +135,29 @@ class StreamHandler:
             const peer = peers[0];
             const pc = peer.pc;
 
-            return pc.getStats(null).then(stats => {
-                let frameDimensions = null;
+            return new Promise((resolve) => {
+                // Ожидаем 1.5 секунды перед началом замеров
+                setTimeout(() => {
+                    let frameDimensions = null;
 
-                stats.forEach(report => {
-                    // Ищем данные для исходящего видеопотока
-                    if (report.type === 'outbound-rtp' && report.kind === 'video') {
-                        const width = report.frameWidth || null; // Ширина исходящего видео
-                        const height = report.frameHeight || null; // Высота исходящего видео
-                        if (width && height) {
-                            frameDimensions = `${width}X${height}`; // Форматируем размеры
-                        }
-                    }
-                });
+                    pc.getStats(null).then(stats => {
+                        stats.forEach(report => {
+                            // Ищем данные для исходящего видеопотока
+                            if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                                const width = report.frameWidth; // Ширина исходящего видео
+                                const height = report.frameHeight; // Высота исходящего видео
+                                if (width && height) {
+                                    frameDimensions = width + 'X' + height; // Форматируем размеры
+                                }
+                            }
+                        });
 
-                return frameDimensions || 'No dimensions found'; // Возвращаем размеры или сообщение об отсутствии
+                        resolve(frameDimensions || 'No dimensions found'); // Возвращаем размеры или сообщение об отсутствии
+                    });
+                }, 1500); // Ожидание 1.5 секунды
             });
         }
-        return 'No peers found'; // Если пиры не найдены
+        return Promise.resolve('No peers found'); // Если пиры не найдены
         """
 
         # Ожидаем, пока peers не будут доступны
@@ -289,9 +294,9 @@ class StreamHandler:
             return "AUDIO BITRATE\n6K"
         elif 8 <= max_audio_bitrate < 14:
             return "AUDIO BITRATE\n10K"
-        elif 18 <= max_audio_bitrate < 25:
+        elif 16 <= max_audio_bitrate < 25:
             return "AUDIO BITRATE\n20K"
-        elif 36 <= max_audio_bitrate < 46:
+        elif 34 <= max_audio_bitrate < 47:
             return "AUDIO BITRATE\n40K"
         elif 90 <= max_audio_bitrate < 104:
             return "AUDIO BITRATE\n96K"

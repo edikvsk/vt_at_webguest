@@ -61,7 +61,7 @@ def test_start_stream(driver, logger):
     def check_audio_stream_unavailable():
         assert not stream_handler.is_audio_stream_active(), "Присутствует аудиопоток"
 
-    @log_step(logger, "ШАГ 8. Проверка тсутствия видеопотока")
+    @log_step(logger, "ШАГ 8. Проверка отсутствия видеопотока")
     def check_video_stream_unavailable():
         assert not stream_handler.is_video_stream_active(), "Присутствует видеопоток"
 
