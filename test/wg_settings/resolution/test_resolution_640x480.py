@@ -11,6 +11,7 @@ from utils.conftest import driver, login_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
+from utils.notificaton_handler import NotificationHandler
 from utils.stream_handler import StreamHandler
 from utils.urls import PROCESS_PATH
 
@@ -27,6 +28,7 @@ def test_resolution_640x480(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
     stream_handler = StreamHandler(driver)
+    notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
@@ -45,6 +47,7 @@ def test_resolution_640x480(driver, logger):
     def select_resolution():
         time.sleep(3.5)
         wg_page.select_resolution(resolution)
+        notification_handler.check_notification()
         base_page.click(wg_page.RESOLUTION_COMBOBOX_BACK_BUTTON)
         expected_value = resolution
         actual_value = wg_page.get_settings_item_value_text(wg_page.RESOLUTION_VALUE)
