@@ -18,13 +18,14 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("login_fixture")
-def test_minimize_preview(driver, logger):
+def test_minimize_preview_window(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
 
     @log_step(logger, "ШАГ 1. Проверка отображения кнопки Minimize Preview")
     def check_minimize_preview_button_state_on():
-        assert base_page.is_element_present(wg_page.PREVIEW_MINIMIZE_BUTTON), "Кнопка Minimize Preview не отображается"
+        wg_page.hover_element(wg_page.PREVIEW_MINIMIZE_BUTTON)
+        assert base_page.is_element_visible(wg_page.PREVIEW_MINIMIZE_BUTTON), "Кнопка Maximize Preview не отображается"
 
     @log_step(logger, "ШАГ 2. Проверка отображения окна Preview - состояние: ВКЛ")
     def check_preview_window_state_on():
@@ -43,7 +44,7 @@ def test_minimize_preview(driver, logger):
         check_minimize_preview_button_state_on,
         check_preview_window_state_on,
         click_minimize_preview_button,
-        check_preview_window_state_off,
+        check_preview_window_state_off
     ]
 
     for step in steps:

@@ -46,6 +46,14 @@ class BasePage:
         wait = WebDriverWait(self.driver, timeout)
         wait.until(EC.url_to_be(url))
 
+    def is_element_visible(self, locator, timeout=10):
+        try:
+            wait = WebDriverWait(self.driver, timeout)
+            wait.until(EC.visibility_of_element_located(locator))
+            return True
+        except TimeoutException:
+            return False
+
     def select_from_combobox(self, combobox_locator, text, replacements=None):
         """Выбирает значение из выпадающего списка по заданному тексту."""
         try:
