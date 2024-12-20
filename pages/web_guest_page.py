@@ -45,6 +45,7 @@ class WebGuestPage(BasePage):
     MIRRORING_SWITCHER = (By.XPATH, "//div[@data-cy='mirroring']//div[contains(@class, 'custom-switcher')]")
     AUDIO_ENHANCEMENTS_SWITCHER = (By.XPATH, "//div[@data-cy='audioEnhancements']//div[contains(@class, "
                                              "'custom-switcher')]")
+    PREVIEW_MINIMIZE_BUTTON = (By.XPATH, "//button[contains(@class, 'overflow-minimize-button') and @type='button']")
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
