@@ -8,6 +8,7 @@ from selenium.webdriver.chrome.service import Service
 
 from pages.base_page import BasePage
 from pages.web_guest_page import WebGuestPage
+from utils.config import CHROME_DRIVER_PATH, CHROME_BROWSER_PATH
 from utils.notificaton_handler import NotificationHandler
 from utils.process_utils import ProcessManager
 from utils.stream_handler import StreamHandler
@@ -26,13 +27,9 @@ def driver():
     # Запускаем процесс, если он не запущен
     process_manager.start_process()
 
-    # пути к ChromeDriver и Chrome браузеру
-    chrome_driver_path = "D:/chromedriver/chromedriver.exe"
-    chrome_browser_path = "C:/Program Files/Google/Chrome Beta/Application/chrome.exe"
-
     chrome_options = Options()
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
-    chrome_options.binary_location = chrome_browser_path
+    chrome_options.binary_location = CHROME_BROWSER_PATH  # Используем путь из конфигурации
 
     media_constraints = {
         "video": {
@@ -48,7 +45,7 @@ def driver():
     }
 
     chrome_options.add_argument(f"mediaStreamConstraints={media_constraints}")
-    service = Service(chrome_driver_path)  # указанный путь к ChromeDriver
+    service = Service(CHROME_DRIVER_PATH)  # Используем путь из конфигурации
     driver = webdriver.Chrome(service=service, options=chrome_options)
     yield driver
     driver.quit()
