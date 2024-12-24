@@ -29,6 +29,7 @@ def driver():
 
     chrome_options = Options()
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
+    # chrome_options.add_argument("--use-fake-device-for-media-stream") # Использовать если недоступно физ. устройство
     chrome_options.binary_location = CHROME_BROWSER_PATH  # Используем путь из конфигурации
 
     media_constraints = {
