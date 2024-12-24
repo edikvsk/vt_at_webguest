@@ -24,7 +24,7 @@ class WebGuestPage(BasePage):
     FULLSCREEN_BUTTON = (By.XPATH, "//button[@id='FullscreenButtonId']")
     VOLUME_FADER = (By.XPATH, "//div[@data-cy='sound-settings']")
     MINIMIZE_PREVIEW_BUTTON = (By.XPATH, "//button[contains(@class, 'overflow-minimize-button')]")
-    PREVIEW_WINDOW = (By.XPATH, "//div[contains(@class, 'flex-grow-1 position-relative')]")
+    PREVIEW_WINDOW = (By.XPATH, "//video[@data-cy='local-video']")
     CAMERA_TOOLTIP = (By.XPATH, "//div[@id='CameraTooltipId']//span[contains(@class, 'tooltip-title')]")
     MICROPHONE_TOOLTIP = (By.XPATH, "//div[@id='MicTooltipId']//span[contains(@class, 'tooltip-title')]")
     NOTIFICATION_ELEMENT = (By.XPATH, "//div[contains(@class, 'notification-parent')]")
@@ -46,6 +46,10 @@ class WebGuestPage(BasePage):
     AUDIO_ENHANCEMENTS_SWITCHER = (By.XPATH, "//div[@data-cy='audioEnhancements']//div[contains(@class, "
                                              "'custom-switcher')]")
     PREVIEW_MINIMIZE_BUTTON = (By.XPATH, "//button[contains(@class, 'overflow-minimize-button') and @type='button']")
+    PREVIEW_CHANGE_BUTTON = (By.XPATH, "//div[@class='d-flex align-items-center justify-content-center flex-shrink-1 "
+                                       "flex-grow-1 position-relative']//button")
+    PREVIEW_VOLUME_FADER = (By.XPATH, "//span[@class='control-title' and text()='Volume']")
+    PREVIEW_REMOTE_WINDOW = (By.XPATH, "//video[@data-cy='remote-video']")
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
