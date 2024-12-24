@@ -127,6 +127,30 @@ class WebGuestPage(BasePage):
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при получении значения aria-valuenow: {e}")
 
+    def set_volume_fader_value_with_events(self, fader_locator, value):
+        """Установка значения слайдера и вызов необходимых событий."""
+        try:
+            volume_fader = self.wait_for_element(fader_locator)
+            thumb_element = volume_fader.find_element(By.XPATH, ".//div[contains(@class, 'thumb')]")
+
+            # Получаем минимальное и максимальное значения
+            min_value = int(thumb_element.get_attribute('aria-valuemin'))
+            max_value = int(thumb_element.get_attribute('aria-valuemax'))
+
+            # Проверяем, что значение в допустимых пределах
+            if value < min_value or value > max_value:
+                raise ValueError(f"Значение должно быть в пределах от {min_value} до {max_value}.")
+
+            # Устанавливаем значение с помощью JavaScript
+            self.driver.execute_script(f"arguments[0].setAttribute('aria-valuenow', {value});", thumb_element)
+
+            # Вызываем события, если это необходимо
+            self.driver.execute_script("arguments[0].dispatchEvent(new Event('input'));", thumb_element)
+            self.driver.execute_script("arguments[0].dispatchEvent(new Event('change'));", thumb_element)
+
+        except NoSuchElementException as e:
+            raise RuntimeError(f"Ошибка при установке значения слайдера с событиями: {e}")
+
     def get_settings_item_value_text(self, element_locator):
         """Получение текста элемента по указанному локатору."""
         try:
