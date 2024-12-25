@@ -50,6 +50,8 @@ class WebGuestPage(BasePage):
                                        "flex-grow-1 position-relative']//button")
     PREVIEW_VOLUME_FADER = (By.XPATH, "//span[@class='control-title' and text()='Volume']")
     PREVIEW_REMOTE_WINDOW = (By.XPATH, "//video[@data-cy='remote-video']")
+    INPUT_CAMERA_VALUE = (By.XPATH, "//div[@data-cy='videoInput']//span[contains(@class, 'text-ellipsis')]")
+    INPUT_CAMERA_COMBOBOX = (By.XPATH, "//span[text()='Select a camera']")
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
@@ -161,6 +163,28 @@ class WebGuestPage(BasePage):
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при получении текста элемента: {e}")
 
+    def get_options_from_combobox(self, combobox_locator):
+        """Возвращает список значений из выпадающего списка."""
+        try:
+            # Ожидание, пока комбобокс станет кликабельным
+            combobox = self.wait_for_element(combobox_locator)
+            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(combobox))
+
+            combobox.click()  # Открываем выпадающий список
+
+            # Ожидание появления всех опций в выпадающем списке
+            options_locator = (By.XPATH, "//span[contains(@class, 'menu-item-title')]")
+            options = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located(options_locator))
+
+            # Извлекаем текст из всех опций
+            options_text = [option.text for option in options if option.is_displayed()]
+
+            return options_text
+
+        except Exception as e:
+            print(f"Произошла ошибка: {e}")
+            return []
+
     def select_from_combobox(self, combobox_locator, text, replacements=None):
         """Выбирает значение из выпадающего списка по заданному тексту."""
         try:
@@ -178,16 +202,25 @@ class WebGuestPage(BasePage):
                         text = text.replace(original, replacement)
                         break  # Выходим из цикла, если замена выполнена
 
-            option_locator = (By.XPATH, f"//span[contains(@class, 'menu-item-title') and text()='{text}']")
+            # Преобразуем текст для поиска в нижний регистр
+            text_lower = text.lower()
+            option_locator = (By.XPATH, f"//span[contains(@class, 'menu-item-title')]")
 
-            # Ожидание, пока элемент станет кликабельным
-            option = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(option_locator))
+            # Ожидаем появления всех опций
+            options = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located(option_locator))
 
-            # Проверка, что элемент видим и доступен для клика
-            if option.is_displayed() and option.is_enabled():
-                option.click()
+            # Находим подходящую опцию, игнорируя регистр
+            option_to_select = None
+            for option in options:
+                if option.is_displayed() and option.text.lower() == text_lower:
+                    option_to_select = option
+                    break
+
+            # Проверка, что элемент найден и доступен для клика
+            if option_to_select and option_to_select.is_enabled():
+                option_to_select.click()
             else:
-                print("Элемент не доступен для клика.")
+                print("Элемент не доступен для клика или не найден.")
 
         except Exception as e:
             print(f"Произошла ошибка: {e}")
@@ -240,6 +273,10 @@ class WebGuestPage(BasePage):
     def select_video_encoder(self, video_encoder_text):
         """Выбирает Video Encoder из выпадающего списка по заданному тексту."""
         self.select_from_combobox(self.VIDEO_ENCODER_COMBOBOX, video_encoder_text)
+
+    def select_camera(self, input_camera_text):
+        """Выбирает Input Camera из выпадающего списка по заданному тексту."""
+        self.select_from_combobox(self.INPUT_CAMERA_COMBOBOX, input_camera_text)
 
     def is_switcher_active(self, switcher_locator):
         """Проверяет, активен ли свитчер, используя указанный локатор."""

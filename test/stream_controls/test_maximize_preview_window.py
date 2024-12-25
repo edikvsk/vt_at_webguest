@@ -60,7 +60,7 @@ def test_maximize_preview_window(driver, logger):
         assert wg_page.is_element_visible(wg_page.PREVIEW_MINIMIZE_BUTTON), "Кнопка Minimize Preview НЕ отображается"
 
     steps = [
-        check_maximize_preview_button,
+        check_minimize_preview_button,
         check_preview_window_state_on,
         click_maximize_preview_button,
         check_preview_window_state_off,
