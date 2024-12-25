@@ -52,6 +52,8 @@ class WebGuestPage(BasePage):
     PREVIEW_REMOTE_WINDOW = (By.XPATH, "//video[@data-cy='remote-video']")
     INPUT_CAMERA_VALUE = (By.XPATH, "//div[@data-cy='videoInput']//span[contains(@class, 'text-ellipsis')]")
     INPUT_CAMERA_COMBOBOX = (By.XPATH, "//span[text()='Select a camera']")
+    INPUT_MICROPHONE_VALUE = (By.XPATH, "//div[@data-cy='audioInput']//span[contains(@class, 'text-ellipsis')]")
+    INPUT_MICROPHONE_COMBOBOX = (By.XPATH, "//span[text()='Select a mic']")
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
@@ -277,6 +279,10 @@ class WebGuestPage(BasePage):
     def select_camera(self, input_camera_text):
         """Выбирает Input Camera из выпадающего списка по заданному тексту."""
         self.select_from_combobox(self.INPUT_CAMERA_COMBOBOX, input_camera_text)
+
+    def select_microphone(self, input_microphone_text):
+        """Выбирает Input Mic из выпадающего списка по заданному тексту."""
+        self.select_from_combobox(self.INPUT_MICROPHONE_COMBOBOX, input_microphone_text)
 
     def is_switcher_active(self, switcher_locator):
         """Проверяет, активен ли свитчер, используя указанный локатор."""
