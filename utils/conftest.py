@@ -10,7 +10,7 @@ from pages.base_page import BasePage
 from pages.web_guest_page import WebGuestPage
 from utils.config import CHROME_DRIVER_PATH, CHROME_BROWSER_PATH
 from utils.notificaton_handler import NotificationHandler
-from utils.process_utils import ProcessManager
+from utils.process_handler import ProcessManager
 from utils.webrtc_stream_handler import StreamHandler
 from utils.urls import WEB_GUEST_PAGE_URL, PROCESS_PATH, PROCESS_NAME
 
@@ -78,7 +78,7 @@ def login_fixture(driver, logger):
         logger.error(f"Ошибка при переходе на страницу: {e}")
         raise
     except Exception as e:
-        logger.error(f"Неизвестная ошибка: {e}")
+        logger.error(f"Ошибка: {e}")
         raise
 
 
