@@ -10,7 +10,15 @@ from utils.logger_config import setup_logger
 
 
 class ProcessManager:
-    def __init__(self, process_path, process_name):
+    _instance = None
+
+    def __new__(cls, process_path, process_name):
+        if cls._instance is None:
+            cls._instance = super(ProcessManager, cls).__new__(cls)
+            cls._instance.init(process_path, process_name)
+        return cls._instance
+
+    def init(self, process_path, process_name):
         self.process_path = process_path
         self.process_name = process_name
         self.logger = setup_logger(self.process_name)
