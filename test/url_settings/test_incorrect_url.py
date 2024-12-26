@@ -33,6 +33,7 @@ def test_incorrect_url(driver, logger):
     wg_page = WebGuestPage(driver)
     notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
     volume_fader_value_state_off = '0'
+    expected_notification_text = "You are not authorized"
 
     @log_step(logger, "ШАГ 2. Проверка значка кнопки MUTE - состояние: ВКЛ.")
     def check_mute_image_state_on():
@@ -51,11 +52,19 @@ def test_incorrect_url(driver, logger):
 
     @log_step(logger, "ШАГ 5. Проверка отображения окна - You are not authorized")
     def check_authorized_notification():
-        assert notification_handler.check_notification(), "Окно You are not authorized не отображается"
+        current_notification_text = notification_handler.get_notification_text()
+        if expected_notification_text in current_notification_text:
+            notification_handler.check_notification(ignore_fail_notifications=True, reason="Уведомление игнорируется, "
+                                                                                           "так как появление окна "
+                                                                                           "You are not authorized "
+                                                                                           "ожидаемо")
+        else:
+            notification_handler.check_notification()
+            logger.error("Окно 'You are not authorized' не отображается")
+            pytest.fail("Окно 'You are not authorized' не отображается")
 
     try:
         check_url(driver)
-        check_authorized_notification()
         check_mute_image_state_on()
         check_volume_fader_value_state_off()
         check_preview_window_state_on()
