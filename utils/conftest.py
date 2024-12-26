@@ -11,7 +11,7 @@ from pages.web_guest_page import WebGuestPage
 from utils.config import CHROME_DRIVER_PATH, CHROME_BROWSER_PATH
 from utils.notificaton_handler import NotificationHandler
 from utils.process_utils import ProcessManager
-from utils.stream_handler import StreamHandler
+from utils.webrtc_stream_handler import StreamHandler
 from utils.urls import WEB_GUEST_PAGE_URL, PROCESS_PATH, PROCESS_NAME
 
 # Настройка логирования

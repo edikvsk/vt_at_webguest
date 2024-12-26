@@ -10,7 +10,7 @@ from utils.conftest import driver, login_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
-from utils.stream_handler import StreamHandler
+from utils.webrtc_stream_handler import StreamHandler
 from utils.urls import PROCESS_PATH
 
 
