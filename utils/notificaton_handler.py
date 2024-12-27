@@ -80,3 +80,9 @@ class NotificationHandler:
             message = "Уведомление не найдено в течение {} секунд.".format(timeout)
             self.logger.info(message)
             return message  # Возвращаем сообщение вместо None
+
+    class CustomErrorFilter():
+        def filter(self, record):
+            if record.levelname == "ERROR":
+                record.levelname = "ERROR__"
+            return True
