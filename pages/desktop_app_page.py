@@ -184,3 +184,22 @@ class DesktopAppPage:
                 raise ElementNotFoundError(f"Элемент кнопки с индексом {index} не найден или недоступен.")
         except Exception as e:
             raise RuntimeError(f"Ошибка при переключении состояния кнопки с индексом {index}: {e}")
+
+    def select_combobox_item_by_numeric(self, combo_index, item_index):
+        try:
+            # Находим ComboBox по индексу
+            combo_box = self.main_window.child_window(control_type="ComboBox", found_index=combo_index)
+            if combo_box.exists() and combo_box.is_enabled():
+                # Открываем ComboBox
+                combo_box.click_input()
+
+                # Получаем список элементов
+                list_items = combo_box.child_window(control_type="ListItem", found_index=item_index)
+
+                # Нажимаем на элемент
+                list_items.click_input()
+            else:
+                raise ElementNotFoundError(f"ComboBox с индексом {combo_index} не найден или недоступен.")
+        except Exception as e:
+            raise RuntimeError(
+                f"Ошибка при выборе элемента в ComboBox с индексом {combo_index} и элементом {item_index}: {e}")
