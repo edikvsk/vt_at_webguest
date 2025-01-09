@@ -131,6 +131,18 @@ class WebGuestPage(BasePage):
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при получении значения aria-valuenow: {e}")
 
+    def set_volume_fader_value(self, fader_locator, value):
+        """Установка значения слайдера без дополнительных проверок и событий."""
+        try:
+            volume_fader = self.wait_for_element(fader_locator)
+            thumb_element = volume_fader.find_element(By.XPATH, ".//div[contains(@class, 'thumb')]")
+
+            # Устанавливаем значение с помощью JavaScript
+            self.driver.execute_script(f"arguments[0].setAttribute('aria-valuenow', {value});", thumb_element)
+
+        except NoSuchElementException as e:
+            raise RuntimeError(f"Ошибка при установке значения слайдера: {e}")
+
     def set_volume_fader_value_with_events(self, fader_locator, value):
         """Установка значения слайдера и вызов необходимых событий."""
         try:

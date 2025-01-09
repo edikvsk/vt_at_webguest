@@ -8,6 +8,7 @@ class DesktopAppPage:
     # Локаторы:
 
     VT_WEB_GUEST_SETTINGS = "Web Guest Settings"
+    VT_SOURCE_SETTINGS = "Settings"
     VT_OK_BUTTON = "OK"
 
     def __init__(self, main_window):
