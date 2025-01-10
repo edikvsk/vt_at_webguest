@@ -2,7 +2,7 @@ import time
 from time import sleep
 
 from selenium.common import TimeoutException, NoSuchElementException
-from selenium.webdriver import ActionChains
+from selenium.webdriver import ActionChains, Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -50,10 +50,13 @@ class WebGuestPage(BasePage):
                                        "flex-grow-1 position-relative']//button")
     PREVIEW_VOLUME_FADER = (By.XPATH, "//span[@class='control-title' and text()='Volume']")
     PREVIEW_REMOTE_WINDOW = (By.XPATH, "//video[@data-cy='remote-video']")
+    PREVIEW_MUTE_BUTTON = (By.XPATH, "//div[contains(@class, 'mute-button')]//button[@id='PlayButtonId']")
     INPUT_CAMERA_VALUE = (By.XPATH, "//div[@data-cy='videoInput']//span[contains(@class, 'text-ellipsis')]")
     INPUT_CAMERA_COMBOBOX = (By.XPATH, "//span[text()='Select a camera']")
     INPUT_MICROPHONE_VALUE = (By.XPATH, "//div[@data-cy='audioInput']//span[contains(@class, 'text-ellipsis')]")
     INPUT_MICROPHONE_COMBOBOX = (By.XPATH, "//span[text()='Select a mic']")
+    VOLUME_FADER_PREVIEW = (
+        By.XPATH, "//div[contains(@class, 'friend-sound-control')]//div[contains(@class, 'react-slider')]")
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
@@ -125,20 +128,29 @@ class WebGuestPage(BasePage):
     def get_volume_fader_value(self, fader_locator):
         """Получение значения aria-valuenow из слайдера по указанному локатору."""
         try:
-            volume_fader = self.wait_for_element(fader_locator)
-            thumb_element = volume_fader.find_element(By.XPATH, ".//div[contains(@class, 'thumb')]")
+            volume_fader = WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located(fader_locator)
+            )
+
+            thumb_element = WebDriverWait(volume_fader, 10).until(
+                EC.visibility_of_element_located((By.XPATH, ".//div[contains(@class, 'thumb')]"))
+            )
+
             return thumb_element.get_attribute('aria-valuenow')
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при получении значения aria-valuenow: {e}")
 
     def set_volume_fader_value(self, fader_locator, value):
-        """Установка значения слайдера без дополнительных проверок и событий."""
+        """Установка значения слайдера"""
         try:
             volume_fader = self.wait_for_element(fader_locator)
             thumb_element = volume_fader.find_element(By.XPATH, ".//div[contains(@class, 'thumb')]")
 
-            # Устанавливаем значение с помощью JavaScript
-            self.driver.execute_script(f"arguments[0].setAttribute('aria-valuenow', {value});", thumb_element)
+            thumb_element.click()
+
+            steps = int(value / 1)
+            for _ in range(steps):
+                thumb_element.send_keys(Keys.ARROW_RIGHT)
 
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при установке значения слайдера: {e}")
