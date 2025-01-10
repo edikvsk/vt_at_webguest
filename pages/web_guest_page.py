@@ -317,3 +317,27 @@ class WebGuestPage(BasePage):
         except NoSuchElementException as e:
             print(f"Ошибка при проверке состояния свитчера: {e}")
             return False
+
+    def is_fullscreen(self):
+        """Проверяет, находится ли окно в полноэкранном режиме."""
+        fullscreen_state = self.driver.execute_script("return document.fullscreenElement !== null;")
+        return fullscreen_state
+
+    def is_fullscreen_button_pressed(self, button_locator):
+        """Проверяет, нажата ли кнопка FullScreen, используя указанный локатор."""
+        try:
+            button = self.wait_for_element(button_locator)
+            svg_element = button.find_element(By.TAG_NAME, 'svg')
+            path_element = svg_element.find_element(By.TAG_NAME, 'path')
+            path_data = path_element.get_attribute('d')
+
+            # Проверяем, соответствует ли path_data состоянию 1 (выключено)
+            if path_data == "M20 3H22V9H20V5H16V3H20ZM4 3H8V5H4V9H2V3H4ZM20 19V15H22V21H16V19H20ZM4 19H8V21H2V15H4V19Z":
+                print("Кнопка в состоянии ВЫКЛ.")
+                return True  # Кнопка выключена
+            else:
+                print("Кнопка в состоянии ВКЛ.")
+                return False  # Кнопка включена
+        except NoSuchElementException as e:
+            print(f"Ошибка при проверке состояния кнопки: {e}")
+            return False
