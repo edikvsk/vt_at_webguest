@@ -101,7 +101,7 @@ class DesktopAppPage:
 
                 if list_item.exists():
                     # Возвращаем текст элемента
-                    return list_item.window_text()
+                    return list_item.texts()
                 else:
                     raise ElementNotFoundError(
                         f"Элемент с индексом {item_index} не найден в ComboBox с индексом {combo_index}.")
@@ -109,7 +109,7 @@ class DesktopAppPage:
                 raise ElementNotFoundError(f"ComboBox с индексом {combo_index} не найден или недоступен.")
         except Exception as e:
             raise RuntimeError(
-                f"Ошибка при получении текста элемента в ComboBox с индексом {combo_index} и элементом {item_index}: {e}")
+                f"Ошибка при получении текста в ComboBox с индексом {combo_index} и элементом {item_index}: {e}")
 
     def select_combobox_item_by_index(self, combo_index, item_index):
         """Выбирает элемент в ComboBox по заданным индексам."""
