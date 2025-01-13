@@ -87,6 +87,30 @@ class DesktopAppPage:
         except Exception as e:
             raise RuntimeError(f"Ошибка при получении значения поля с индексом {index}: {e}")
 
+    def get_combobox_item_name_by_index(self, combo_index, item_index):
+        """Возвращает текст элемента в ComboBox по заданным индексам."""
+        try:
+            # Находим ComboBox по индексу
+            combo_box = self.main_window.child_window(control_type="ComboBox", found_index=combo_index)
+            if combo_box.exists() and combo_box.is_enabled():
+                # Открываем ComboBox
+                combo_box.click_input()
+
+                # Получаем элемент списка по индексу
+                list_item = combo_box.child_window(control_type="ListItem", found_index=item_index)
+
+                if list_item.exists():
+                    # Возвращаем текст элемента
+                    return list_item.window_text()
+                else:
+                    raise ElementNotFoundError(
+                        f"Элемент с индексом {item_index} не найден в ComboBox с индексом {combo_index}.")
+            else:
+                raise ElementNotFoundError(f"ComboBox с индексом {combo_index} не найден или недоступен.")
+        except Exception as e:
+            raise RuntimeError(
+                f"Ошибка при получении текста элемента в ComboBox с индексом {combo_index} и элементом {item_index}: {e}")
+
     def select_combobox_item_by_index(self, combo_index, item_index):
         """Выбирает элемент в ComboBox по заданным индексам."""
         try:

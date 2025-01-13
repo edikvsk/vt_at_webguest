@@ -57,6 +57,8 @@ class WebGuestPage(BasePage):
     INPUT_MICROPHONE_COMBOBOX = (By.XPATH, "//span[text()='Select a mic']")
     VOLUME_FADER_PREVIEW = (
         By.XPATH, "//div[contains(@class, 'friend-sound-control')]//div[contains(@class, 'react-slider')]")
+    AUDIO_CHANNELS_COMBOBOX = (By.XPATH, "//span[text()='Audio Channels']")
+    AUDIO_CHANNELS_VALUE = (By.XPATH, "//div[@data-cy='audioChannels']")
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
@@ -307,6 +309,10 @@ class WebGuestPage(BasePage):
     def select_microphone(self, input_microphone_text):
         """Выбирает Input Mic из выпадающего списка по заданному тексту."""
         self.select_from_combobox(self.INPUT_MICROPHONE_COMBOBOX, input_microphone_text)
+
+    def select_audio_channels(self, audio_channels_text):
+        """Выбирает Audio Channels из выпадающего списка по заданному тексту."""
+        self.select_from_combobox(self.AUDIO_CHANNELS_COMBOBOX, audio_channels_text)
 
     def is_switcher_active(self, switcher_locator):
         """Проверяет, активен ли свитчер, используя указанный локатор."""
