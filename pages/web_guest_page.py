@@ -14,6 +14,9 @@ class WebGuestPage(BasePage):
     # Локаторы:
     LOGIN_FIELD = (By.XPATH, "//input[@data-cy='banner-name-input']")
     LOCATION_FIELD = (By.XPATH, "//input[@data-cy='banner-location-input']")
+    AUTHORIZATION_FORM = (By.XPATH, "//form")
+    AUTHORIZATION_NAME_FIELD_ERROR = (
+        By.XPATH, "//div[contains(@class, 'error-input')]//span[text()='Please provide name']")
     LOGIN_BUTTON = (By.XPATH, "//button[@type='submit' and @data-cy='connect-button']")
     SETTINGS_BUTTON = (By.XPATH, "//button[@id='SettingsButtonId']")
     NAME_FIELD_SETTINGS = (By.XPATH, "//input[@data-cy='name-input']")
@@ -118,6 +121,16 @@ class WebGuestPage(BasePage):
                 sleep(0.5)
         except Exception as e:
             raise RuntimeError(f"Ошибка при вводе текста: {e}")
+
+    def delete_text(self, field_locator):
+        """Удаляет текст из заданного поля по одной букве до полного очищения."""
+        try:
+            text_field = self.wait_for_element(field_locator)
+            while text_field.get_attribute('value'):  # Проверяем, есть ли текст в поле
+                text_field.send_keys(Keys.BACKSPACE)  # Удаляем последнюю букву
+                sleep(0.5)  # Задержка для наглядности
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при удалении текста: {e}")
 
     def get_input_value(self, input_locator):
         """Получение значения поля input по указанному локатору."""

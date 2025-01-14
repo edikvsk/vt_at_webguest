@@ -11,8 +11,8 @@ from pages.web_guest_page import WebGuestPage
 from utils.config import CHROME_DRIVER_PATH, CHROME_BROWSER_PATH
 from utils.notificaton_handler import NotificationHandler
 from utils.process_handler import ProcessManager
-from utils.webrtc_stream_handler import StreamHandler
 from utils.urls import WEB_GUEST_PAGE_URL, PROCESS_PATH, PROCESS_NAME
+from utils.webrtc_stream_handler import StreamHandler
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -111,31 +111,3 @@ def modified_url_fixture(driver, logger, request):
     except Exception as e:
         logger.error(f"Неизвестная ошибка: {e}")
         raise
-
-    @pytest.fixture(scope="function")
-    def empty_url_fixture(driver, logger, request):
-        url = request.param  # Получаем параметр из запроса
-        web_guest_page = WebGuestPage(driver)
-        notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
-        stream_handler = StreamHandler(driver)
-
-        try:
-            logger.info("Переходим на страницу Web Guest")
-            driver.get(url)  # Используем переданный URL
-
-            base_page = BasePage(driver)
-
-            # Проверка уведомлений
-            notification_handler.check_notification()
-
-            yield web_guest_page
-        except (NoSuchElementException, TimeoutException) as e:
-            logger.error(f"Ошибка при переходе на страницу: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Неизвестная ошибка: {e}")
-            raise
-
-
-
-

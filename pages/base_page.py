@@ -35,11 +35,11 @@ class BasePage:
     def get_element_value(self, locator):
         return self.wait_for_element(locator).get_attribute("value")
 
-    def is_element_present(self, locator):
+    def is_element_present(self, locator, timeout=10):
         try:
-            self.driver.find_element(*locator)
+            WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
             return True
-        except NoSuchElementException:
+        except TimeoutException:
             return False
 
     def wait_for_url(self, url, timeout=10):
