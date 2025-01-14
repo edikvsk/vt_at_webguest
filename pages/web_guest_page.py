@@ -17,6 +17,8 @@ class WebGuestPage(BasePage):
     AUTHORIZATION_FORM = (By.XPATH, "//form")
     AUTHORIZATION_NAME_FIELD_ERROR = (
         By.XPATH, "//div[contains(@class, 'error-input')]//span[text()='Please provide name']")
+    AUTHORIZATION_LOCATION_FIELD_ERROR = (
+        By.XPATH, "//div[contains(@class, 'error-input')]//span[text()='Please provide location']")
     LOGIN_BUTTON = (By.XPATH, "//button[@type='submit' and @data-cy='connect-button']")
     SETTINGS_BUTTON = (By.XPATH, "//button[@id='SettingsButtonId']")
     NAME_FIELD_SETTINGS = (By.XPATH, "//input[@data-cy='name-input']")
