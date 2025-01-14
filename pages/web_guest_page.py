@@ -1,7 +1,7 @@
 import time
 from time import sleep
 
-from selenium.common import TimeoutException, NoSuchElementException
+from selenium.common import TimeoutException, NoSuchElementException, WebDriverException
 from selenium.webdriver import ActionChains, Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -141,6 +141,24 @@ class WebGuestPage(BasePage):
             return input_element.get_attribute('value')
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при получении значения input: {e}")
+
+    def get_window_resolution(self):
+        """Получение разрешения окна браузера в формате 'width x height'."""
+        try:
+            window_size = self.driver.get_window_size()
+            width = window_size['width']
+            height = window_size['height']
+            return f"{width} x {height}"
+        except WebDriverException as e:
+            print(f"Ошибка при получении разрешения окна: {e}")
+            return None
+
+    def set_window_resolution(self, width, height):
+        """Установка разрешения окна браузера."""
+        try:
+            self.driver.set_window_size(width, height)
+        except WebDriverException as e:
+            print(f"Ошибка при установке разрешения окна: {e}")
 
     def get_volume_fader_value(self, fader_locator):
         """Получение значения aria-valuenow из слайдера по указанному локатору."""
