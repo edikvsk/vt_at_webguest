@@ -56,6 +56,7 @@ def test_audio_channels(driver, logger):
         actual_value = value_list[0] if value_list else None  # звлекаем строку из списка
         expected_value = audio_channels_value
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
+        desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'."
 
     steps = [

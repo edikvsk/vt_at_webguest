@@ -59,6 +59,8 @@ def test_volume_fader_output_audio(driver, logger):
 
     @log_step(logger, "ШАГ 5. Проверка отображения Volume Fader - состояние: ВЫКЛ.")
     def check_volume_fader_value_state_off():
+        wg_page.hover_element(wg_page.PREVIEW_WINDOW)
+        wg_page.hover_element(wg_page.MUTE_BUTTON)
         expected_value = volume_fader_value_state_off
         actual_value = wg_page.get_volume_fader_value(wg_page.VOLUME_FADER)
         assert actual_value == expected_value, (f"Ожидалось значение '{expected_value}', "
@@ -76,18 +78,8 @@ def test_volume_fader_output_audio(driver, logger):
         assert not stream_handler.is_audio_stream_active(), "Присутствует аудиопоток"
 
     @log_step(logger, "ШАГ 7. Установка значения Volume Fader")
-    def set_volume_fader_value():
-        # список значений для тестирования
-        value = 50
-
-        wg_page.hover_element(wg_page.VOLUME_FADER)
-        wg_page.set_volume_fader_value(wg_page.VOLUME_FADER, value)
-
-        # Получаем текущее значение слайдера
-        current_value = wg_page.get_volume_fader_value(wg_page.VOLUME_FADER)
-
-        # Проверяем, что текущее значение соответствует установленному
-        assert current_value == str(value), f"Ошибка: ожидаемое значение {value}, получено {current_value}"
+    def turn_on_volume():
+        wg_page.click(wg_page.MUTE_BUTTON)
 
     @log_step(logger, "ШАГ 8. Отключение Output Audio в VT Source Settings")
     def toggle_off_output_audio_vt():
@@ -115,6 +107,7 @@ def test_volume_fader_output_audio(driver, logger):
         test_values = [0, 25, 50, 75, 100]
 
         for value in test_values:
+            wg_page.hover_element(wg_page.MUTE_BUTTON)
             wg_page.hover_element(wg_page.VOLUME_FADER)
             wg_page.set_volume_fader_value_with_events(wg_page.VOLUME_FADER, value)
 
@@ -132,7 +125,7 @@ def test_volume_fader_output_audio(driver, logger):
         check_volume_fader_value_state_off,
         restart_streaming,
         check_audio_stream_state_off,
-        set_volume_fader_value,
+        turn_on_volume,
         restart_streaming,
         check_audio_stream_state_off,
         toggle_off_output_audio_vt,
