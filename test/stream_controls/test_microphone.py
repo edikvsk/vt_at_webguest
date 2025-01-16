@@ -89,4 +89,4 @@ def test_microphone(driver, logger):
         # При необходимости закрыть VT
         # finally:
 
-            # desktop_app.close_application()
+        # desktop_app.close_application()
