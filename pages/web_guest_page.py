@@ -19,6 +19,7 @@ class WebGuestPage(BasePage):
         By.XPATH, "//div[contains(@class, 'error-input')]//span[text()='Please provide name']")
     AUTHORIZATION_LOCATION_FIELD_ERROR = (
         By.XPATH, "//div[contains(@class, 'error-input')]//span[text()='Please provide location']")
+    WG_SETTINGS_WINDOW = (By.XPATH, "//div[@data-cy='general-settings']")
     LOGIN_BUTTON = (By.XPATH, "//button[@type='submit' and @data-cy='connect-button']")
     SETTINGS_BUTTON = (By.XPATH, "//button[@id='SettingsButtonId']")
     NAME_FIELD_SETTINGS = (By.XPATH, "//input[@data-cy='name-input']")
@@ -63,7 +64,10 @@ class WebGuestPage(BasePage):
     VOLUME_FADER_PREVIEW = (
         By.XPATH, "//div[contains(@class, 'friend-sound-control')]//div[contains(@class, 'react-slider')]")
     AUDIO_CHANNELS_COMBOBOX = (By.XPATH, "//span[text()='Audio Channels']")
-    AUDIO_CHANNELS_VALUE = (By.XPATH, "//div[@data-cy='audioChannels']")
+    AUDIO_CHANNELS_VALUE = (By.XPATH, "//div[@data-cy='audioChannels']//span[@class='text-uppercase "
+                                      "font-weight-semi-bold text-ellipsis text-white']")
+    INPUT_FIELD_OTHER_CHANNELS = (By.XPATH, "//div[@class='px-3 pt-4']//input[@class='border-0 outline-none "
+                                            "overflow-hidden px-3 text-white input']")
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
@@ -164,8 +168,14 @@ class WebGuestPage(BasePage):
         """Получение значения aria-valuenow из слайдера по указанному локатору."""
         try:
             volume_fader = WebDriverWait(self.driver, 10).until(
-                EC.visibility_of_element_located(fader_locator)
+                EC.presence_of_element_located(fader_locator)
             )
+
+            if not volume_fader.is_displayed():
+                self.hover_element(self.MUTE_BUTTON)
+                volume_fader = WebDriverWait(self.driver, 10).until(
+                    EC.visibility_of_element_located(fader_locator)
+                )
 
             thumb_element = WebDriverWait(volume_fader, 10).until(
                 EC.visibility_of_element_located((By.XPATH, ".//div[contains(@class, 'thumb')]"))
@@ -174,6 +184,8 @@ class WebGuestPage(BasePage):
             return thumb_element.get_attribute('aria-valuenow')
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при получении значения aria-valuenow: {e}")
+        except TimeoutException as e:
+            raise RuntimeError(f"Время ожидания истекло: {e}")
 
     def set_volume_fader_value(self, fader_locator, value):
         """Установка значения слайдера"""
@@ -251,33 +263,27 @@ class WebGuestPage(BasePage):
         try:
             combobox = self.wait_for_element(combobox_locator)
 
-            # Ожидание, пока элемент станет кликабельным
             WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(combobox))
 
-            combobox.click()  # Открываем выпадающий список
+            combobox.click()
 
-            # Если предоставлен словарь замен, выполняем замену текста
             if replacements:
                 for original, replacement in replacements.items():
                     if original in text:
                         text = text.replace(original, replacement)
-                        break  # Выходим из цикла, если замена выполнена
+                        break
 
-            # Преобразуем текст для поиска в нижний регистр
             text_lower = text.lower()
             option_locator = (By.XPATH, f"//span[contains(@class, 'menu-item-title')]")
 
-            # Ожидаем появления всех опций
             options = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located(option_locator))
 
-            # Находим подходящую опцию, игнорируя регистр
             option_to_select = None
             for option in options:
                 if option.is_displayed() and option.text.lower() == text_lower:
                     option_to_select = option
                     break
 
-            # Проверка, что элемент найден и доступен для клика
             if option_to_select and option_to_select.is_enabled():
                 option_to_select.click()
             else:
@@ -345,6 +351,7 @@ class WebGuestPage(BasePage):
 
     def select_audio_channels(self, audio_channels_text):
         """Выбирает Audio Channels из выпадающего списка по заданному тексту."""
+        self.hover_element(self.AUDIO_CHANNELS_COMBOBOX)
         self.select_from_combobox(self.AUDIO_CHANNELS_COMBOBOX, audio_channels_text)
 
     def is_switcher_active(self, switcher_locator):
