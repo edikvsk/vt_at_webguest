@@ -23,10 +23,10 @@ def logger(caplog):
 
 def test_connection_with_the_same_name(driver, logger):
     @log_step(logger, "ШАГ 1. Запуск первого экземпляра Chrome Web Guest")
-    def start_first_web_guest(driver):
+    def start_first_web_guest(drv):
         expected_url = WEB_GUEST_PAGE_URL
-        driver.get(expected_url)
-        current_url = driver.current_url
+        drv.get(expected_url)
+        current_url = drv.current_url
         logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")
 
         assert current_url == expected_url, f"Ожидался URL: {expected_url}, но был: {current_url}"
@@ -73,13 +73,13 @@ def test_connection_with_the_same_name(driver, logger):
     logger.info(f"Дескриптор второго окна: {first_window}")
 
     @log_step(logger, "ШАГ 8. Запуск второго экземпляра Chrome Web Guest")
-    def start_second_web_guest(driver):
-        driver.execute_script("window.open('');")
-        driver.switch_to.window(driver.window_handles[1])  # Переключаемся на новое окно
+    def start_second_web_guest(drv):
+        drv.execute_script("window.open('');")
+        drv.switch_to.window(drv.window_handles[1])  # Переключаемся на новое окно
         time.sleep(1.5)
         expected_url = WEB_GUEST_PAGE_URL
-        driver.get(expected_url)
-        current_url = driver.current_url
+        drv.get(expected_url)
+        current_url = drv.current_url
         logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")
 
         assert current_url == expected_url, f"Ожидался URL: {expected_url}, но был: {current_url}"
@@ -103,10 +103,10 @@ def test_connection_with_the_same_name(driver, logger):
             pytest.fail("Окно 'Connectivity Error' не отображается")
 
     @log_step(logger, "ШАГ 11. Остановка трансляции первого экземпляра Chrome Web Guest")
-    def stop_first_web_guest(driver):
-        driver.switch_to.window(first_window)
-        driver.close()
-        driver.switch_to.window(driver.window_handles[0])
+    def stop_first_web_guest(drv):
+        drv.switch_to.window(first_window)
+        drv.close()
+        drv.switch_to.window(drv.window_handles[0])
 
     @log_step(logger, "ШАГ 12. Проверка авторизации, после закрытия первого экземпляра Web Guest")
     def login_second_web_guest():

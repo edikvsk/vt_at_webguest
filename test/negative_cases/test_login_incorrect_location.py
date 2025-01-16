@@ -22,10 +22,10 @@ def logger(caplog):
 
 def test_login_incorrect_location(driver, logger):
     @log_step(logger, "ШАГ 1. Проверка URL")
-    def check_url(driver):
+    def check_url(drv):
         expected_url = WEB_GUEST_PAGE_URL
-        driver.get(expected_url)
-        current_url = driver.current_url
+        drv.get(expected_url)
+        current_url = drv.current_url
         logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")
 
         assert current_url == expected_url, f"Ожидался URL: {expected_url}, но был: {current_url}"

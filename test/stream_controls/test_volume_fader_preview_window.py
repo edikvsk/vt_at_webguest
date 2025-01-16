@@ -8,7 +8,6 @@ from pages.web_guest_page import WebGuestPage
 from utils.conftest import driver, login_fixture
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
-from utils.webrtc_stream_handler import StreamHandler
 
 
 @pytest.fixture(scope="function")
@@ -22,7 +21,6 @@ def logger(caplog):
 def test_volume_fader_preview_window(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
-    stream_handler = StreamHandler(driver)
 
     volume_fader_value_state_on = '100'
     volume_fader_value_state_off = '0'

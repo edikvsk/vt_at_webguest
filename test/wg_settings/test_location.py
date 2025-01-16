@@ -56,7 +56,8 @@ def test_location(driver, logger):
         expected_value = vt_web_guest_source_location
         actual_value = desktop_app_page.get_vt_wg_settings_field_value(1)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
-        assert actual_value == expected_value, f"Значение поля не совпадает: ожидаемое '{expected_value}', полученное '{actual_value}'"
+        assert actual_value == expected_value, (f"Значение поля не совпадает: ожидаемое '{expected_value}', "
+                                                f"полученное '{actual_value}'")
 
     steps = [
         check_settings_button,

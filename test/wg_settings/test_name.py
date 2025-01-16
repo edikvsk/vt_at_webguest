@@ -21,7 +21,7 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("login_fixture")
-def test_name(driver, logger):
+def test_name_field(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
@@ -56,7 +56,8 @@ def test_name(driver, logger):
         expected_value = vt_web_guest_source_name
         actual_value = desktop_app_page.get_vt_wg_settings_field_value(0)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
-        assert actual_value == expected_value, f"Значение поля не совпадает: ожидаемое '{expected_value}', полученное '{actual_value}'"
+        assert actual_value == expected_value, (f"Значение поля не совпадает: ожидаемое '{expected_value}', "
+                                                f"полученное '{actual_value}'")
 
     steps = [
         check_settings_button,
