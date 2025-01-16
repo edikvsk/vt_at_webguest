@@ -1,4 +1,3 @@
-import time
 from time import sleep
 
 from selenium.common import TimeoutException, NoSuchElementException, WebDriverException
@@ -314,8 +313,7 @@ class WebGuestPage(BasePage):
             "AUDIO BITRATE\n510K": "510k"
         }
 
-        time.sleep(1.5)
-
+        self.hover_element(self.AUDIO_BITRATE_COMBOBOX)
         self.select_from_combobox(self.AUDIO_BITRATE_COMBOBOX, audio_bitrate_text, replacements)
 
     def select_video_bitrate(self, video_bitrate_text):
@@ -334,12 +332,12 @@ class WebGuestPage(BasePage):
             "VIDEO BITRATE\n20M": "20M"
         }
 
-        time.sleep(1.5)
-
+        self.hover_element(self.VIDEO_BITRATE_COMBOBOX)
         self.select_from_combobox(self.VIDEO_BITRATE_COMBOBOX, video_bitrate_text, replacements)
 
     def select_video_encoder(self, video_encoder_text):
         """Выбирает Video Encoder из выпадающего списка по заданному тексту."""
+        self.hover_element(self.VIDEO_ENCODER_COMBOBOX)
         self.select_from_combobox(self.VIDEO_ENCODER_COMBOBOX, video_encoder_text)
 
     def select_camera(self, input_camera_text):

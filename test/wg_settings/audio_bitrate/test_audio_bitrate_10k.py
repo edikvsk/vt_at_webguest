@@ -39,6 +39,7 @@ def test_audio_bitrate_10k(driver, logger):
     @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
     def click_settings_button():
         wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     @log_step(logger, "ШАГ 3. Выбор Audio Bitrate")
     def select_audio_bitrate():

@@ -1,5 +1,4 @@
 import os
-import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -11,8 +10,8 @@ from utils.conftest import driver, login_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
-from utils.webrtc_stream_handler import StreamHandler
 from utils.urls import PROCESS_PATH
+from utils.webrtc_stream_handler import StreamHandler
 
 
 @pytest.fixture(scope="function")
@@ -32,7 +31,7 @@ def test_video_encoder_h264(driver, logger):
 
     vt_web_guest_source_name = "Web Guest"
     video_encoder_value = "H264"
-    webrtc_video_encoder_for_h264 = "COT01_102_level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"
+    webrtc_video_encoder_for_h264 = "COT01_99_level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"
 
     @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
     def check_settings_button():
@@ -41,10 +40,10 @@ def test_video_encoder_h264(driver, logger):
     @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     @log_step(logger, "ШАГ 3. Выбор Video Encoder")
     def select_video_encoder():
-        time.sleep(3.5)
         wg_page.select_video_encoder(video_encoder_value)
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
         expected_value = video_encoder_value

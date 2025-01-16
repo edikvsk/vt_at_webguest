@@ -32,7 +32,7 @@ def test_video_encoder_vp9(driver, logger):
 
     vt_web_guest_source_name = "Web Guest"
     video_encoder_value = "VP9"
-    webrtc_video_encoder_for_vp9 = "COT01_98_profile-id=0"
+    webrtc_video_encoder_for_vp9 = "COT01_97_profile-id=0"
 
     @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
     def check_settings_button():
@@ -41,10 +41,10 @@ def test_video_encoder_vp9(driver, logger):
     @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     @log_step(logger, "ШАГ 3. Выбор Video Encoder")
     def select_video_encoder():
-        time.sleep(3.5)
         wg_page.select_video_encoder(video_encoder_value)
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
         expected_value = video_encoder_value
