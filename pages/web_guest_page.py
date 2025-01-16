@@ -294,11 +294,12 @@ class WebGuestPage(BasePage):
 
     def select_resolution(self, resolution_text):
         """Выбирает разрешение из выпадающего списка по заданному тексту."""
+        self.hover_element(self.RESOLUTION_COMBOBOX)
         self.select_from_combobox(self.RESOLUTION_COMBOBOX, resolution_text.replace("X", " × "))
 
     def select_framerate(self, framerate_text):
         """Выбирает Framerate из выпадающего списка по заданному тексту."""
-        time.sleep(1.5)
+        self.hover_element(self.FRAMERATE_COMBOBOX)
         self.select_from_combobox(self.FRAMERATE_COMBOBOX, framerate_text.replace("FPS", "fps"))
 
     def select_audio_bitrate(self, audio_bitrate_text):
@@ -343,10 +344,12 @@ class WebGuestPage(BasePage):
 
     def select_camera(self, input_camera_text):
         """Выбирает Input Camera из выпадающего списка по заданному тексту."""
+        self.hover_element(self.INPUT_CAMERA_COMBOBOX)
         self.select_from_combobox(self.INPUT_CAMERA_COMBOBOX, input_camera_text)
 
     def select_microphone(self, input_microphone_text):
         """Выбирает Input Mic из выпадающего списка по заданному тексту."""
+        self.hover_element(self.INPUT_MICROPHONE_COMBOBOX)
         self.select_from_combobox(self.INPUT_MICROPHONE_COMBOBOX, input_microphone_text)
 
     def select_audio_channels(self, audio_channels_text):

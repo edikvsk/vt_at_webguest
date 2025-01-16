@@ -1,5 +1,4 @@
 import os
-import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -12,7 +11,6 @@ from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
 from utils.urls import PROCESS_PATH
-from utils.webrtc_stream_handler import StreamHandler
 
 
 @pytest.fixture(scope="function")
@@ -26,13 +24,11 @@ def logger(caplog):
 def test_audio_channels(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
-    stream_handler = StreamHandler(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
     vt_web_guest_source_name = "Web Guest"
     audio_channels_value = "1, 2"
-    webrtc_video_encoder_for_vp9 = "COT01_98_profile-id=0"
 
     @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
     def check_settings_button():
@@ -41,10 +37,10 @@ def test_audio_channels(driver, logger):
     @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     @log_step(logger, "ШАГ 3. Выбор Audio Channels")
     def select_audio_channels():
-        time.sleep(3.5)
         wg_page.select_audio_channels(audio_channels_value)
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
 

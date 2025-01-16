@@ -36,6 +36,7 @@ def test_mirroring(driver, logger):
     @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     @log_step(logger, "ШАГ 3. Проверка MIRRORING Switcher - состояние: ВЫКЛ. ")
     def check_mirroring_switcher_state_off():

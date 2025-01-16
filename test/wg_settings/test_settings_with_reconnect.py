@@ -46,10 +46,10 @@ def test_settings_with_reconnect(driver, logger):
     @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     @log_step(logger, "ШАГ 3. Выбор разрешения")
     def select_resolution():
-        time.sleep(3.5)
         wg_page.select_resolution(resolution)
         notification_handler.check_notification()
         base_page.click(wg_page.RESOLUTION_COMBOBOX_BACK_BUTTON)
@@ -82,7 +82,6 @@ def test_settings_with_reconnect(driver, logger):
 
     @log_step(logger, "ШАГ 5. Выбор микрофона")
     def select_microphone():
-        time.sleep(3.5)
         wg_page.select_microphone(microphone)
         notification_handler.check_notification()
         wg_page.hover_element(wg_page.RESOLUTION_COMBOBOX_BACK_BUTTON)
@@ -93,7 +92,6 @@ def test_settings_with_reconnect(driver, logger):
 
     @log_step(logger, "ШАГ 6. Выбор камеры")
     def select_camera():
-        time.sleep(3.5)
         wg_page.select_camera(camera)
         notification_handler.check_notification()
         wg_page.hover_element(wg_page.RESOLUTION_COMBOBOX_BACK_BUTTON)
