@@ -6,11 +6,11 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from pages.base_page import BasePage
 from pages.web_guest_page import WebGuestPage
+from utils.config import WEB_GUEST_PAGE_URL
 from utils.conftest import driver
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
 from utils.notificaton_handler import NotificationHandler
-from utils.urls import WEB_GUEST_PAGE_URL
 from utils.webrtc_stream_handler import StreamHandler
 
 

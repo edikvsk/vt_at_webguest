@@ -7,11 +7,13 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
 from pages.base_page import BasePage
+from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
-from utils.config import CHROME_DRIVER_PATH, CHROME_BROWSER_PATH
+from utils.config import (CHROME_DRIVER_PATH, CHROME_BROWSER_PATH, WEB_GUEST_PAGE_URL, PROCESS_PATH, PROCESS_NAME,
+                          SOURCE_TO_PUBLISHING)
+from utils.desktop_app import DesktopApp
 from utils.notificaton_handler import NotificationHandler
 from utils.process_handler import ProcessManager
-from utils.urls import WEB_GUEST_PAGE_URL, PROCESS_PATH, PROCESS_NAME
 from utils.webrtc_stream_handler import StreamHandler
 
 # Настройка логирования
@@ -57,8 +59,20 @@ def login_fixture(driver, logger):
     web_guest_page = WebGuestPage(driver)
     notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
     stream_handler = StreamHandler(driver)
+    desktop_app = DesktopApp(PROCESS_PATH)
+    desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
     try:
+        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
+        is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
+        is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
+
+        if is_enabled_start_publishing and not is_enabled_stop_publishing:
+            desktop_app_page.click_button_by_name("Start Publishing")
+        elif not is_enabled_start_publishing and is_enabled_stop_publishing:
+            logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
+        else:
+            logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
         logger.info("Переходим на страницу Web Guest")
         driver.get(WEB_GUEST_PAGE_URL)
 
@@ -88,8 +102,21 @@ def modified_url_fixture(driver, logger, request):
     web_guest_page = WebGuestPage(driver)
     notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
     stream_handler = StreamHandler(driver)
+    desktop_app = DesktopApp(PROCESS_PATH)
+    desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
     try:
+        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
+        is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
+        is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
+
+        if is_enabled_start_publishing and not is_enabled_stop_publishing:
+            desktop_app_page.click_button_by_name("Start Publishing")
+        elif not is_enabled_start_publishing and is_enabled_stop_publishing:
+            logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
+        else:
+            logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
+        logger.info("Переходим на страницу Web Guest")
         logger.info("Переходим на страницу Web Guest")
         driver.get(url)  # Используем переданный URL
 

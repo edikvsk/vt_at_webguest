@@ -4,10 +4,10 @@ import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from pages.web_guest_page import WebGuestPage
+from utils.config import WEB_GUEST_PAGE_URL
 from utils.conftest import driver, modified_url_fixture
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
-from utils.urls import WEB_GUEST_PAGE_URL
 
 
 @pytest.fixture(scope="function")

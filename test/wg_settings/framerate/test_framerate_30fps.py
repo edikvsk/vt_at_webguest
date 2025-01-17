@@ -6,12 +6,12 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from pages.base_page import BasePage
 from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
+from utils.config import PROCESS_PATH
 from utils.conftest import driver, login_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
 from utils.notificaton_handler import NotificationHandler
-from utils.urls import PROCESS_PATH
 from utils.webrtc_stream_handler import StreamHandler
 
 

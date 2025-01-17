@@ -15,6 +15,17 @@ class DesktopAppPage:
         self.main_window = main_window
 
     # Методы:
+    def check_element_enabled_by_title_part(self, title_part):
+        """Проверяет, доступен ли элемент с заданной частью заголовка."""
+        try:
+            text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*', control_type="Text")
+            if text_element.exists() and text_element.is_enabled():
+                return True
+            else:
+                return False
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при проверке доступности элемента: {e}")
+
     def check_element_exists_by_title_part(self, title_part):
         """Проверяет наличие элемента с заданной частью заголовка."""
         try:
