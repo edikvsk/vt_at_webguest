@@ -31,7 +31,27 @@ class DesktopAppPage:
         try:
             text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*', control_type="Text")
             if text_element.exists() and text_element.is_enabled():
+                parent = text_element.parent()  # Получаем родительский элемент
+                parent.set_focus()
+                text_element.click_input()
                 text_element.click_input(button='right')
+                time.sleep(1)  # Ждем появления контекстного меню
+            else:
+                raise ElementNotFoundError(f"Элемент с частью заголовка '{title_part}' не доступен для клика.")
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при выполнении правого клика на элементе: {e}")
+
+    def focus_click_vt_source_item(self, title_part):
+        """Выполняет правый клик на элементе с заданной частью заголовка."""
+        try:
+            text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*', control_type="Text")
+            if text_element.exists() and text_element.is_enabled():
+                # Прокручиваем к элементу
+                parent = text_element.parent()  # Получаем родительский элемент
+                parent.set_focus()  # Устанавливаем фокус на родительский элемент
+
+                # Выполняем клик на элементе
+                text_element.click_input()
                 time.sleep(1)  # Ждем появления контекстного меню
             else:
                 raise ElementNotFoundError(f"Элемент с частью заголовка '{title_part}' не доступен для клика.")
@@ -177,7 +197,7 @@ class DesktopAppPage:
                     # Если текст не найден в текущем DataItem, прокручиваем вниз
                     if not text_found_in_current_item:
                         data_grid.scroll('down', amount)  # Прокрутка вниз на одну строку
-                        scroll_count += 1
+                        scroll_count += 0.5
 
                 # Проверяем, есть ли еще элементы для проверки
                 if len(data_items) == 0:  # Если нет элементов для проверки, выходим из цикла
