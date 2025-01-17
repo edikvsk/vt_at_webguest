@@ -1,3 +1,4 @@
+import configparser
 import os
 
 import pytest
@@ -6,8 +7,8 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from pages.base_page import BasePage
 from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
-from utils.config import WEB_GUEST_PAGE_URL, PROCESS_PATH
-from utils.conftest import driver, modified_url_fixture
+from utils.config import CONFIG_INI, PROCESS_PATH
+from utils.conftest import driver, modified_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
@@ -21,13 +22,17 @@ def logger(caplog):
     return logger
 
 
-@pytest.mark.parametrize("modified_url_fixture",
-                         [f"{WEB_GUEST_PAGE_URL}?resolution=320x240"],
-                         indirect=True)
-def test_url_resolution_320_240(modified_url_fixture, driver, logger):
+@pytest.mark.usefixtures("modified_fixture")
+def test_url_resolution_320_240(driver, logger):
+    config_file_path = CONFIG_INI
+    config = configparser.ConfigParser()
+    config.read(config_file_path)
+    web_guest_url = config['DEFAULT']['WEB_GUEST_PAGE_URL'].strip()
+
     @log_step(logger, "ШАГ 1. Проверка URL")
     def check_url(drv):
-        expected_url = f"{WEB_GUEST_PAGE_URL}?resolution=320x240"
+        drv.get(web_guest_url + "?resolution=320x240")
+        expected_url = f"{web_guest_url}?resolution=320x240"
 
         current_url = drv.current_url
         logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")

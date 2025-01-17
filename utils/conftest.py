@@ -1,5 +1,7 @@
+import configparser
 import logging
 
+import pyperclip
 import pytest
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -9,8 +11,8 @@ from selenium.webdriver.chrome.service import Service
 from pages.base_page import BasePage
 from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
-from utils.config import (CHROME_DRIVER_PATH, CHROME_BROWSER_PATH, WEB_GUEST_PAGE_URL, PROCESS_PATH, PROCESS_NAME,
-                          SOURCE_TO_PUBLISHING)
+from utils.config import (CHROME_DRIVER_PATH, CHROME_BROWSER_PATH, PROCESS_PATH, PROCESS_NAME, SOURCE_TO_PUBLISHING,
+                          VIDEO_DEVICE_ID, AUDIO_DEVICE_ID, CONFIG_INI)
 from utils.desktop_app import DesktopApp
 from utils.notificaton_handler import NotificationHandler
 from utils.process_handler import ProcessManager
@@ -37,12 +39,12 @@ def driver():
     media_constraints = {
         "video": {
             "deviceId": {
-                "exact": "8381375a5322592502987a99a4a57727661cfbf29116e845f10b766767ae596f"
+                "exact": VIDEO_DEVICE_ID
             }
         },
         "audio": {
             "deviceId": {
-                "exact": "e583fb0c4b6e4c2aa41ebbab2784cc771351bc711de849a1d2dd86f21529bd11"
+                "exact": AUDIO_DEVICE_ID
             }
         }
     }
@@ -62,6 +64,8 @@ def login_fixture(driver, logger):
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
+    WEB_GUEST_PAGE_URL = ""
+
     try:
         desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
         is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
@@ -69,10 +73,21 @@ def login_fixture(driver, logger):
 
         if is_enabled_start_publishing and not is_enabled_stop_publishing:
             desktop_app_page.click_button_by_name("Start Publishing")
+            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+            desktop_app_page.click_vt_source_item("Copy Web Guest URL")
+            WEB_GUEST_PAGE_URL = pyperclip.paste()
         elif not is_enabled_start_publishing and is_enabled_stop_publishing:
+            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+            desktop_app_page.click_vt_source_item("Copy Web Guest URL")
+            WEB_GUEST_PAGE_URL = pyperclip.paste()
             logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
         else:
             logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
+
+        if not WEB_GUEST_PAGE_URL:
+            logger.error("Не удалось получить Web Guest URL.")
+            raise ValueError("Web Guest URL не был инициализирован.")
+
         logger.info("Переходим на страницу Web Guest")
         driver.get(WEB_GUEST_PAGE_URL)
 
@@ -91,19 +106,18 @@ def login_fixture(driver, logger):
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при переходе на страницу: {e}")
         raise
-    except Exception as e:
-        logger.error(f"Ошибка: {e}")
-        raise
+    return WEB_GUEST_PAGE_URL
 
 
 @pytest.fixture(scope="function")
-def modified_url_fixture(driver, logger, request):
-    url = request.param  # Получаем параметр из запроса
+def modified_fixture(driver, logger):
     web_guest_page = WebGuestPage(driver)
     notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
     stream_handler = StreamHandler(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
+
+    WEB_GUEST_PAGE_URL = ""
 
     try:
         desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
@@ -112,29 +126,35 @@ def modified_url_fixture(driver, logger, request):
 
         if is_enabled_start_publishing and not is_enabled_stop_publishing:
             desktop_app_page.click_button_by_name("Start Publishing")
+            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+            desktop_app_page.click_vt_source_item("Copy Web Guest URL")
+            WEB_GUEST_PAGE_URL = pyperclip.paste()
         elif not is_enabled_start_publishing and is_enabled_stop_publishing:
+            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+            desktop_app_page.click_vt_source_item("Copy Web Guest URL")
+            WEB_GUEST_PAGE_URL = pyperclip.paste()
             logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
         else:
             logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
+
+        if not WEB_GUEST_PAGE_URL:
+            logger.error("Не удалось получить Web Guest URL.")
+            raise ValueError("Web Guest URL не был инициализирован.")
+
         logger.info("Переходим на страницу Web Guest")
-        logger.info("Переходим на страницу Web Guest")
-        driver.get(url)  # Используем переданный URL
 
-        base_page = BasePage(driver)
+        # Обновляем файл конфигурации
+        config_file_path = CONFIG_INI
+        config = configparser.ConfigParser()
+        config.read(config_file_path)
 
-        # Проверка уведомлений
-        notification_handler.check_notification()
+        # Обновляем значение в конфигурации
+        config['DEFAULT']['WEB_GUEST_PAGE_URL'] = WEB_GUEST_PAGE_URL
 
-        base_page.click(web_guest_page.LOGIN_BUTTON)
-
-        # Ожидание подключения WebRTC стрима
-        stream_handler.wait_for_webrtc_connection(timeout=10)
-        logger.info("Стрим запущен")
+        # Записываем изменения обратно в файл
+        with open(config_file_path, 'w') as configfile:
+            config.write(configfile)
 
         yield web_guest_page
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при переходе на страницу: {e}")
-        raise
-    except Exception as e:
-        logger.error(f"Неизвестная ошибка: {e}")
-        raise

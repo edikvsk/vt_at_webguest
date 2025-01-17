@@ -37,37 +37,50 @@ class DesktopAppPage:
         except Exception as e:
             raise RuntimeError(f"Ошибка при проверке наличия элемента: {e}")
 
-    def right_click_vt_source_item(self, title_part):
+    def right_click_vt_source_item(self, title_part, max_attempts=2):
         """Выполняет правый клик на элементе с заданной частью заголовка."""
-        try:
-            text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*', control_type="Text")
-            if text_element.exists() and text_element.is_enabled():
-                parent = text_element.parent()  # Получаем родительский элемент
-                parent.set_focus()
-                text_element.click_input()
-                text_element.click_input(button='right')
-                time.sleep(1)  # Ждем появления контекстного меню
-            else:
-                raise ElementNotFoundError(f"Элемент с частью заголовка '{title_part}' не доступен для клика.")
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при выполнении правого клика на элементе: {e}")
+        attempts = 0
 
-    def focus_click_vt_source_item(self, title_part):
-        """Выполняет правый клик на элементе с заданной частью заголовка."""
-        try:
-            text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*', control_type="Text")
-            if text_element.exists() and text_element.is_enabled():
-                # Прокручиваем к элементу
-                parent = text_element.parent()  # Получаем родительский элемент
-                parent.set_focus()  # Устанавливаем фокус на родительский элемент
+        while attempts < max_attempts:
+            try:
+                text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*',
+                                                             control_type="Text")
+                if text_element.exists() and text_element.is_enabled():
+                    parent = text_element.parent()  # Получаем родительский элемент
+                    parent.set_focus()
+                    text_element.click_input()
+                    text_element.click_input(button='right')
+                    return  # Успешный клик, выходим из метода
+                else:
+                    raise ElementNotFoundError(f"Элемент с частью заголовка '{title_part}' не доступен для клика.")
+            except Exception as e:
+                attempts += 1
+                if attempts >= max_attempts:
+                    raise RuntimeError(
+                        f"Ошибка при выполнении правого клика на элементе после {max_attempts} попыток: {e}")
 
-                # Выполняем клик на элементе
-                text_element.click_input()
-                time.sleep(1)  # Ждем появления контекстного меню
-            else:
-                raise ElementNotFoundError(f"Элемент с частью заголовка '{title_part}' не доступен для клика.")
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при выполнении правого клика на элементе: {e}")
+    def focus_click_vt_source_item(self, title_part, max_attempts=2):
+        """Выполняет клик на элементе с заданной частью заголовка."""
+        attempts = 0
+
+        while attempts < max_attempts:
+            try:
+                text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*',
+                                                             control_type="Text")
+                if text_element.exists() and text_element.is_enabled():
+                    # Прокручиваем к элементу
+                    parent = text_element.parent()  # Получаем родительский элемент
+                    parent.set_focus()  # Устанавливаем фокус на родительский элемент
+
+                    # Выполняем клик на элементе
+                    text_element.click_input()
+                    return  # Успешный клик, выходим из метода
+                else:
+                    raise ElementNotFoundError(f"Элемент с частью заголовка '{title_part}' не доступен для клика.")
+            except Exception as e:
+                attempts += 1
+                if attempts >= max_attempts:
+                    raise RuntimeError(f"Ошибка при выполнении клика на элементе после {max_attempts} попыток: {e}")
 
     def click_vt_source_item(self, menu_item_title):
         """Кликает по элементу меню с заданным заголовком."""
