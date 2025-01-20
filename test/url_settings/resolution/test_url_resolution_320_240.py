@@ -1,6 +1,5 @@
 import configparser
 import os
-import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -31,6 +30,13 @@ def test_url_resolution_320_240(driver, logger):
     config.read(config_file_path)
     web_guest_url = config['DEFAULT']['WEB_GUEST_PAGE_URL'].strip()
 
+    wg_page = WebGuestPage(driver)
+    base_page = BasePage(driver)
+    stream_handler = StreamHandler(driver)
+    notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
+    desktop_app = DesktopApp(PROCESS_PATH)
+    desktop_app_page = DesktopAppPage(desktop_app.main_window)
+
     @log_step(logger, "ШАГ 1. Проверка URL")
     def check_url(drv):
         drv.get(web_guest_url + "?resolution=320x240")
@@ -40,13 +46,6 @@ def test_url_resolution_320_240(driver, logger):
         logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")
 
         assert current_url == expected_url, f"Ожидался URL: {expected_url}, но был: {current_url}"
-
-    wg_page = WebGuestPage(driver)
-    base_page = BasePage(driver)
-    stream_handler = StreamHandler(driver)
-    notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
-    desktop_app = DesktopApp(PROCESS_PATH)
-    desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
     vt_web_guest_source_name = "Web Guest"
     resolution = "320X240"
@@ -104,26 +103,22 @@ def test_url_resolution_320_240(driver, logger):
         actual_value = stream_handler.get_video_frame_dimensions()
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    steps = [
-        lambda: check_url(driver),
-        check_notifications(),
-        check_authorization_form(),
-        login(),
-        check_settings_button,
-        click_settings_button,
-        check_resolution_settings,
-        check_resolution_field_value_vt,
-        check_resolution_field_value,
-        restart_streaming,
-        check_webrtc_frame_dimensions
-    ]
+    try:
+        check_url(driver)
+        check_notifications()
+        check_authorization_form()
+        login()
+        check_settings_button()
+        click_settings_button()
+        check_resolution_settings()
+        check_resolution_field_value_vt()
+        check_resolution_field_value()
+        restart_streaming()
+        check_webrtc_frame_dimensions()
 
-    for step in steps:
-        try:
-            step()
-        except (NoSuchElementException, TimeoutException) as e:
-            logger.error(f"Ошибка при выполнении теста: {e}")
-            pytest.fail(f"Ошибка при выполнении теста: {e}")
+    except (NoSuchElementException, TimeoutException) as e:
+        logger.error(f"Ошибка при выполнении теста: {e}")
+        pytest.fail(f"Ошибка при выполнении теста: {e}")
 
         # При необходимости закрыть VT
         # finally:
