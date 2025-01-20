@@ -33,16 +33,16 @@ def test_video_encoder_vp9(driver, logger):
     video_encoder_value = "VP9"
     webrtc_video_encoder_for_vp9 = "COT01_97_profile-id=0"
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
+    @log_step(logger, "Проверка отображения кнопки SETTINGS")
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-    @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
+    @log_step(logger, "Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
         assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
-    @log_step(logger, "ШАГ 3. Выбор Video Encoder")
+    @log_step(logger, "Выбор Video Encoder")
     def select_video_encoder():
         wg_page.select_video_encoder(video_encoder_value)
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
@@ -50,20 +50,20 @@ def test_video_encoder_vp9(driver, logger):
         actual_value = wg_page.get_settings_item_value_text(wg_page.VIDEO_ENCODER_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 4. Проверка значения Video Encoder в VT WebGuest Settings")
+    @log_step(logger, "Проверка значения Video Encoder в VT WebGuest Settings")
     def check_video_encoder_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
         desktop_app_page.select_combobox_item_by_index(5, 0)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
 
-    @log_step(logger, "ШАГ 5. Проверка значения поля Video Encoder")
+    @log_step(logger, "Проверка значения поля Video Encoder")
     def check_video_encoder_field_value():
         expected_value = video_encoder_value
         actual_value = wg_page.get_settings_item_value_text(wg_page.VIDEO_ENCODER_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 6. Проверка Video Encoder в WebRTC")
+    @log_step(logger, "Проверка Video Encoder в WebRTC")
     def check_video_encoder_webrtc():
         expected_value = webrtc_video_encoder_for_vp9
         codec = stream_handler.get_current_video_codec_from_stats()

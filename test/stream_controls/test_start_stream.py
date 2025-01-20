@@ -32,44 +32,44 @@ def test_start_stream(driver, logger):
 
     vt_web_guest_source_name = "Web Guest"
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки STOP")
+    @log_step(logger, "Проверка отображения кнопки STOP")
     def check_stop_button():
         assert base_page.is_element_present(wg_page.STOP_BUTTON), "Кнопка STOP не отображается"
 
-    @log_step(logger, "ШАГ 2. Проверка наличия аудиопотока")
+    @log_step(logger, "Проверка наличия аудиопотока")
     def check_audio_stream_available():
         assert stream_handler.is_audio_stream_active(), "Аудиопоток отстутствует"
 
-    @log_step(logger, "ШАГ 3. Проверка наличия видиопотока")
+    @log_step(logger, "Проверка наличия видиопотока")
     def check_video_stream_available():
         assert stream_handler.is_video_stream_active(), "Видеопоток отстутствует"
 
-    @log_step(logger, "ШАГ 4. Проверка значка кнопки STOP")
+    @log_step(logger, "Проверка значка кнопки STOP")
     def check_stop_button_image():
         assert wg_page.is_button_pressed(wg_page.STOP_BUTTON), "Кнопка STOP не отображается"
 
-    @log_step(logger, "ШАГ 5. Проверка отображения WebGuest в VT  - состояние: ВКЛ.")
+    @log_step(logger, "Проверка отображения WebGuest в VT  - состояние: ВКЛ.")
     def check_vt_webguest_state_on():
         assert desktop_app_page.check_element_exists_by_title_part(vt_web_guest_source_name), \
             f"Источник WebGuest не отображается в VT"
 
-    @log_step(logger, "ШАГ 6. Остановка трансляции")
+    @log_step(logger, "Остановка трансляции")
     def turn_off_stream():
         base_page.click(wg_page.STOP_BUTTON)
 
-    @log_step(logger, "ШАГ 7. Проверка отсутствия аудиопотока")
+    @log_step(logger, "Проверка отсутствия аудиопотока")
     def check_audio_stream_unavailable():
         assert not stream_handler.is_audio_stream_active(), "Присутствует аудиопоток"
 
-    @log_step(logger, "ШАГ 8. Проверка отсутствия видеопотока")
+    @log_step(logger, "Проверка отсутствия видеопотока")
     def check_video_stream_unavailable():
         assert not stream_handler.is_video_stream_active(), "Присутствует видеопоток"
 
-    @log_step(logger, "ШАГ 9. Проверка значка кнопки START")
+    @log_step(logger, "Проверка значка кнопки START")
     def check_start_button_image():
         assert wg_page.is_button_pressed(wg_page.START_BUTTON), "Кнопка START не отображается"
 
-    @log_step(logger, "ШАГ 10. Проверка отображения WebGuest в VT  - состояние: ВЫКЛ.")
+    @log_step(logger, "Проверка отображения WebGuest в VT  - состояние: ВЫКЛ.")
     def check_vt_webguest_state_off():
         time.sleep(10)
         assert not desktop_app_page.check_element_exists_by_title_part(vt_web_guest_source_name), \

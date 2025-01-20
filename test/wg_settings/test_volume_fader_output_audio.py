@@ -33,22 +33,22 @@ def test_volume_fader_output_audio(driver, logger):
 
     vt_source_name = "mp://mplaylist"
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки MUTE")
+    @log_step(logger, "Проверка отображения кнопки MUTE")
     def check_mute_button():
         assert base_page.is_element_present(wg_page.MUTE_BUTTON), "Кнопка MUTE не отображается"
 
-    @log_step(logger, "ШАГ 2. Проверка значка кнопки MUTE - состояние: ВКЛ.")
+    @log_step(logger, "Проверка значка кнопки MUTE - состояние: ВКЛ.")
     def check_mute_image_state_on():
         assert not wg_page.is_button_pressed(wg_page.MUTE_BUTTON), "Кнопка MUTE в состоянии ВЫКЛ."
 
-    @log_step(logger, "ШАГ 3. Включение Output Audio в VT Source Settings")
+    @log_step(logger, "Включение Output Audio в VT Source Settings")
     def toggle_on_output_audio_vt():
         desktop_app_page.right_click_vt_source_item(vt_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_SOURCE_SETTINGS)
         desktop_app_page.toggle_vt_wg_button(5)
         desktop_app_page.click_button_by_name(desktop_app_page.VT_OK_BUTTON)
 
-    @log_step(logger, "ШАГ 4. Проверка toggle button VT Settings  - состояние: ВЫКЛ.")
+    @log_step(logger, "Проверка toggle button VT Settings  - состояние: ВЫКЛ.")
     def check_output_audio_toggle_button_state_off():
         expected_value = 0  # Состояние кнопки (0 == False)
         desktop_app_page.right_click_vt_source_item(vt_source_name)
@@ -57,7 +57,7 @@ def test_volume_fader_output_audio(driver, logger):
         desktop_app_page.click_button_by_name(desktop_app_page.VT_OK_BUTTON)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 5. Проверка отображения Volume Fader - состояние: ВЫКЛ.")
+    @log_step(logger, "Проверка отображения Volume Fader - состояние: ВЫКЛ.")
     def check_volume_fader_value_state_off():
         wg_page.hover_element(wg_page.PREVIEW_WINDOW)
         wg_page.hover_element(wg_page.MUTE_BUTTON)
@@ -73,22 +73,22 @@ def test_volume_fader_output_audio(driver, logger):
         base_page.click(wg_page.START_BUTTON)
         assert wg_page.is_button_pressed(wg_page.STOP_BUTTON), "Кнопка STOP не отображается"
 
-    @log_step(logger, "ШАГ 6. Проверка аудиопотока - состояние: ВЫКЛ.")
+    @log_step(logger, "Проверка аудиопотока - состояние: ВЫКЛ.")
     def check_audio_stream_state_off():
         assert not stream_handler.is_audio_stream_active(), "Присутствует аудиопоток"
 
-    @log_step(logger, "ШАГ 7. Установка значения Volume Fader")
+    @log_step(logger, "Установка значения Volume Fader")
     def turn_on_volume():
         wg_page.click(wg_page.MUTE_BUTTON)
 
-    @log_step(logger, "ШАГ 8. Отключение Output Audio в VT Source Settings")
+    @log_step(logger, "Отключение Output Audio в VT Source Settings")
     def toggle_off_output_audio_vt():
         desktop_app_page.right_click_vt_source_item(vt_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_SOURCE_SETTINGS)
         desktop_app_page.toggle_vt_wg_button(5)
         desktop_app_page.click_button_by_name(desktop_app_page.VT_OK_BUTTON)
 
-    @log_step(logger, "ШАГ 9. Проверка toggle button VT Settings  - состояние: ВКЛ.")
+    @log_step(logger, "Проверка toggle button VT Settings  - состояние: ВКЛ.")
     def check_output_audio_toggle_button_state_on():
         expected_value = 1  # Состояние кнопки (1 == True)
         desktop_app_page.right_click_vt_source_item(vt_source_name)
@@ -97,11 +97,11 @@ def test_volume_fader_output_audio(driver, logger):
         desktop_app_page.click_button_by_name(desktop_app_page.VT_OK_BUTTON)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 10. Проверка аудиопотока - состояние: ВКЛ.")
+    @log_step(logger, "Проверка аудиопотока - состояние: ВКЛ.")
     def check_audio_stream_state_on():
         assert stream_handler.is_audio_stream_active(), "Аудиопоток отстутствует"
 
-    @log_step(logger, "ШАГ 11. Установка значений Volume Fader")
+    @log_step(logger, "Установка значений Volume Fader")
     def set_multiple_volume_fader_values():
         # список значений для тестирования
         test_values = [0, 25, 50, 75, 100]

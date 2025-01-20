@@ -26,7 +26,7 @@ def test_url_autojoin_1(driver, logger):
     config.read(config_file_path)
     web_guest_url = config['DEFAULT']['WEB_GUEST_PAGE_URL'].strip()
 
-    @log_step(logger, "ШАГ 1. Проверка URL")
+    @log_step(logger, "Проверка URL")
     def check_url(drv):
         drv.get(web_guest_url + "?autojoin=1")
         expected_url = f"{web_guest_url}?autojoin=1"
@@ -40,18 +40,18 @@ def test_url_autojoin_1(driver, logger):
     wg_page = WebGuestPage(driver)
     volume_fader_value_state_off = '0'
 
-    @log_step(logger, "ШАГ 2. Проверка значка кнопки MUTE - состояние: ВКЛ.")
+    @log_step(logger, "Проверка значка кнопки MUTE - состояние: ВКЛ.")
     def check_mute_image_state_on():
         assert not wg_page.is_button_pressed(wg_page.MUTE_BUTTON), "Кнопка MUTE в состоянии ВЫКЛ."
 
-    @log_step(logger, "ШАГ 3. Проверка отображения Volume Fader - состояние: ВЫКЛ.")
+    @log_step(logger, "Проверка отображения Volume Fader - состояние: ВЫКЛ.")
     def check_volume_fader_value_state_off():
         expected_value = volume_fader_value_state_off
         actual_value = wg_page.get_volume_fader_value(wg_page.VOLUME_FADER)
         assert actual_value == expected_value, (f"Ожидалось значение '{expected_value}', "
                                                 f"но получено '{actual_value}'")
 
-    @log_step(logger, "ШАГ 4. Проверка отображения окна Selfie - состояние: ВКЛ")
+    @log_step(logger, "Проверка отображения окна Selfie - состояние: ВКЛ")
     def check_preview_window_state_on():
         assert base_page.is_element_present(wg_page.PREVIEW_WINDOW), "Окно Selfie не отображается"
 

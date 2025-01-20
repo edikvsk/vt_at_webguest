@@ -30,21 +30,21 @@ def test_audio_channels(driver, logger):
     vt_web_guest_source_name = "Web Guest"
     audio_channels_value = "1, 2"
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
+    @log_step(logger, "Проверка отображения кнопки SETTINGS")
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-    @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
+    @log_step(logger, "Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
         assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
-    @log_step(logger, "ШАГ 3. Выбор Audio Channels")
+    @log_step(logger, "Выбор Audio Channels")
     def select_audio_channels():
         wg_page.select_audio_channels(audio_channels_value)
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
 
-    @log_step(logger, "ШАГ 4. Проверка значения AudioChannels в VT WebGuest Settings")
+    @log_step(logger, "Проверка значения AudioChannels в VT WebGuest Settings")
     def check_audio_channels_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)

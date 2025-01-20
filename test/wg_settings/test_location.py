@@ -30,26 +30,26 @@ def test_location(driver, logger):
     location_value = "01TEST_LOCATION"
     vt_web_guest_source_location = "01TEST_LOCATION"
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
+    @log_step(logger, "Проверка отображения кнопки SETTINGS")
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-    @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
+    @log_step(logger, "Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
         assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
-    @log_step(logger, "ШАГ 3. Ввод Location")
+    @log_step(logger, "Ввод Location")
     def input_location():
         wg_page.input_text(wg_page.LOCATION_FIELD_SETTINGS, location_value)
 
-    @log_step(logger, "ШАГ 4. Проверка значения поля Location")
+    @log_step(logger, "Проверка значения поля Location")
     def check_location_field_value():
         expected_value = location_value
         actual_value = wg_page.get_input_value(wg_page.LOCATION_FIELD_SETTINGS)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 5. Проверка значений поля Location в VT WebGuest Settings")
+    @log_step(logger, "Проверка значений поля Location в VT WebGuest Settings")
     def check_location_field_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_location)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)

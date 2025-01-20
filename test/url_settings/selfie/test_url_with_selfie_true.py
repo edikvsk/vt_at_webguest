@@ -26,7 +26,7 @@ def test_url_with_selfie_true(driver, logger):
     config.read(config_file_path)
     web_guest_url = config['DEFAULT']['WEB_GUEST_PAGE_URL'].strip()
 
-    @log_step(logger, "ШАГ 1. Проверка URL")
+    @log_step(logger, "Проверка URL")
     def check_url(drv):
         drv.get(web_guest_url + "?selfie=true")
         expected_url = f"{web_guest_url}?selfie=true"
@@ -39,7 +39,7 @@ def test_url_with_selfie_true(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
 
-    @log_step(logger, "ШАГ 2. Проверка отображения окна Selfie - состояние: ВКЛ")
+    @log_step(logger, "Проверка отображения окна Selfie - состояние: ВКЛ")
     def check_preview_window_state_on():
         assert base_page.is_element_present(wg_page.PREVIEW_WINDOW), "Окно Selfie НЕ отображается"
 

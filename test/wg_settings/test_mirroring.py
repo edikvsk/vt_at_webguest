@@ -29,28 +29,28 @@ def test_mirroring(driver, logger):
 
     vt_web_guest_source_name = "Web Guest"
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
+    @log_step(logger, "Проверка отображения кнопки SETTINGS")
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-    @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
+    @log_step(logger, "Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
         assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
-    @log_step(logger, "ШАГ 3. Проверка MIRRORING Switcher - состояние: ВЫКЛ. ")
+    @log_step(logger, "Проверка MIRRORING Switcher - состояние: ВЫКЛ. ")
     def check_mirroring_switcher_state_off():
         assert not wg_page.is_switcher_active(wg_page.MIRRORING_SWITCHER), "Mirroring Switcher в состоянии ВКЛ."
 
-    @log_step(logger, "ШАГ 4. Включение Mirroring")
+    @log_step(logger, "Включение Mirroring")
     def turn_on_mirroring():
         wg_page.click_element_with_scroll(wg_page.MIRRORING_SWITCHER)
 
-    @log_step(logger, "ШАГ 5. Проверка MIRRORING Switcher - состояние: ВКЛ. ")
+    @log_step(logger, "Проверка MIRRORING Switcher - состояние: ВКЛ. ")
     def check_mirroring_switcher_state_on():
         assert wg_page.is_switcher_active(wg_page.MIRRORING_SWITCHER), "Mirroring Switcher в состоянии ВЫКЛ."
 
-    @log_step(logger, "ШАГ 6. Проверка MIRRORING switcher VT WG Settings  - состояние: ВКЛ.")
+    @log_step(logger, "Проверка MIRRORING switcher VT WG Settings  - состояние: ВКЛ.")
     def check_vt_wg_mirroring_switcher_state_on():
         expected_value = 1  # Состояние кнопки (1 == True)
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)

@@ -25,33 +25,33 @@ def test_mute_volume(driver, logger):
     volume_fader_value_state_on = '100'
     volume_fader_value_state_off = '0'
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки MUTE")
+    @log_step(logger, "Проверка отображения кнопки MUTE")
     def check_mute_button():
         assert base_page.is_element_present(wg_page.MUTE_BUTTON), "Кнопка MUTE не отображается"
 
-    @log_step(logger, "ШАГ 2. Проверка значка кнопки MUTE - состояние: ВКЛ.")
+    @log_step(logger, "Проверка значка кнопки MUTE - состояние: ВКЛ.")
     def check_mute_image_state_on():
         assert not wg_page.is_button_pressed(wg_page.MUTE_BUTTON), "Кнопка MUTE в состоянии ВЫКЛ."
 
-    @log_step(logger, "ШАГ 4. Нажатие кнопки MUTE")
+    @log_step(logger, "Нажатие кнопки MUTE")
     def turn_off_mute():
         base_page.click(wg_page.MUTE_BUTTON)
 
-    @log_step(logger, "ШАГ 5. Проверка отображения Volume Fader - состояние: ВКЛ.")
+    @log_step(logger, "Проверка отображения Volume Fader - состояние: ВКЛ.")
     def check_volume_fader_value_state_on():
         actual_value = wg_page.get_volume_fader_value(wg_page.VOLUME_FADER)
         assert actual_value == volume_fader_value_state_on, (f"Ожидалось значение '{volume_fader_value_state_on}', но "
                                                              f"получено '{actual_value}'")
 
-    @log_step(logger, "ШАГ 6. Проверка значка кнопки MUTE - состояние: UNMUTE.")
+    @log_step(logger, "Проверка значка кнопки MUTE - состояние: UNMUTE.")
     def check_mute_image_state_off():
         assert wg_page.is_button_pressed(wg_page.MUTE_BUTTON), "Кнопка MUTE в состоянии ВКЛ."
 
-    @log_step(logger, "ШАГ 7. Включение MUTE")
+    @log_step(logger, "Включение MUTE")
     def turn_on_mute():
         base_page.click(wg_page.MUTE_BUTTON)
 
-    @log_step(logger, "ШАГ 8. Проверка отображения Volume Fader - состояние: ВЫКЛ.")
+    @log_step(logger, "Проверка отображения Volume Fader - состояние: ВЫКЛ.")
     def check_volume_fader_value_state_off():
         expected_value = volume_fader_value_state_off
         actual_value = wg_page.get_volume_fader_value(wg_page.VOLUME_FADER)

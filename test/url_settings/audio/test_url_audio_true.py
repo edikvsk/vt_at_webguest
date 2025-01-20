@@ -31,7 +31,7 @@ def test_url_audio_true(driver, logger):
     wg_page = WebGuestPage(driver)
     notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
 
-    @log_step(logger, "ШАГ 1. Проверка URL")
+    @log_step(logger, "Проверка URL")
     def check_url(drv):
         drv.get(web_guest_url + "?audio=true")
         expected_url = f"{web_guest_url}?audio=true"
@@ -44,24 +44,24 @@ def test_url_audio_true(driver, logger):
     wg_page = WebGuestPage(driver)
     volume_fader_value_state_on = '100'
 
-    @log_step(logger, "ШАГ 2. Проверка Notifications")
+    @log_step(logger, "Проверка Notifications")
     def check_notifications():
         assert not notification_handler.check_notification(), "Найдено блокирующее уведомление"
 
-    @log_step(logger, "ШАГ 3. Проверка отображения Authorization Form")
+    @log_step(logger, "Проверка отображения Authorization Form")
     def check_authorization_form():
         assert base_page.is_element_visible(wg_page.AUTHORIZATION_FORM), "Authorization Form не отображается"
 
-    @log_step(logger, "ШАГ 4. Логин")
+    @log_step(logger, "Логин")
     def login():
         base_page.click(wg_page.LOGIN_BUTTON)
         assert base_page.is_element_visible(wg_page.STOP_BUTTON), "Логин НЕ выполнен"
 
-    @log_step(logger, "ШАГ 5. Проверка значка кнопки MUTE - состояние: ВЫКЛ.")
+    @log_step(logger, "Проверка значка кнопки MUTE - состояние: ВЫКЛ.")
     def check_mute_image_state_off():
         assert wg_page.is_button_pressed(wg_page.MUTE_BUTTON), "Кнопка MUTE в состоянии ВКЛ."
 
-    @log_step(logger, "ШАГ 6. Проверка отображения Volume Fader - состояние: ВКЛ.")
+    @log_step(logger, "Проверка отображения Volume Fader - состояние: ВКЛ.")
     def check_volume_fader_value_state_on():
         expected_value = volume_fader_value_state_on
         actual_value = wg_page.get_volume_fader_value(wg_page.VOLUME_FADER)

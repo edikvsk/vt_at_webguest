@@ -33,16 +33,16 @@ def test_microphone_select(driver, logger):
     vt_web_guest_source_name = "Web Guest"
     microphone = MIC_FOR_SELECTION_IN_TEST_MICROPHONE_SELECT
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
+    @log_step(logger, "Проверка отображения кнопки SETTINGS")
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-    @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
+    @log_step(logger, "Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
         assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
-    @log_step(logger, "ШАГ 3. Выбор микрофона")
+    @log_step(logger, "Выбор микрофона")
     def select_microphone():
         wg_page.select_microphone(microphone)
         notification_handler.check_notification()
@@ -52,14 +52,14 @@ def test_microphone_select(driver, logger):
         actual_value = wg_page.get_settings_item_value_text(wg_page.INPUT_MICROPHONE_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 4. Проверка выбранного микрофона в VT WebGuest Settings")
+    @log_step(logger, "Проверка выбранного микрофона в VT WebGuest Settings")
     def check_microphone_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
         desktop_app_page.select_combobox_item_by_index(2, 0)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
 
-    @log_step(logger, "ШАГ 5. Проверка значения поля Microphone")
+    @log_step(logger, "Проверка значения поля Microphone")
     def check_microphone_field_value():
         expected_value = microphone
         actual_value = wg_page.get_settings_item_value_text(wg_page.INPUT_MICROPHONE_VALUE)

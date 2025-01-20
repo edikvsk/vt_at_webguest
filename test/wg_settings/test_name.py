@@ -30,26 +30,26 @@ def test_name_field(driver, logger):
     name_value = "01TEST_NAME"
     vt_web_guest_source_name = "01TEST_NAME"
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
+    @log_step(logger, "Проверка отображения кнопки SETTINGS")
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-    @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
+    @log_step(logger, "Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
         assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
-    @log_step(logger, "ШАГ 3. Ввод имени")
+    @log_step(logger, "Ввод имени")
     def input_name():
         wg_page.input_text(wg_page.NAME_FIELD_SETTINGS, name_value)
 
-    @log_step(logger, "ШАГ 4. Проверка значения поля имени")
+    @log_step(logger, "Проверка значения поля имени")
     def check_name_field_value():
         expected_value = name_value
         actual_value = wg_page.get_input_value(wg_page.NAME_FIELD_SETTINGS)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 5. Проверка значения поля Name в VT WebGuest Settings")
+    @log_step(logger, "Проверка значения поля Name в VT WebGuest Settings")
     def check_name_field_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)

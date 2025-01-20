@@ -1,3 +1,4 @@
+import configparser
 import os
 
 import pytest
@@ -5,8 +6,8 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from pages.base_page import BasePage
 from pages.web_guest_page import WebGuestPage
-from utils.config import WEB_GUEST_PAGE_URL
-from utils.conftest import driver
+from utils.config import CONFIG_INI
+from utils.conftest import driver, modified_fixture
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
 from utils.notificaton_handler import NotificationHandler
@@ -20,11 +21,18 @@ def logger(caplog):
     return logger
 
 
+@pytest.mark.usefixtures("modified_fixture")
 def test_login_incorrect_location(driver, logger):
-    @log_step(logger, "ШАГ 1. Проверка URL")
+    config_file_path = CONFIG_INI
+    config = configparser.ConfigParser()
+    config.read(config_file_path)
+    web_guest_url = config['DEFAULT']['WEB_GUEST_PAGE_URL'].strip()
+
+    @log_step(logger, "Проверка URL")
     def check_url(drv):
-        expected_url = WEB_GUEST_PAGE_URL
-        drv.get(expected_url)
+        drv.get(web_guest_url)
+        expected_url = web_guest_url
+
         current_url = drv.current_url
         logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")
 
@@ -35,32 +43,32 @@ def test_login_incorrect_location(driver, logger):
     notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
     stream_handler = StreamHandler(driver)
 
-    @log_step(logger, "ШАГ 2. Проверка Notifications")
+    @log_step(logger, "Проверка Notifications")
     def check_notifications():
         assert not notification_handler.check_notification(), "Найдено блокирующее уведомление"
 
-    @log_step(logger, "ШАГ 3. Проверка отображения Authorization Form")
+    @log_step(logger, "Проверка отображения Authorization Form")
     def check_authorization_form():
         assert base_page.is_element_visible(wg_page.AUTHORIZATION_FORM), "Authorization Form не отображается"
 
-    @log_step(logger, "ШАГ 4. Проверка отображения поля ввода Location")
+    @log_step(logger, "Проверка отображения поля ввода Location")
     def check_location_field():
         assert base_page.is_element_visible(wg_page.LOCATION_FIELD), "Поле Location не отображается"
 
-    @log_step(logger, "ШАГ 5. Очистка поля ввода Location")
+    @log_step(logger, "Очистка поля ввода Location")
     def clean_location_field():
         expected_value = ""
         wg_page.delete_text(wg_page.LOCATION_FIELD)
         actual_value = wg_page.get_input_value(wg_page.LOCATION_FIELD)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "ШАГ 6. Логин при пустом поле Location")
+    @log_step(logger, "Логин при пустом поле Location")
     def login_empty_location_field():
         base_page.click(wg_page.LOGIN_BUTTON)
         assert base_page.is_element_visible(wg_page.AUTHORIZATION_LOCATION_FIELD_ERROR), (
             "Отсутствует сообщение об ошибке - Please provide location")
 
-    @log_step(logger, "ШАГ 7. Проверка авторизации с пустым полем Location")
+    @log_step(logger, "Проверка авторизации с пустым полем Location")
     def check_authorization_empty_location_field():
         assert not stream_handler.is_webrtc_connected(), "Трансляция началась с пустым полем Location"
 

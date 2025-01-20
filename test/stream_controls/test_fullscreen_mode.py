@@ -22,35 +22,35 @@ def test_fullscreen_mode(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки FullScreen")
+    @log_step(logger, "Проверка отображения кнопки FullScreen")
     def check_fullscreen_button():
         assert base_page.is_element_present(wg_page.FULLSCREEN_BUTTON), "Кнопка FullScreen не отображается"
 
-    @log_step(logger, "ШАГ 2. Проверка значка кнопки FullScreen - состояние: ВЫКЛ.")
+    @log_step(logger, "Проверка значка кнопки FullScreen - состояние: ВЫКЛ.")
     def check_fullscreen_image_state_off():
         assert wg_page.is_fullscreen_button_pressed(wg_page.FULLSCREEN_BUTTON), "Кнопка FullScreen в состоянии ВКЛ."
 
-    @log_step(logger, "ШАГ 3. Нажатие кнопки/активация FullScreen")
+    @log_step(logger, "Нажатие кнопки/активация FullScreen")
     def turn_on_fullscreen():
         wg_page.hover_element(wg_page.FULLSCREEN_BUTTON)
         base_page.click(wg_page.FULLSCREEN_BUTTON)
 
-    @log_step(logger, "ШАГ 4. Проверка активности состояния FullScreen - состояние: ВКЛ.")
+    @log_step(logger, "Проверка активности состояния FullScreen - состояние: ВКЛ.")
     def check_fullscreen_mode_state_on():
         assert wg_page.is_fullscreen(), "Окно браузера НЕ в состоянии FullScreen"
 
-    @log_step(logger, "ШАГ 5. Проверка значка кнопки FullScreen - состояние: ВКЛ.")
+    @log_step(logger, "Проверка значка кнопки FullScreen - состояние: ВКЛ.")
     def check_fullscreen_image_state_on():
         wg_page.hover_element(wg_page.FULLSCREEN_BUTTON)
         assert not wg_page.is_fullscreen_button_pressed(
             wg_page.FULLSCREEN_BUTTON), "Кнопка FullScreen в состоянии ВЫКЛ."
 
-    @log_step(logger, "ШАГ 6. Нажатие кнопки/отключение FullScreen")
+    @log_step(logger, "Нажатие кнопки/отключение FullScreen")
     def turn_off_fullscreen():
         wg_page.hover_element(wg_page.FULLSCREEN_BUTTON)
         base_page.click(wg_page.FULLSCREEN_BUTTON)
 
-    @log_step(logger, "ШАГ 7. Проверка активности состояния FullScreen - состояние: ВЫКЛ.")
+    @log_step(logger, "Проверка активности состояния FullScreen - состояние: ВЫКЛ.")
     def check_fullscreen_mode_state_off():
         assert not wg_page.is_fullscreen(), "Окно браузера в состоянии FullScreen"
 

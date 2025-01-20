@@ -29,30 +29,30 @@ def test_audio_enhancements(driver, logger):
 
     vt_web_guest_source_name = "Web Guest"
 
-    @log_step(logger, "ШАГ 1. Проверка отображения кнопки SETTINGS")
+    @log_step(logger, "Проверка отображения кнопки SETTINGS")
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-    @log_step(logger, "ШАГ 2. Нажатие кнопки SETTINGS")
+    @log_step(logger, "Нажатие кнопки SETTINGS")
     def click_settings_button():
         base_page.click(wg_page.SETTINGS_BUTTON)
         assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
-    @log_step(logger, "ШАГ 3. Проверка AUDIO ENHANCEMETS Switcher - состояние: ВКЛ. ")
+    @log_step(logger, "Проверка AUDIO ENHANCEMETS Switcher - состояние: ВКЛ. ")
     def check_audio_enhancements_switcher_state_on():
         assert wg_page.is_switcher_active(wg_page.AUDIO_ENHANCEMENTS_SWITCHER), ("Audio Enhancements в состоянии "
                                                                                  "ВЫКЛ.")
 
-    @log_step(logger, "ШАГ 4. Выключение Audio Enhancements")
+    @log_step(logger, "Выключение Audio Enhancements")
     def turn_off_audio_enhancements():
         wg_page.click_element_with_scroll(wg_page.AUDIO_ENHANCEMENTS_SWITCHER)
 
-    @log_step(logger, "ШАГ 5. Проверка AUDIO ENHANCEMENTS Switcher - состояние: ВЫКЛ. ")
+    @log_step(logger, "Проверка AUDIO ENHANCEMENTS Switcher - состояние: ВЫКЛ. ")
     def check_audio_enhancements_switcher_state_off():
         assert not wg_page.is_switcher_active(
             wg_page.AUDIO_ENHANCEMENTS_SWITCHER), "Audio Enhancements в состоянии ВКЛ."
 
-    @log_step(logger, "ШАГ 6. Проверка AUDIO ENHANCEMENTS switcher VT WG Settings  - состояние: ВЫКЛ.")
+    @log_step(logger, "Проверка AUDIO ENHANCEMENTS switcher VT WG Settings  - состояние: ВЫКЛ.")
     def check_vt_wg_audio_enhancements_state_off():
         expected_value = 0  # Состояние кнопки (0 == False)
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
