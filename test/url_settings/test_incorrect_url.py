@@ -1,3 +1,4 @@
+import configparser
 import os
 
 import pytest
@@ -5,8 +6,8 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from pages.base_page import BasePage
 from pages.web_guest_page import WebGuestPage
-from utils.config import WEB_GUEST_PAGE_URL
-from utils.conftest import driver
+from utils.config import CONFIG_INI
+from utils.conftest import driver, modified_fixture
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
 from utils.notificaton_handler import NotificationHandler
@@ -19,11 +20,18 @@ def logger(caplog):
     return logger
 
 
+@pytest.mark.usefixtures("modified_fixture")
 def test_incorrect_url(driver, logger):
+    config_file_path = CONFIG_INI
+    config = configparser.ConfigParser()
+    config.read(config_file_path)
+    web_guest_url = config['DEFAULT']['WEB_GUEST_PAGE_URL'].strip()
+
     @log_step(logger, "ШАГ 1. Проверка URL")
     def check_url(drv):
-        expected_url = f"{WEB_GUEST_PAGE_URL}incorrect"
-        drv.get(expected_url)
+        drv.get(web_guest_url + "incorrect")
+        expected_url = f"{web_guest_url}incorrect"
+
         current_url = drv.current_url
         logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")
 
