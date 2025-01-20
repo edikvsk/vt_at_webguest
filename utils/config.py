@@ -8,8 +8,8 @@ CHROME_BROWSER_PATH = "C:/Program Files/Google/Chrome Beta/Application/chrome.ex
 
 # CONFIG DESKTOP
 LOGS_DIR = "C:/Users/Demo/PycharmProjects/VT WebGuest/VT WebGuest AT/logs"
-CONFIG_INI = r'C:\Users\Николай Беликов\PycharmProjects\vt_at_webguest\utils\config.ini'
-PROCESS_PATH = r"D:\VT\Video Transport 1.9.5.1056(x64)\VT_Publisher.exe"
+CONFIG_INI = "C:/Users/Николай Беликов/PycharmProjects/vt_at_webguest/utils/config.ini"
+PROCESS_PATH = "D:/VT/Video Transport 1.9.5.1056(x64)/VT_Publisher.exe"
 PROCESS_NAME = "VT_Publisher.exe"
 
 # CONFIG VT
