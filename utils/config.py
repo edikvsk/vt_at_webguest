@@ -1,13 +1,8 @@
-# CONFIG WEB GUEST
-USERNAME = "AT_guest"
-LOCATION = "Web"
-
 # CONFIG BROWSER
 CHROME_DRIVER_PATH = "D:/chromedriver/chromedriver.exe"
 CHROME_BROWSER_PATH = "C:/Program Files/Google/Chrome Beta/Application/chrome.exe"
 
 # CONFIG DESKTOP
-LOGS_DIR = "C:/Users/Demo/PycharmProjects/VT WebGuest/VT WebGuest AT/logs"
 CONFIG_INI = "C:/Users/Николай Беликов/PycharmProjects/vt_at_webguest/utils/config.ini"
 PROCESS_PATH = "D:/VT/Video Transport 1.9.5.1056(x64)/VT_Publisher.exe"
 PROCESS_NAME = "VT_Publisher.exe"
