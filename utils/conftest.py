@@ -112,8 +112,6 @@ def login_fixture(driver, logger):
 @pytest.fixture(scope="function")
 def modified_fixture(driver, logger):
     web_guest_page = WebGuestPage(driver)
-    notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
-    stream_handler = StreamHandler(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
