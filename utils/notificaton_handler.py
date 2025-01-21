@@ -20,7 +20,8 @@ def logger(caplog):
 NOTIFICATION_TO_FAIL = [
     "You are not authorized",
     "Overconstrained error",
-    "Connectivity Error"
+    "Connectivity Error",
+    "Unable"
 ]
 
 # Определяем список уведомлений, которые не должны прерывать тест
