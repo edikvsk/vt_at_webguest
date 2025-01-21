@@ -6,6 +6,7 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from pages.base_page import BasePage
 from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
+from utils.config import PROCESS_PATH
 from utils.conftest import driver, login_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step

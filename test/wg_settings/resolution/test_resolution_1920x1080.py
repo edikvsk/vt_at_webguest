@@ -81,10 +81,11 @@ def test_resolution_1920x1080(driver, logger):
         check_settings_button,
         click_settings_button,
         select_resolution,
-        check_resolution_field_value_vt,
-        check_resolution_field_value,
         restart_streaming,
-        check_webrtc_frame_dimensions
+        check_webrtc_frame_dimensions,
+        click_settings_button,
+        check_resolution_field_value,
+        check_resolution_field_value_vt
     ]
 
     for step in steps:

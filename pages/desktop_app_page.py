@@ -104,7 +104,7 @@ class DesktopAppPage:
                 button.click_input()
                 return
 
-            time.sleep(0.5)
+            time.sleep(1)
 
         raise ElementNotFoundError(f"Кнопка с именем '{button_name}' не доступна для клика в течение {timeout} секунд.")
 

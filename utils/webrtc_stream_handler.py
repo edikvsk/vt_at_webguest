@@ -154,7 +154,7 @@ class StreamHandler:
 
                         resolve(frameDimensions || 'No dimensions found'); // Возвращаем размеры или сообщение об отсутствии
                     });
-                }, 1500); // Ожидание 1.5 секунды
+                }, 4000); // Ожидание
             });
         }
         return Promise.resolve('No peers found'); // Если пиры не найдены
