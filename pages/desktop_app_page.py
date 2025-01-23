@@ -104,8 +104,6 @@ class DesktopAppPage:
                 button.click_input()
                 return
 
-            time.sleep(1)
-
         raise ElementNotFoundError(f"Кнопка с именем '{button_name}' не доступна для клика в течение {timeout} секунд.")
 
     def click_vt_wg_settings_item(self, menu_item_title):

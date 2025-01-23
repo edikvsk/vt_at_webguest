@@ -156,3 +156,52 @@ def modified_fixture(driver, logger):
         yield web_guest_page
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при переходе на страницу: {e}")
+
+
+@pytest.fixture(scope="function")
+def web_preview_fixture(driver, logger):
+    web_guest_page = WebGuestPage(driver)
+    desktop_app = DesktopApp(PROCESS_PATH)
+    desktop_app_page = DesktopAppPage(desktop_app.main_window)
+
+    WEB_PREVIEW_PAGE_URL = ""
+
+    try:
+        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
+        is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
+        is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
+
+        if is_enabled_start_publishing and not is_enabled_stop_publishing:
+            desktop_app_page.click_button_by_name("Start Publishing")
+            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+            desktop_app_page.click_vt_source_item("Copy Preview URL")
+            WEB_PREVIEW_PAGE_URL = pyperclip.paste()
+        elif not is_enabled_start_publishing and is_enabled_stop_publishing:
+            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+            desktop_app_page.click_vt_source_item("Copy Preview URL")
+            WEB_PREVIEW_PAGE_URL = pyperclip.paste()
+            logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
+        else:
+            logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
+
+        if not WEB_PREVIEW_PAGE_URL:
+            logger.error("Не удалось получить Preview URL.")
+            raise ValueError("Preview URL не был инициализирован.")
+
+        logger.info("Переходим на страницу Web Preview")
+
+        # Обновляем файл конфигурации
+        config_file_path = CONFIG_INI
+        config = configparser.ConfigParser()
+        config.read(config_file_path)
+
+        # Обновляем значение в конфигурации
+        config['DEFAULT']['WEB_PREVIEW_PAGE_URL'] = WEB_PREVIEW_PAGE_URL
+
+        # Записываем изменения обратно в файл
+        with open(config_file_path, 'w') as configfile:
+            config.write(configfile)
+
+        yield web_guest_page
+    except (NoSuchElementException, TimeoutException) as e:
+        logger.error(f"Ошибка при переходе на страницу: {e}")
