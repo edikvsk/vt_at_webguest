@@ -318,3 +318,31 @@ class StreamHandler:
             return "60 FPS"
         else:
             return f"FPS {average_frame_rate:.2f}"  # Возвращаем значение FPS с двумя знаками после запятой
+
+    def get_output_video_codec_from_stats(self):
+        script = """
+        const stats = [];
+        const peers = window.peers;
+        if (peers && peers.length > 0) {
+            const peer = peers[0];
+            const pc = peer.pc;
+
+            return pc.getStats(null).then(stats => {
+                const videoCodecs = {
+                    outbound: null,
+                    inbound: null
+                };
+                stats.forEach(report => {
+                    if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                        videoCodecs.outbound = report.codecId; // Кодек для отправляемого видео
+                    }
+                    if (report.type === 'remote-inbound-rtp' && report.kind === 'video') {
+                        videoCodecs.inbound = report.codecId; // Кодек для принимаемого видео
+                    }
+                });
+                return videoCodecs;
+            });
+        }
+        return 'No peers found';
+        """
+        return self.driver.execute_script(script)
