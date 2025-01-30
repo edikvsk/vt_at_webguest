@@ -25,35 +25,51 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="function")
 def driver():
-    # Создаем экземпляр ProcessManager
     process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME)
-
-    # Запускаем процесс, если он не запущен
     process_manager.start_process()
 
     chrome_options = Options()
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
-    # chrome_options.add_argument("--use-fake-device-for-media-stream") # Использовать если недоступно физ. устройство
-    chrome_options.binary_location = CHROME_BROWSER_PATH  # Используем путь из конфигурации
+    chrome_options.binary_location = CHROME_BROWSER_PATH
 
     media_constraints = {
-        "video": {
-            "deviceId": {
-                "exact": VIDEO_DEVICE_ID
-            }
-        },
-        "audio": {
-            "deviceId": {
-                "exact": AUDIO_DEVICE_ID
-            }
-        }
+        "video": {"deviceId": {"exact": VIDEO_DEVICE_ID}},
+        "audio": {"deviceId": {"exact": AUDIO_DEVICE_ID}}
     }
-
     chrome_options.add_argument(f"mediaStreamConstraints={media_constraints}")
-    service = Service(CHROME_DRIVER_PATH)  # Используем путь из конфигурации
+
+    service = Service(CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     yield driver
     driver.quit()
+
+
+def get_web_url(desktop_app_page, logger, copy_command):
+    desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
+    is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
+    is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
+
+    if is_enabled_start_publishing and not is_enabled_stop_publishing:
+        desktop_app_page.click_button_by_name("Start Publishing")
+        desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+        desktop_app_page.click_vt_source_item(copy_command)
+        return pyperclip.paste()
+    elif not is_enabled_start_publishing and is_enabled_stop_publishing:
+        desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+        desktop_app_page.click_vt_source_item(copy_command)
+        logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
+        return pyperclip.paste()
+    else:
+        logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
+        return None
+
+
+def update_config(config_file_path, section, key, value):
+    config = configparser.ConfigParser()
+    config.read(config_file_path)
+    config[section][key] = value
+    with open(config_file_path, 'w') as configfile:
+        config.write(configfile)
 
 
 @pytest.fixture(scope="function")
@@ -64,41 +80,18 @@ def login_fixture(driver, logger):
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
-    WEB_GUEST_PAGE_URL = ""
-
     try:
-        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
-        is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
-        is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
-
-        if is_enabled_start_publishing and not is_enabled_stop_publishing:
-            desktop_app_page.click_button_by_name("Start Publishing")
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            desktop_app_page.click_vt_source_item("Copy Web Guest URL")
-            WEB_GUEST_PAGE_URL = pyperclip.paste()
-        elif not is_enabled_start_publishing and is_enabled_stop_publishing:
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            desktop_app_page.click_vt_source_item("Copy Web Guest URL")
-            WEB_GUEST_PAGE_URL = pyperclip.paste()
-            logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
-        else:
-            logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
-
+        WEB_GUEST_PAGE_URL = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
         if not WEB_GUEST_PAGE_URL:
             logger.error("Не удалось получить Web Guest URL.")
             raise ValueError("Web Guest URL не был инициализирован.")
 
         logger.info("Переходим на страницу Web Guest")
         driver.get(WEB_GUEST_PAGE_URL)
-
         base_page = BasePage(driver)
 
-        # Проверка уведомлений
         notification_handler.check_notification()
-
         base_page.click(web_guest_page.LOGIN_BUTTON)
-
-        # Ожидание подключения WebRTC стрима
         stream_handler.wait_for_webrtc_connection(timeout=10)
         logger.info("Стрим запущен")
 
@@ -106,7 +99,6 @@ def login_fixture(driver, logger):
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при переходе на страницу: {e}")
         raise
-    return WEB_GUEST_PAGE_URL
 
 
 @pytest.fixture(scope="function")
@@ -115,44 +107,13 @@ def modified_fixture(driver, logger):
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
-    WEB_GUEST_PAGE_URL = ""
-
     try:
-        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
-        is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
-        is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
-
-        if is_enabled_start_publishing and not is_enabled_stop_publishing:
-            desktop_app_page.click_button_by_name("Start Publishing")
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            desktop_app_page.click_vt_source_item("Copy Web Guest URL")
-            WEB_GUEST_PAGE_URL = pyperclip.paste()
-        elif not is_enabled_start_publishing and is_enabled_stop_publishing:
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            desktop_app_page.click_vt_source_item("Copy Web Guest URL")
-            WEB_GUEST_PAGE_URL = pyperclip.paste()
-            logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
-        else:
-            logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
-
+        WEB_GUEST_PAGE_URL = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
         if not WEB_GUEST_PAGE_URL:
             logger.error("Не удалось получить Web Guest URL.")
             raise ValueError("Web Guest URL не был инициализирован.")
 
-        logger.info("Переходим на страницу Web Guest")
-
-        # Обновляем файл конфигурации
-        config_file_path = CONFIG_INI
-        config = configparser.ConfigParser()
-        config.read(config_file_path)
-
-        # Обновляем значение в конфигурации
-        config['DEFAULT']['WEB_GUEST_PAGE_URL'] = WEB_GUEST_PAGE_URL
-
-        # Записываем изменения обратно в файл
-        with open(config_file_path, 'w') as configfile:
-            config.write(configfile)
-
+        update_config(CONFIG_INI, 'DEFAULT', 'WEB_GUEST_PAGE_URL', WEB_GUEST_PAGE_URL)
         yield web_guest_page
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при переходе на страницу: {e}")
@@ -164,44 +125,13 @@ def web_preview_fixture(driver, logger):
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
-    WEB_PREVIEW_PAGE_URL = ""
-
     try:
-        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
-        is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
-        is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
-
-        if is_enabled_start_publishing and not is_enabled_stop_publishing:
-            desktop_app_page.click_button_by_name("Start Publishing")
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            desktop_app_page.click_vt_source_item("Copy Preview URL")
-            WEB_PREVIEW_PAGE_URL = pyperclip.paste()
-        elif not is_enabled_start_publishing and is_enabled_stop_publishing:
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            desktop_app_page.click_vt_source_item("Copy Preview URL")
-            WEB_PREVIEW_PAGE_URL = pyperclip.paste()
-            logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
-        else:
-            logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
-
+        WEB_PREVIEW_PAGE_URL = get_web_url(desktop_app_page, logger, "Copy Preview URL")
         if not WEB_PREVIEW_PAGE_URL:
             logger.error("Не удалось получить Preview URL.")
             raise ValueError("Preview URL не был инициализирован.")
 
-        logger.info("Переходим на страницу Web Preview")
-
-        # Обновляем файл конфигурации
-        config_file_path = CONFIG_INI
-        config = configparser.ConfigParser()
-        config.read(config_file_path)
-
-        # Обновляем значение в конфигурации
-        config['DEFAULT']['WEB_PREVIEW_PAGE_URL'] = WEB_PREVIEW_PAGE_URL
-
-        # Записываем изменения обратно в файл
-        with open(config_file_path, 'w') as configfile:
-            config.write(configfile)
-
+        update_config(CONFIG_INI, 'DEFAULT', 'WEB_PREVIEW_PAGE_URL', WEB_PREVIEW_PAGE_URL)
         yield web_guest_page
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при переходе на страницу: {e}")
@@ -213,7 +143,6 @@ def open_web_preview_fixture(driver, logger):
     web_guest_page = WebGuestPage(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
-    stream_handler = StreamHandler(driver)
     notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
 
     try:
@@ -233,10 +162,7 @@ def open_web_preview_fixture(driver, logger):
             logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
 
         logger.info("Переходим на страницу Web Preview")
-
-        # Проверка уведомлений
         notification_handler.check_notification()
-
         base_page.click(web_guest_page.LOGIN_BUTTON)
 
         yield web_guest_page
