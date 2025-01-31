@@ -67,6 +67,7 @@ class WebGuestPage(BasePage):
                                       "font-weight-semi-bold text-ellipsis text-white']")
     INPUT_FIELD_OTHER_CHANNELS = (By.XPATH, "//div[@class='px-3 pt-4']//input[@class='border-0 outline-none "
                                             "overflow-hidden px-3 text-white input']")
+    VOLUME_FADER_THUMB = (By.XPATH, ".//div[contains(@class, 'thumb')]")
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
@@ -177,7 +178,7 @@ class WebGuestPage(BasePage):
                 )
 
             thumb_element = WebDriverWait(volume_fader, 10).until(
-                EC.visibility_of_element_located((By.XPATH, ".//div[contains(@class, 'thumb')]"))
+                EC.visibility_of_element_located(self.VOLUME_FADER_THUMB)
             )
 
             return thumb_element.get_attribute('aria-valuenow')
@@ -190,7 +191,7 @@ class WebGuestPage(BasePage):
         """Установка значения слайдера"""
         try:
             volume_fader = self.wait_for_element(fader_locator)
-            thumb_element = volume_fader.find_element(By.XPATH, ".//div[contains(@class, 'thumb')]")
+            thumb_element = volume_fader.find_element(self.VOLUME_FADER_THUMB)
 
             thumb_element.click()
 
@@ -205,7 +206,7 @@ class WebGuestPage(BasePage):
         """Установка значения слайдера и вызов необходимых событий."""
         try:
             volume_fader = self.wait_for_element(fader_locator)
-            thumb_element = volume_fader.find_element(By.XPATH, ".//div[contains(@class, 'thumb')]")
+            thumb_element = volume_fader.find_element(self.VOLUME_FADER_THUMB)
 
             # Получаем минимальное и максимальное значения
             min_value = int(thumb_element.get_attribute('aria-valuemin'))
@@ -273,7 +274,7 @@ class WebGuestPage(BasePage):
                         break
 
             text_lower = text.lower()
-            option_locator = (By.XPATH, f"//span[contains(@class, 'menu-item-title')]")
+            option_locator = (By.XPATH, "//span[contains(@class, 'menu-item-title')]")
 
             options = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located(option_locator))
 

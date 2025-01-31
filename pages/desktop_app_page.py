@@ -106,17 +106,6 @@ class DesktopAppPage:
 
         raise ElementNotFoundError(f"Кнопка с именем '{button_name}' не доступна для клика в течение {timeout} секунд.")
 
-    def click_vt_wg_settings_item(self, menu_item_title):
-        """Кликает по элементу меню с заданным заголовком."""
-        try:
-            menu_item = self.main_window.child_window(title=menu_item_title, control_type="MenuItem")
-            if menu_item.exists() and menu_item.is_enabled():
-                menu_item.click_input()
-            else:
-                raise ElementNotFoundError(f"Элемент '{menu_item_title}' не доступен для клика.")
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при клике на элемент меню '{menu_item_title}': {e}")
-
     def get_vt_wg_settings_field_value(self, index):
         """Получает значение поля в WebGuest Settings по заданному индексу."""
         try:
@@ -172,61 +161,6 @@ class DesktopAppPage:
         except Exception as e:
             raise RuntimeError(
                 f"Ошибка при выборе элемента в ComboBox с индексом {combo_index} и элементом {item_index}: {e}")
-
-    def scroll_down_until_text_found(self, title_part, amount="line"):
-        """Прокручивает вниз элемент DataItem до тех пор, пока не найдет элемент с текстом, соответствующим
-        регулярному выражению."""
-        try:
-            # Получаем все элементы DataGrid
-            data_grids = self.main_window.children(class_name="DataGrid")
-
-            if not data_grids:
-                raise RuntimeError("Элемент DataGrid не найден.")
-
-            data_grid = data_grids[0]
-
-            found = False
-            scroll_count = 0  # Счетчик прокруток
-
-            while not found:
-                # Получаем все элементы DataItem внутри DataGrid
-                data_items = data_grid.children(control_type="DataItem")
-
-                for data_item in data_items:
-                    # Ищем все элементы Custom внутри DataItem
-                    custom_elements = data_item.children(control_type="Custom")
-
-                    text_found_in_current_item = False  # Флаг для текущего DataItem
-
-                    for custom_element in custom_elements:
-                        # Ищем элемент Text внутри Custom
-                        text_elements = custom_element.children(control_type="Text")
-
-                        for text_element in text_elements:
-                            text_content = text_element.window_text()
-                            if re.search(f'.*{re.escape(title_part)}.*', text_content):
-                                found = True
-                                text_found_in_current_item = True
-                                data_item.click_input()
-                                break
-
-                        if found:  # Если найден элемент, выходим из внутреннего цикла
-                            break
-
-                    if found:  # Если найден элемент, выходим из внешнего цикла
-                        break
-
-                    # Если текст не найден в текущем DataItem, прокручиваем вниз
-                    if not text_found_in_current_item:
-                        data_grid.scroll('down', amount)  # Прокрутка вниз на одну строку
-                        scroll_count += 0.5
-
-                # Проверяем, есть ли еще элементы для проверки
-                if len(data_items) == 0:  # Если нет элементов для проверки, выходим из цикла
-                    raise RuntimeError("Элементы DataItem не найдены, прокрутка завершена.")
-
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при выполнении прокрутки вниз: {e}")
 
     def get_vt_wg_button_state(self, index):
         """Получает состояние кнопки по заданному индексу."""
