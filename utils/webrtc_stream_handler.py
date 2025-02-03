@@ -25,6 +25,77 @@ class StreamHandler:
         """
         return self.driver.execute_script(script)
 
+    def calculate_average_stream_fps(self, duration=5):
+        """Calculate average FPS of a WebRTC stream."""
+        # Проверяем наличие видеоэлемента
+        video_exists = self.driver.execute_script("return !!document.querySelector('video');")
+        if not video_exists:
+            print("Video element not found on the page.")
+            return None
+
+        # JavaScript для расчёта FPS
+        js_script = """
+        try {
+            const videoElement = document.querySelector('video');
+            if (!videoElement) {
+                return 'Video element not found';
+            }
+
+            let lastTime = performance.now();
+            let frameCount = 0;
+            let fpsValues = [];
+
+            function calculateFPS() {
+                try {
+                    const now = performance.now();
+                    const deltaTime = now - lastTime;
+
+                    frameCount++;
+
+                    if (deltaTime >= 1000) { // Обновляем FPS каждую секунду
+                        const fps = (frameCount * 1000) / deltaTime;
+                        fpsValues.push(fps);
+                        frameCount = 0;
+                        lastTime = now;
+                    }
+
+                    if (fpsValues.length < arguments[0]) {
+                        requestAnimationFrame(calculateFPS);
+                    } else {
+                        window.fpsResult = fpsValues; // Сохраняем результаты в глобальную переменную
+                    }
+                } catch (error) {
+                    console.error("Error in calculateFPS:", error);
+                }
+            }
+
+            calculateFPS(arguments[0]); // Передаём количество секунд
+        } catch (error) {
+            console.error("Error in FPS calculation script:", error);
+        }
+        """
+
+        # Выполняем JavaScript на странице
+        print("Executing JavaScript to calculate FPS...")
+        self.driver.execute_script(js_script, duration)
+
+        # Ждём, пока JavaScript завершит сбор данных
+        print("Waiting for FPS data to be collected...")
+        time.sleep(duration + 2)
+
+        # Получаем результаты из JavaScript
+        fps_values = self.driver.execute_script("return window.fpsResult;")
+        if fps_values is None:
+            print("FPS data is not available. Check JavaScript execution.")
+            return None
+
+        # Рассчитываем среднее значение FPS
+        average_fps = sum(fps_values) / len(fps_values)
+        print(f"Collected FPS values: {fps_values}")
+        print(f"Average FPS over {duration} seconds: {average_fps:.2f}")
+
+        return average_fps
+
     def is_audio_stream_active(self):
         script = """
         var videoElement = document.querySelector('video[data-cy="remote-video"]');
@@ -136,7 +207,7 @@ class StreamHandler:
             const pc = peer.pc;
 
             return new Promise((resolve) => {
-                // Ожидаем 1.5 секунды перед началом замеров
+                // Ожидаем 1 секунды перед началом замеров
                 setTimeout(() => {
                     let frameDimensions = null;
 
@@ -154,7 +225,7 @@ class StreamHandler:
 
                         resolve(frameDimensions || 'No dimensions found'); // Возвращаем размеры или сообщение об отсутствии
                     });
-                }, 4000); // Ожидание
+                }, 1000); // Ожидание
             });
         }
         return Promise.resolve('No peers found'); // Если пиры не найдены

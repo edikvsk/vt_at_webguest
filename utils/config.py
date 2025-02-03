@@ -1,6 +1,6 @@
 # CONFIG BROWSER
 CHROME_DRIVER_PATH = "D:/chromedriver/chromedriver.exe"
-CHROME_BROWSER_PATH = "C:/Program Files/Google/Chrome Beta/Application/chrome.exe"
+CHROME_BROWSER_PATH = "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
 
 # CONFIG DESKTOP
 CONFIG_INI = "C:/Users/Николай Беликов/PycharmProjects/vt_at_webguest/utils/config.ini"

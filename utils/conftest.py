@@ -30,6 +30,8 @@ def driver():
 
     chrome_options = Options()
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
+    chrome_options.add_argument("--enable-gpu")
+    chrome_options.add_argument("--disable-software-rasterizer")
     chrome_options.binary_location = CHROME_BROWSER_PATH
 
     media_constraints = {
