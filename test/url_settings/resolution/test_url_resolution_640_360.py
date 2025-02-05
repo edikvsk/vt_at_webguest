@@ -1,5 +1,6 @@
 import configparser
 import os
+import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -99,6 +100,7 @@ def test_url_resolution_640_360(driver, logger):
 
     @log_step(logger, "Проверка значения Resolution в WebRTC")
     def check_webrtc_frame_dimensions():
+        time.sleep(25)
         expected_value = resolution
         actual_value = stream_handler.get_video_frame_dimensions()
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
