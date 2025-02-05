@@ -31,7 +31,7 @@ def test_video_encoder_h264(driver, logger):
 
     vt_web_guest_source_name = "Web Guest"
     video_encoder_value = "H264"
-    webrtc_video_encoder_for_h264 = "COT01_99_level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"
+    webrtc_video_encoder_for_h264 = "COT01_102_level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"
 
     @log_step(logger, "Проверка отображения кнопки SETTINGS")
     def check_settings_button():

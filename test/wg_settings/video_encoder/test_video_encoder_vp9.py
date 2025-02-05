@@ -31,7 +31,7 @@ def test_video_encoder_vp9(driver, logger):
 
     vt_web_guest_source_name = "Web Guest"
     video_encoder_value = "VP9"
-    webrtc_video_encoder_for_vp9 = "COT01_97_profile-id=0"
+    webrtc_video_encoder_for_vp9 = "COT01_98_profile-id=0"
 
     @log_step(logger, "Проверка отображения кнопки SETTINGS")
     def check_settings_button():
