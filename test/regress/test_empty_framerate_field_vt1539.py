@@ -4,15 +4,11 @@ import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from pages.base_page import BasePage
-from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
-from utils.config import PROCESS_PATH
 from utils.conftest import driver, login_fixture
-from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
 from utils.notificaton_handler import NotificationHandler
-from utils.webrtc_stream_handler import StreamHandler
 
 
 @pytest.fixture(scope="function")
@@ -27,7 +23,6 @@ def test_empty_framerate_field_vt1539(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
     notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
-    desktop_app = DesktopApp(PROCESS_PATH)
 
     framerate = "60 FPS"
 
