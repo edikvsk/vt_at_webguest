@@ -67,6 +67,7 @@ class WebGuestPage(BasePage):
                                       "font-weight-semi-bold text-ellipsis text-white']")
     INPUT_FIELD_OTHER_CHANNELS = (By.XPATH, "//div[@class='px-3 pt-4']//input[@class='border-0 outline-none "
                                             "overflow-hidden px-3 text-white input']")
+    SCROLLBAR_SELECT_DEVICE = (By.XPATH, "//div[@class='d-flex hidden-scrollbar flex-column overflow-x-hidden']")
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
@@ -256,6 +257,30 @@ class WebGuestPage(BasePage):
         except Exception as e:
             print(f"Произошла ошибка: {e}")
             return []
+
+    def is_vertical_scrollbar_visible(self, element_locator):
+        """
+        Проверяет, отображается ли вертикальный скроллбар у элемента.
+
+        :param element_locator: Локатор элемента, для которого проверяется наличие вертикального скроллбара.
+        :return: True, если вертикальный скроллбар виден, иначе False.
+        """
+        try:
+            # Ожидание, пока элемент станет видимым
+            element = self.wait_for_element(element_locator)
+            WebDriverWait(self.driver, 10).until(EC.visibility_of(element))
+
+            # Используем JavaScript для проверки наличия вертикального скроллбара
+            script = """
+            const element = arguments[0];
+            return element.scrollHeight > element.clientHeight;
+            """
+            has_vertical_scrollbar = self.driver.execute_script(script, element)
+            return has_vertical_scrollbar
+
+        except Exception as e:
+            print(f"Произошла ошибка: {e}")
+            return False
 
     def select_from_combobox(self, combobox_locator, text, replacements=None):
         """Выбирает значение из выпадающего списка по заданному тексту."""
