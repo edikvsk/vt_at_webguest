@@ -71,7 +71,13 @@ class WebGuestPage(BasePage):
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
-        """Кликает по элементу, если он доступен, с заданным временем ожидания и прокруткой к элементу"""
+        """
+        Кликает по элементу после прокрутки к нему и ожидания кликабельности.
+
+        :param element_locator: Локатор целевого элемента
+        :param timeout: Максимальное время ожидания в секундах (по умолчанию 10)
+        :return: None
+        """
         try:
             # Ожидаем, пока элемент станет кликабельным
             element = WebDriverWait(self.driver, timeout).until(
@@ -91,15 +97,33 @@ class WebGuestPage(BasePage):
             print(f"Ошибка при клике на элемент {element_locator}: {e}")
 
     def wait_for_element(self, locator, timeout=10):
-        """Ожидание элемента по локатору."""
+        """
+        Ожидает появление элемента в DOM страницы.
+
+        :param locator: Локатор искомого элемента
+        :param timeout: Максимальное время ожидания в секундах (по умолчанию 10)
+        :return: WebElement - найденный элемент
+        :raises TimeoutException: Если элемент не найден за указанное время
+        """
         return WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
 
     def hover_element(self, element):
-        """Наведение курсора на указанный элемент."""
+        """
+        Наводит курсор мыши на указанный элемент.
+
+        :param element: Локатор элемента для наведения
+        :return: None
+        """
         ActionChains(self.driver).move_to_element(self.wait_for_element(element)).perform()
 
     def get_tooltip_text(self, element, tooltip_locator):
-        """Получение текста тултипа после наведения на указанный элемент."""
+        """
+        Получает текст всплывающей подсказки после наведения на элемент.
+
+        :param element: Локатор элемента для наведения
+        :param tooltip_locator: Локатор элемента тултипа
+        :return: Текст подсказки или None при ошибке
+        """
         try:
             self.hover_element(element)
             tooltip_element = self.wait_for_element(tooltip_locator)
@@ -109,7 +133,12 @@ class WebGuestPage(BasePage):
             return None
 
     def is_button_pressed(self, button_locator):
-        """Проверяет, нажата ли кнопка, используя указанный локатор."""
+        """
+        Проверяет состояние нажатия кнопки по наличию CSS-класса.
+
+        :param button_locator: Локатор проверяемой кнопки
+        :return: True если кнопка нажата (отсутствует класс bg-danger), иначе False
+        """
         try:
             button = self.wait_for_element(button_locator)
             return 'bg-danger' not in button.get_attribute('class')
@@ -118,7 +147,14 @@ class WebGuestPage(BasePage):
             return False
 
     def input_text(self, field_locator, text):
-        """Вводит указанный текст в заданное поле по одной букве."""
+        """
+        Вводит текст в поле посимвольно с задержкой.
+
+        :param field_locator: Локатор текстового поля
+        :param text: Текст для ввода
+        :return: None
+        :raises RuntimeError: При ошибках ввода
+        """
         try:
             text_field = self.wait_for_element(field_locator)
             text_field.clear()
@@ -129,7 +165,13 @@ class WebGuestPage(BasePage):
             raise RuntimeError(f"Ошибка при вводе текста: {e}")
 
     def delete_text(self, field_locator):
-        """Удаляет текст из заданного поля по одной букве до полного очищения."""
+        """
+        Удаляет текст из поля посимвольно с помощью клавиши BACKSPACE.
+
+        :param field_locator: Локатор текстового поля
+        :return: None
+        :raises RuntimeError: При ошибках удаления
+        """
         try:
             text_field = self.wait_for_element(field_locator)
             while text_field.get_attribute('value'):  # Проверяем, есть ли текст в поле
@@ -139,7 +181,13 @@ class WebGuestPage(BasePage):
             raise RuntimeError(f"Ошибка при удалении текста: {e}")
 
     def get_input_value(self, input_locator):
-        """Получение значения поля input по указанному локатору."""
+        """
+        Получает текущее значение поля ввода.
+
+        :param input_locator: Локатор элемента input
+        :return: Текущее значение поля
+        :raises RuntimeError: Если элемент не найден
+        """
         try:
             input_element = self.wait_for_element(input_locator)
             return input_element.get_attribute('value')
@@ -147,7 +195,11 @@ class WebGuestPage(BasePage):
             raise RuntimeError(f"Ошибка при получении значения input: {e}")
 
     def get_window_resolution(self):
-        """Получение разрешения окна браузера в формате 'width x height'."""
+        """
+        Возвращает текущее разрешение окна браузера.
+
+        :return: Строка в формате "width x height" или None при ошибке
+        """
         try:
             window_size = self.driver.get_window_size()
             width = window_size['width']
@@ -158,14 +210,26 @@ class WebGuestPage(BasePage):
             return None
 
     def set_window_resolution(self, width, height):
-        """Установка разрешения окна браузера."""
+        """
+        Устанавливает новый размер окна браузера.
+
+        :param width: Новая ширина окна
+        :param height: Новая высота окна
+        :return: None
+        """
         try:
             self.driver.set_window_size(width, height)
         except WebDriverException as e:
             print(f"Ошибка при установке разрешения окна: {e}")
 
     def get_volume_fader_value(self, fader_locator):
-        """Получение значения aria-valuenow из слайдера по указанному локатору."""
+        """
+        Получает текущее значение слайдера громкости.
+
+        :param fader_locator: Локатор элемента слайдера
+        :return: Значение aria-valuenow или None
+        :raises RuntimeError: При ошибках получения значения
+        """
         try:
             volume_fader = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located(fader_locator)
@@ -188,7 +252,14 @@ class WebGuestPage(BasePage):
             raise RuntimeError(f"Время ожидания истекло: {e}")
 
     def set_volume_fader_value(self, fader_locator, value):
-        """Установка значения слайдера"""
+        """
+        Устанавливает значение слайдера с помощью клавиш управления.
+
+        :param fader_locator: Локатор элемента слайдера
+        :param value: Целевое значение для установки
+        :return: None
+        :raises RuntimeError: При ошибках установки значения
+        """
         try:
             volume_fader = self.wait_for_element(fader_locator)
             thumb_element = volume_fader.find_element(By.XPATH, ".//div[contains(@class, 'thumb')]")
@@ -203,7 +274,15 @@ class WebGuestPage(BasePage):
             raise RuntimeError(f"Ошибка при установке значения слайдера: {e}")
 
     def set_volume_fader_value_with_events(self, fader_locator, value):
-        """Установка значения слайдера и вызов необходимых событий."""
+        """
+        Устанавливает значение слайдера через JavaScript с генерацией событий.
+
+        :param fader_locator: Локатор элемента слайдера
+        :param value: Целевое значение для установки
+        :return: None
+        :raises ValueError: При значении вне допустимого диапазона
+        :raises RuntimeError: При ошибках выполнения
+        """
         try:
             volume_fader = self.wait_for_element(fader_locator)
             thumb_element = volume_fader.find_element(By.XPATH, ".//div[contains(@class, 'thumb')]")
@@ -227,7 +306,13 @@ class WebGuestPage(BasePage):
             raise RuntimeError(f"Ошибка при установке значения слайдера с событиями: {e}")
 
     def get_settings_item_value_text(self, element_locator):
-        """Получение текста элемента по указанному локатору."""
+        """
+        Получает текстовое значение элемента настроек.
+
+        :param element_locator: Локатор элемента
+        :return: Текст элемента
+        :raises RuntimeError: Если элемент не найден
+        """
         try:
             element = self.wait_for_element(element_locator)
             return element.text
@@ -237,7 +322,12 @@ class WebGuestPage(BasePage):
             raise RuntimeError(f"Ошибка при получении текста элемента: {e}")
 
     def get_options_from_combobox(self, combobox_locator):
-        """Возвращает список значений из выпадающего списка."""
+        """
+        Получает список доступных опций в выпадающем списке.
+
+        :param combobox_locator: Локатор комбобокса
+        :return: Список текстовых значений опций
+        """
         try:
             # Ожидание, пока комбобокс станет кликабельным
             combobox = self.wait_for_element(combobox_locator)
@@ -260,10 +350,10 @@ class WebGuestPage(BasePage):
 
     def is_vertical_scrollbar_visible(self, element_locator):
         """
-        Проверяет, отображается ли вертикальный скроллбар у элемента.
+        Проверяет наличие вертикальной полосы прокрутки у элемента.
 
-        :param element_locator: Локатор элемента, для которого проверяется наличие вертикального скроллбара.
-        :return: True, если вертикальный скроллбар виден, иначе False.
+        :param element_locator: Локатор проверяемого элемента
+        :return: True если скроллбар присутствует, иначе False
         """
         try:
             # Ожидание, пока элемент станет видимым
@@ -283,7 +373,14 @@ class WebGuestPage(BasePage):
             return False
 
     def select_from_combobox(self, combobox_locator, text, replacements=None):
-        """Выбирает значение из выпадающего списка по заданному тексту."""
+        """
+        Выбирает опцию в выпадающем списке по точному совпадению текста.
+
+        :param combobox_locator: Локатор комбобокса
+        :param text: Текст опции для выбора
+        :param replacements: Словарь замен для текста опции
+        :return: None
+        """
         try:
             combobox = self.wait_for_element(combobox_locator)
 
@@ -317,17 +414,32 @@ class WebGuestPage(BasePage):
             print(f"Произошла ошибка: {e}")
 
     def select_resolution(self, resolution_text):
-        """Выбирает разрешение из выпадающего списка по заданному тексту."""
+        """
+        Выбирает разрешение в соответствующем выпадающем списке.
+
+        :param resolution_text: Текст варианта разрешения
+        :return: None
+        """
         self.hover_element(self.RESOLUTION_COMBOBOX)
         self.select_from_combobox(self.RESOLUTION_COMBOBOX, resolution_text.replace("X", " × "))
 
     def select_framerate(self, framerate_text):
-        """Выбирает Framerate из выпадающего списка по заданному тексту."""
+        """
+        Выбирает частоту кадров в соответствующем выпадающем списке.
+
+        :param framerate_text: Текст варианта частоты кадров
+        :return: None
+        """
         self.hover_element(self.FRAMERATE_COMBOBOX)
         self.select_from_combobox(self.FRAMERATE_COMBOBOX, framerate_text.replace("FPS", "fps"))
 
     def select_audio_bitrate(self, audio_bitrate_text):
-        """Выбирает Audio Bitrate из выпадающего списка по заданному тексту."""
+        """
+        Выбирает битрейт аудио с учетом специальных замен текста.
+
+        :param audio_bitrate_text: Текст варианта битрейта
+        :return: None
+        """
         replacements = {
             "AUDIO BITRATE\n6K": "6k",
             "AUDIO BITRATE\n10K": "10k",
@@ -342,7 +454,12 @@ class WebGuestPage(BasePage):
         self.select_from_combobox(self.AUDIO_BITRATE_COMBOBOX, audio_bitrate_text, replacements)
 
     def select_video_bitrate(self, video_bitrate_text):
-        """Выбирает Video Bitrate из выпадающего списка по заданному тексту."""
+        """
+        Выбирает битрейт видео с учетом специальных замен текста.
+
+        :param video_bitrate_text: Текст варианта битрейта
+        :return: None
+        """
         replacements = {
             "VIDEO BITRATE\n0.5M": "0.5M",
             "VIDEO BITRATE\n0.75M": "0.75M",
@@ -361,27 +478,52 @@ class WebGuestPage(BasePage):
         self.select_from_combobox(self.VIDEO_BITRATE_COMBOBOX, video_bitrate_text, replacements)
 
     def select_video_encoder(self, video_encoder_text):
-        """Выбирает Video Encoder из выпадающего списка по заданному тексту."""
+        """
+        Выбирает видеокодек в соответствующем выпадающем списке.
+
+        :param video_encoder_text: Текст варианта видеокодека
+        :return: None
+        """
         self.hover_element(self.VIDEO_ENCODER_COMBOBOX)
         self.select_from_combobox(self.VIDEO_ENCODER_COMBOBOX, video_encoder_text)
 
     def select_camera(self, input_camera_text):
-        """Выбирает Input Camera из выпадающего списка по заданному тексту."""
+        """
+        Выбирает камеру в соответствующем выпадающем списке.
+
+        :param input_camera_text: Текст варианта камеры
+        :return: None
+        """
         self.hover_element(self.INPUT_CAMERA_COMBOBOX)
         self.select_from_combobox(self.INPUT_CAMERA_COMBOBOX, input_camera_text)
 
     def select_microphone(self, input_microphone_text):
-        """Выбирает Input Mic из выпадающего списка по заданному тексту."""
+        """
+        Выбирает микрофон в соответствующем выпадающем списке.
+
+        :param input_microphone_text: Текст варианта микрофона
+        :return: None
+        """
         self.hover_element(self.INPUT_MICROPHONE_COMBOBOX)
         self.select_from_combobox(self.INPUT_MICROPHONE_COMBOBOX, input_microphone_text)
 
     def select_audio_channels(self, audio_channels_text):
-        """Выбирает Audio Channels из выпадающего списка по заданному тексту."""
+        """
+        Выбирает аудиоканалы в соответствующем выпадающем списке.
+
+        :param audio_channels_text: Текст варианта аудиоканалов
+        :return: None
+        """
         self.hover_element(self.AUDIO_CHANNELS_COMBOBOX)
         self.select_from_combobox(self.AUDIO_CHANNELS_COMBOBOX, audio_channels_text)
 
     def is_switcher_active(self, switcher_locator):
-        """Проверяет, активен ли свитчер, используя указанный локатор."""
+        """
+        Проверяет состояние свитчера по CSS-классам.
+
+        :param switcher_locator: Локатор элемента свитчера
+        :return: True если свитчер активен, иначе False
+        """
         try:
             switcher = self.wait_for_element(switcher_locator)
             return 'bg-success' in switcher.get_attribute('class') and 'bg-danger' not in switcher.get_attribute(
@@ -391,12 +533,21 @@ class WebGuestPage(BasePage):
             return False
 
     def is_fullscreen(self):
-        """Проверяет, находится ли окно в полноэкранном режиме."""
+        """
+        Проверяет полноэкранный режим через JavaScript.
+
+        :return: True если включен полноэкранный режим, иначе False
+        """
         fullscreen_state = self.driver.execute_script("return document.fullscreenElement !== null;")
         return fullscreen_state
 
     def is_fullscreen_button_pressed(self, button_locator):
-        """Проверяет, нажата ли кнопка FullScreen, используя указанный локатор."""
+        """
+        Проверяет состояние кнопки полноэкранного режима по SVG-иконке.
+
+        :param button_locator: Локатор кнопки
+        :return: True если кнопка в состоянии "выключено", иначе False
+        """
         try:
             button = self.wait_for_element(button_locator)
             svg_element = button.find_element(By.TAG_NAME, 'svg')
