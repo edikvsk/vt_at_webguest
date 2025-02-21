@@ -8,13 +8,39 @@ class DesktopAppPage:
     # Локаторы:
 
     VT_WEB_GUEST_SETTINGS = "Web Guest Settings"
+    VT_SECURITY_SETTINGS = "Security Settings"
     VT_SOURCE_SETTINGS = "Settings"
+    VT_CLOSE_BUTTON = "PART_Close"
     VT_OK_BUTTON = "OK"
 
     def __init__(self, main_window):
         self.main_window = main_window
 
     # Методы:
+
+    @staticmethod
+    def click_button_in_window(window, automation_id, timeout=10):
+        """
+        Кликает по кнопке с заданным automation_id внутри указанного окна, ожидая её доступности.
+
+        :param window: Окно (WindowSpecification), внутри которого нужно найти кнопку.
+        :param automation_id: Automation ID кнопки.
+        :param timeout: Время ожидания в секундах (по умолчанию 10).
+        :raises ElementNotFoundError: Если кнопка не найдена или недоступна для клика в течение timeout секунд.
+        """
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            # Ищем кнопку внутри указанного окна
+            button = window.child_window(auto_id=automation_id, control_type="Button")
+
+            if button.exists() and button.is_enabled():
+                button.click_input()
+                return
+        raise ElementNotFoundError(
+            f"Кнопка с automation_id '{automation_id}' внутри окна '{window.window_text()}' "
+            f"не доступна для клика в течение {timeout} секунд."
+        )
+
     def check_element_enabled_by_title_part(self, title_part):
         """Проверяет, доступен ли элемент с заданной частью заголовка."""
         try:
@@ -105,6 +131,23 @@ class DesktopAppPage:
                 return
 
         raise ElementNotFoundError(f"Кнопка с именем '{button_name}' не доступна для клика в течение {timeout} секунд.")
+
+    def find_window_by_title_substring(self, title_substring, timeout=10):
+        """
+        Находит окно, название которого содержит указанную подстроку.
+
+        :param title_substring: Подстрока, которая должна содержаться в названии окна.
+        :param timeout: Время ожидания в секундах (по умолчанию 10).
+        :raises ElementNotFoundError: Если окно не найдено в течение timeout секунд.
+        """
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            # Ищем окно по частичному совпадению заголовка
+            window = self.main_window.child_window(title_re=f".*{title_substring}.*", control_type="Window")
+            if window.exists():
+                return window
+        raise ElementNotFoundError(
+            f"Окно, содержащее '{title_substring}' в названии, не найдено в течение {timeout} секунд.")
 
     def get_vt_wg_settings_field_value(self, index):
         """Получает значение поля в WebGuest Settings по заданному индексу."""
