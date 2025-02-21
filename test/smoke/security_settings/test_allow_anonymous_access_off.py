@@ -23,7 +23,7 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("modified_fixture")
-def test_connection_with_the_same_name(driver, logger):
+def test_allow_anonymous_access_off(driver, logger):
     config_file_path = CONFIG_INI
     config = configparser.ConfigParser()
     config.read(config_file_path)
@@ -85,8 +85,8 @@ def test_connection_with_the_same_name(driver, logger):
         expected_value = 1  # Состояние кнопки (1 == True)
         desktop_app_page.toggle_vt_wg_button(0)
         security_window = desktop_app_page.find_window_by_title_substring("security settings")
-        desktop_app_page.click_button_in_window(security_window, "PART_Close")
         actual_value = desktop_app_page.get_vt_wg_button_state(0)
+        desktop_app_page.click_button_in_window(security_window, "PART_Close")
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
     try:
