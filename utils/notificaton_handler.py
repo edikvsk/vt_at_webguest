@@ -21,6 +21,7 @@ NOTIFICATION_TO_FAIL = [
     "You are not authorized",
     "Overconstrained error",
     "Connectivity Error",
+    "Link is pending activation",
     "Unable"
 ]
 

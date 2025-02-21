@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from time import sleep
 
 from selenium.common import TimeoutException, NoSuchElementException, WebDriverException
@@ -18,6 +19,7 @@ class WebGuestPage(BasePage):
     SECURITY_LOGIN = (By.XPATH, "//input[@name='login' and @placeholder='Enter your login']")
     SECURITY_PASSWORD = (By.XPATH, "//input[@name='password' and @placeholder='Enter your password' and "
                                    "@type='password']")
+    SECURITY_CONNECT_BUTTON = (By.XPATH, "//button[@type='submit' and span[text()='Connect']]")
     AUTHORIZATION_FORM = (By.XPATH, "//form")
     AUTHORIZATION_NAME_FIELD_ERROR = (
         By.XPATH, "//div[contains(@class, 'error-input')]//span[text()='Please provide name']")
@@ -198,6 +200,42 @@ class WebGuestPage(BasePage):
             return input_element.get_attribute('value')
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при получении значения input: {e}")
+
+    @staticmethod
+    def get_current_time_formatted():
+        """
+        Возвращает текущее время в формате "дд/мм/гггг чч:мм".
+
+        :return: Строка с текущим временем в указанном формате.
+        """
+        # Получаем текущее время
+        now = datetime.now()
+
+        # Форматируем время в нужный формат
+        formatted_time = now.strftime("%d/%m/%Y %H:%M")
+
+        return formatted_time
+
+    @staticmethod
+    def add_hours_to_time(time_str, hours):
+        """
+        Добавляет указанное количество часов к времени в строковом формате.
+
+        :param time_str: Время в формате "дд/мм/гггг чч:мм".
+        :param hours: Количество часов для добавления.
+        :return: Новое время в формате "дд/мм/гггг чч:мм".
+        """
+        # Преобразуем строку в объект datetime
+        time_format = "%d/%m/%Y %H:%M"
+        time_obj = datetime.strptime(time_str, time_format)
+
+        # Добавляем часы
+        new_time_obj = time_obj + timedelta(hours=hours)
+
+        # Преобразуем обратно в строку
+        new_time_str = new_time_obj.strftime(time_format)
+
+        return new_time_str
 
     def get_window_resolution(self):
         """

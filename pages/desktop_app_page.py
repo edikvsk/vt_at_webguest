@@ -41,6 +41,27 @@ class DesktopAppPage:
             f"не доступна для клика в течение {timeout} секунд."
         )
 
+    @staticmethod
+    def click_data_item_in_window(window, name, timeout=10):
+        """
+        Кликает по элементу с заданным именем (name) внутри указанного окна, ожидая его доступности.
+        :param window: Окно (WindowSpecification), внутри которого нужно найти элемент.
+        :param name: Имя (name) элемента.
+        :param timeout: Время ожидания в секундах (по умолчанию 10).
+        :raises ElementNotFoundError: Если элемент не найден или недоступен для клика в течение timeout секунд.
+        """
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            # Ищем элемент внутри указанного окна по его имени и классу DataItem
+            data_item = window.child_window(title=name, control_type="DataItem")
+            if data_item.exists() and data_item.is_enabled():
+                data_item.click_input()
+                return
+        raise ElementNotFoundError(
+            f"Элемент с именем '{name}' и классом 'DataItem' внутри окна '{window.window_text()}' "
+            f"не доступен для клика в течение {timeout} секунд."
+        )
+
     def check_element_enabled_by_title_part(self, title_part):
         """Проверяет, доступен ли элемент с заданной частью заголовка."""
         try:
@@ -160,6 +181,33 @@ class DesktopAppPage:
                 raise ElementNotFoundError(f"Элемент поля с индексом {index} не найден или недоступен.")
         except Exception as e:
             raise RuntimeError(f"Ошибка при получении значения поля с индексом {index}: {e}")
+
+    def set_vt_wg_settings_field_value(self, index, text):
+        """
+        Заполняет текстом поле в WebGuest Settings по заданному индексу.
+
+        :param index: Индекс поля для заполнения.
+        :param text: Текст, который нужно ввести в поле.
+        :raises ElementNotFoundError: Если элемент не найден или недоступен.
+        :raises RuntimeError: Если произошла ошибка при установке значения.
+        """
+        try:
+            # Находим элемент по индексу
+            edit_box = self.main_window.child_window(control_type="Edit", found_index=index)
+
+            # Проверяем, существует ли элемент и доступен ли он для взаимодействия
+            if edit_box.exists() and edit_box.is_enabled():
+                # Очищаем поле перед вводом нового значения (опционально)
+                edit_box.set_focus()
+                edit_box.set_text('')  # Очистка поля
+
+                # Вводим текст
+                edit_box.type_keys(text, with_spaces=True)  # Используем type_keys для ввода текста
+                return True
+            else:
+                raise ElementNotFoundError(f"Элемент поля с индексом {index} не найден или недоступен.")
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при заполнении поля с индексом {index}: {e}")
 
     def get_combobox_item_name_by_index(self, combo_index, item_index):
         """Возвращает текст элемента в ComboBox по заданным индексам."""
