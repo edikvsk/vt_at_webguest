@@ -23,7 +23,7 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("modified_fixture")
-def test_connection_with_the_same_name(driver, logger):
+def test_allow_anonymous_access_off(driver, logger):
     config_file_path = CONFIG_INI
     config = configparser.ConfigParser()
     config.read(config_file_path)
