@@ -13,6 +13,11 @@ class WebGuestPage(BasePage):
     # Локаторы:
     LOGIN_FIELD = (By.XPATH, "//input[@data-cy='banner-name-input']")
     LOCATION_FIELD = (By.XPATH, "//input[@data-cy='banner-location-input']")
+    SECURITY_NAME = (By.XPATH, "//input[@name='name' and @placeholder='Enter your name']")
+    SECURITY_LOCATION = (By.XPATH, "//input[@name='location' and @placeholder='Enter your location']")
+    SECURITY_LOGIN = (By.XPATH, "//input[@name='login' and @placeholder='Enter your login']")
+    SECURITY_PASSWORD = (By.XPATH, "//input[@name='password' and @placeholder='Enter your password' and "
+                                   "@type='password']")
     AUTHORIZATION_FORM = (By.XPATH, "//form")
     AUTHORIZATION_NAME_FIELD_ERROR = (
         By.XPATH, "//div[contains(@class, 'error-input')]//span[text()='Please provide name']")
