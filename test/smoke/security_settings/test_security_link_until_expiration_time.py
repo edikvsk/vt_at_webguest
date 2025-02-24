@@ -56,7 +56,7 @@ def test_security_link_until_expiration_time(driver, logger):
     @log_step(logger, "Добавление Security Account")
     def add_security_account():
         start_time = wg_page.get_current_time_formatted()
-        expiration_time = wg_page.add_time(start_time, minutes=5)
+        expiration_time = wg_page.add_time(start_time, minutes=2)
         desktop_app_page.click_button_by_name("Add")
         desktop_app_page.set_vt_wg_settings_field_value(0, login)
         desktop_app_page.set_vt_wg_settings_field_value(1, password)
