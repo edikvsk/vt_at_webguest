@@ -217,24 +217,23 @@ class WebGuestPage(BasePage):
         return formatted_time
 
     @staticmethod
-    def add_hours_to_time(time_str, hours):
+    def add_time(time_str, hours=0, minutes=0):
         """
-        Добавляет указанное количество часов к времени в строковом формате.
-
+        Добавляет указанное количество часов и минут к времени в строковом формате.
         :param time_str: Время в формате "дд/мм/гггг чч:мм".
-        :param hours: Количество часов для добавления.
+        :param hours: Количество часов для добавления (по умолчанию 0).
+        :param minutes: Количество минут для добавления (по умолчанию 0).
         :return: Новое время в формате "дд/мм/гггг чч:мм".
         """
         # Преобразуем строку в объект datetime
         time_format = "%d/%m/%Y %H:%M"
         time_obj = datetime.strptime(time_str, time_format)
 
-        # Добавляем часы
-        new_time_obj = time_obj + timedelta(hours=hours)
+        # Добавляем часы и минуты
+        new_time_obj = time_obj + timedelta(hours=hours, minutes=minutes)
 
         # Преобразуем обратно в строку
         new_time_str = new_time_obj.strftime(time_format)
-
         return new_time_str
 
     def get_window_resolution(self):
