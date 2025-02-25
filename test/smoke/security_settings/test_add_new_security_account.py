@@ -1,13 +1,9 @@
 import configparser
 import os
-import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
-from pages.base_page import BasePage
 from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
 from utils.config import CONFIG_INI, PROCESS_PATH, SOURCE_TO_PUBLISHING
@@ -15,8 +11,6 @@ from utils.conftest import driver, modified_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
-from utils.notificaton_handler import NotificationHandler
-from utils.webrtc_stream_handler import StreamHandler
 
 
 @pytest.fixture(scope="function")
@@ -31,11 +25,8 @@ def test_add_new_security_account(driver, logger):
     config_file_path = CONFIG_INI
     config = configparser.ConfigParser()
     config.read(config_file_path)
-    web_guest_url = config['DEFAULT']['WEB_GUEST_PAGE_URL'].strip()
 
-    base_page = BasePage(driver)
     wg_page = WebGuestPage(driver)
-    webrtc_stream_handler = StreamHandler(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
