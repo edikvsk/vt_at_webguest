@@ -27,7 +27,7 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("modified_fixture")
-def test_disable_security_accaunt_while_stream(driver, logger):
+def test_disable_security_account_while_stream(driver, logger):
     config_file_path = CONFIG_INI
     config = configparser.ConfigParser()
     config.read(config_file_path)
