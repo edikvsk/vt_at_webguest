@@ -14,6 +14,7 @@ from utils.conftest import driver, modified_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
+from utils.notificaton_handler import NotificationHandler
 from utils.webrtc_stream_handler import StreamHandler
 
 
@@ -25,7 +26,7 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("modified_fixture")
-def test_security_account_connection_limit(driver, logger):
+def test_security_link_until_stop_time(driver, logger):
     config_file_path = CONFIG_INI
     config = configparser.ConfigParser()
     config.read(config_file_path)
@@ -33,6 +34,7 @@ def test_security_account_connection_limit(driver, logger):
 
     base_page = BasePage(driver)
     wg_page = WebGuestPage(driver)
+    notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
     webrtc_stream_handler = StreamHandler(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
@@ -40,7 +42,7 @@ def test_security_account_connection_limit(driver, logger):
     vt_input_source_name = SOURCE_TO_PUBLISHING
     login = "test_login"
     password = "test_password"
-    expected_notification_text = "You are not authorized to access this link"
+    expected_notification_text = "Link has expired"
 
     @log_step(logger, "Отключение anonymous access VT Security Settings")
     def check_vt_anonymous_access_state_on():
@@ -54,11 +56,10 @@ def test_security_account_connection_limit(driver, logger):
     @log_step(logger, "Добавление Security Account")
     def add_security_account():
         start_time = wg_page.get_current_time_formatted()
-        expiration_time = wg_page.add_time(start_time, hours=5)
+        expiration_time = wg_page.add_time(start_time, minutes=2)
         desktop_app_page.click_button_by_name("Add")
         desktop_app_page.set_vt_wg_settings_field_value(0, login)
         desktop_app_page.set_vt_wg_settings_field_value(1, password)
-        desktop_app_page.set_vt_wg_settings_field_value(2, 1)
         desktop_app_page.set_vt_wg_settings_field_value(3, start_time)
         desktop_app_page.set_vt_wg_settings_field_value(4, expiration_time)
         desktop_app_page.click_button_by_name("OK")
@@ -100,22 +101,28 @@ def test_security_account_connection_limit(driver, logger):
         wg_page.click(wg_page.SECURITY_CONNECT_BUTTON)
 
     @log_step(logger, "Проверка отображения уведомлений")
-    def check_authorized_notification(drv):
-        try:
-            WebDriverWait(drv, 10).until(
-                EC.text_to_be_present_in_element(wg_page.NOTIFICATION_ELEMENT, expected_notification_text)
-            )
-            logger.info("Уведомление 'You are not authorized to access this link' успешно отображено.")
-        except TimeoutException:
-            logger.error("Уведомление 'You are not authorized to access this link' не отображается.")
-            pytest.fail("Уведомление 'You are not authorized to access this link' не отображается.")
+    def check_authorized_notification():
+        notification_handler.get_notification_text()
 
     @log_step(logger, "Проверка WebRTC трансляции")
     def check_webrtc_stream():
         stream_audio = webrtc_stream_handler.is_audio_stream_active()
         stream_video = webrtc_stream_handler.is_video_stream_active()  # Исправлено на video_stream_active
-        assert not (stream_audio or stream_video), "WebRTC трансляция активна: audio={} video={}".format(stream_audio,
-                                                                                                         stream_video)
+        assert stream_audio and stream_video, "WebRTC трансляция не активна: audio={} video={}".format(stream_audio,
+                                                                                                       stream_video)
+
+    @log_step(logger, "Ожидание уведомления об истечении срока действия")
+    def wait_for_expired_notification(drv):
+        try:
+            logger.info("Ждем 2 минуты до истечения срока действия ссылки...")
+
+            WebDriverWait(drv, 120).until(
+                EC.text_to_be_present_in_element(wg_page.NOTIFICATION_ELEMENT, expected_notification_text)
+            )
+            logger.info("Уведомление 'Link has expired' успешно отображено.")
+        except TimeoutException:
+            logger.error("Уведомление 'Link has expired' не появилось в течение ожидаемого времени.")
+            pytest.fail("Уведомление 'Link has expired' не появилось в течение ожидаемого времени.")
 
     @log_step(logger, "Удаление Security Account")
     def remove_security_account():
@@ -142,8 +149,9 @@ def test_security_account_connection_limit(driver, logger):
         check_login_field()
         check_password_field()
         authorization()
-        check_authorized_notification(driver)
+        check_authorized_notification()
         check_webrtc_stream()
+        wait_for_expired_notification(driver)
         remove_security_account()
         check_vt_anonymous_access_state_off()
 
