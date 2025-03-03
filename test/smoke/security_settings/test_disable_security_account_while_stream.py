@@ -1,5 +1,6 @@
 import configparser
 import os
+import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -14,7 +15,6 @@ from utils.conftest import driver, modified_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
-from utils.notificaton_handler import NotificationHandler
 from utils.webrtc_stream_handler import StreamHandler
 
 
@@ -62,13 +62,6 @@ def test_disable_security_account_while_stream(driver, logger):
         desktop_app_page.set_vt_wg_settings_field_value(3, start_time)
         desktop_app_page.set_vt_wg_settings_field_value(4, expiration_time)
         desktop_app_page.click_button_by_name("OK")
-
-    @log_step(logger, "Отключение security account VT Security Settings")
-    def disable_vt_security_account():
-        expected_value = 0  # Состояние кнопки (0 == False)
-        desktop_app_page.mouse_click_vt_wg_button(1)
-        actual_value = desktop_app_page.get_vt_wg_button_state(1)
-        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
     @log_step(logger, "Запуск Web Guest")
     def start_web_guest(drv):
@@ -118,9 +111,23 @@ def test_disable_security_account_while_stream(driver, logger):
             pytest.fail("Уведомление 'You are not authorized to access this link' не отображается.")
 
     @log_step(logger, "Проверка WebRTC трансляции")
-    def check_webrtc_stream():
+    def check_webrtc_stream_on():
         stream_audio = webrtc_stream_handler.is_audio_stream_active()
-        stream_video = webrtc_stream_handler.is_video_stream_active()  # Исправлено на video_stream_active
+        stream_video = webrtc_stream_handler.is_video_stream_active()
+        assert (stream_audio or stream_video), "WebRTC трансляция неактивна: audio={} video={}".format(stream_audio,
+                                                                                                       stream_video)
+
+    @log_step(logger, "Отключение security account VT Security Settings")
+    def disable_vt_security_account():
+        expected_value = 0  # Состояние кнопки (0 == False)
+        desktop_app_page.mouse_click_vt_wg_button(1)
+        actual_value = desktop_app_page.get_vt_wg_button_state(1)
+        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+
+    @log_step(logger, "Проверка WebRTC трансляции")
+    def check_webrtc_stream_off():
+        stream_audio = webrtc_stream_handler.is_audio_stream_active()
+        stream_video = webrtc_stream_handler.is_video_stream_active()
         assert not (stream_audio or stream_video), "WebRTC трансляция активна: audio={} video={}".format(stream_audio,
                                                                                                          stream_video)
 
@@ -142,7 +149,6 @@ def test_disable_security_account_while_stream(driver, logger):
     try:
         check_vt_anonymous_access_state_on()
         add_security_account()
-        disable_vt_security_account()
         start_web_guest(driver)
         check_authorization_form()
         check_name_field()
@@ -150,8 +156,10 @@ def test_disable_security_account_while_stream(driver, logger):
         check_login_field()
         check_password_field()
         authorization()
+        check_webrtc_stream_on()
+        disable_vt_security_account()
         check_authorized_notification(driver)
-        check_webrtc_stream()
+        check_webrtc_stream_off()
 
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении теста: {e}")
