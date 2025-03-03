@@ -1,6 +1,5 @@
 import configparser
 import os
-import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -35,7 +34,6 @@ def test_disable_security_account_while_stream(driver, logger):
 
     base_page = BasePage(driver)
     wg_page = WebGuestPage(driver)
-    notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
     webrtc_stream_handler = StreamHandler(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
@@ -68,7 +66,7 @@ def test_disable_security_account_while_stream(driver, logger):
     @log_step(logger, "Отключение security account VT Security Settings")
     def disable_vt_security_account():
         expected_value = 0  # Состояние кнопки (0 == False)
-        desktop_app_page.toggle_vt_wg_button(1)
+        desktop_app_page.mouse_click_vt_wg_button(1)
         actual_value = desktop_app_page.get_vt_wg_button_state(1)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
@@ -154,9 +152,18 @@ def test_disable_security_account_while_stream(driver, logger):
         authorization()
         check_authorized_notification(driver)
         check_webrtc_stream()
-        remove_security_account()
-        check_vt_anonymous_access_state_off()
 
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении теста: {e}")
         pytest.fail(f"Ошибка при выполнении теста: {e}")
+
+    finally:
+        try:
+            remove_security_account()
+        except Exception as cleanup_error:
+            logger.error(f"Ошибка при удалении Security Account: {cleanup_error}")
+
+        try:
+            check_vt_anonymous_access_state_off()
+        except Exception as cleanup_error:
+            logger.error(f"Ошибка при включении anonymous access: {cleanup_error}")

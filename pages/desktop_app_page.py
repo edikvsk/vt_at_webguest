@@ -2,6 +2,7 @@ import re
 import time
 
 from pywinauto.findwindows import ElementNotFoundError
+from pywinauto.mouse import click
 
 
 class DesktopAppPage:
@@ -271,6 +272,20 @@ class DesktopAppPage:
             button = self.main_window.child_window(control_type="Button", found_index=index)
             if button.exists() and button.is_enabled():
                 button.toggle()  # Щелкаем по кнопке для переключения состояния
+                print(f"Состояние кнопки с индексом {index} переключено.")
+            else:
+                raise ElementNotFoundError(f"Элемент кнопки с индексом {index} не найден или недоступен.")
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при переключении состояния кнопки с индексом {index}: {e}")
+
+    def mouse_click_vt_wg_button(self, index):
+        """Переключает состояние кнопки в WebGuest Settings по заданному индексу."""
+        try:
+            button = self.main_window.child_window(control_type="Button", found_index=index)
+            if button.exists() and button.is_enabled():
+                rect = button.rectangle()  # Получаем координаты кнопки
+                x, y = (rect.left + rect.width() // 2, rect.top + rect.height() // 2)  # Центр кнопки
+                click(coords=(x, y))  # Кликаем по центру кнопки
                 print(f"Состояние кнопки с индексом {index} переключено.")
             else:
                 raise ElementNotFoundError(f"Элемент кнопки с индексом {index} не найден или недоступен.")
