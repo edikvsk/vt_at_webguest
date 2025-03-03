@@ -1,5 +1,8 @@
 import time
 
+from selenium.common import TimeoutException, NoSuchElementException, WebDriverException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 
@@ -97,20 +100,36 @@ class StreamHandler:
         return average_fps
 
     def is_audio_stream_active(self):
-        script = """
-        var videoElement = document.querySelector('video[data-cy="remote-video"]');
-        return (videoElement && videoElement.srcObject !== null &&
-                videoElement.srcObject.getAudioTracks().length > 0);
-        """
-        return self.driver.execute_script(script)
+        def audio_stream_is_active(driver):
+            script = """
+            var videoElement = document.querySelector('video[data-cy="remote-video"]');
+            return (videoElement && videoElement.srcObject !== null &&
+                    videoElement.srcObject.getAudioTracks().length > 0);
+            """
+            return driver.execute_script(script)
+
+        try:
+            # Ожидаем, пока аудио-поток станет активным (до 10 секунд)
+            WebDriverWait(self.driver, 10).until(audio_stream_is_active)
+            return True
+        except TimeoutException:
+            return False
 
     def is_video_stream_active(self):
-        script = """
-        var videoElement = document.querySelector('video[data-cy="remote-video"]');
-        return (videoElement && videoElement.srcObject !== null &&
-                videoElement.srcObject.getVideoTracks().length > 0);
-        """
-        return self.driver.execute_script(script)
+        def audio_stream_is_active(driver):
+            script = """
+            var videoElement = document.querySelector('video[data-cy="remote-video"]');
+            return (videoElement && videoElement.srcObject !== null &&
+                    videoElement.srcObject.getVideoTracks().length > 0);
+            """
+            return driver.execute_script(script)
+
+        try:
+            # Ожидаем, пока аудио-поток станет активным (до 10 секунд)
+            WebDriverWait(self.driver, 10).until(audio_stream_is_active)
+            return True
+        except TimeoutException:
+            return False
 
     def get_current_video_codec_from_stats(self):
         script = """
