@@ -1,10 +1,11 @@
 import configparser
 import os
+import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.wait import WebDriverWait
 
 from pages.base_page import BasePage
 from pages.desktop_app_page import DesktopAppPage
@@ -14,7 +15,6 @@ from utils.conftest import driver, modified_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
-from utils.webrtc_stream_handler import StreamHandler
 
 
 @pytest.fixture(scope="function")
@@ -33,14 +33,13 @@ def test_security_account_connection_limit(driver, logger):
 
     base_page = BasePage(driver)
     wg_page = WebGuestPage(driver)
-    webrtc_stream_handler = StreamHandler(driver)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
 
     vt_input_source_name = SOURCE_TO_PUBLISHING
     login = "test_login"
     password = "test_password"
-    expected_notification_text = "You are not authorized to access this link"
+    expected_notification_text = "Can't connect: connection limit exceeded"
 
     @log_step(logger, "Отключение anonymous access VT Security Settings")
     def check_vt_anonymous_access_state_on():
@@ -63,8 +62,8 @@ def test_security_account_connection_limit(driver, logger):
         desktop_app_page.set_vt_wg_settings_field_value(4, expiration_time)
         desktop_app_page.click_button_by_name("OK")
 
-    @log_step(logger, "Запуск Web Guest")
-    def start_web_guest(drv):
+    @log_step(logger, "Запуск первого экземпляра WG")
+    def start_first_web_guest(drv):
         drv.get(web_guest_url)
         expected_url = web_guest_url
 
@@ -81,10 +80,6 @@ def test_security_account_connection_limit(driver, logger):
     def check_name_field():
         assert base_page.is_element_visible(wg_page.SECURITY_NAME), "Поле Name не отображается"
 
-    @log_step(logger, "Проверка отображения поля ввода Location")
-    def check_location_field():
-        assert base_page.is_element_visible(wg_page.SECURITY_LOCATION), "Поле Location не отображается"
-
     @log_step(logger, "Проверка отображения поля ввода Login")
     def check_login_field():
         assert base_page.is_element_visible(wg_page.SECURITY_LOGIN), "Поле Login не отображается"
@@ -92,6 +87,43 @@ def test_security_account_connection_limit(driver, logger):
     @log_step(logger, "Проверка отображения поля ввода Password")
     def check_password_field():
         assert base_page.is_element_visible(wg_page.SECURITY_PASSWORD), "Поле Password не отображается"
+
+    @log_step(logger, "Ввод значения в поле Name для первого экземпляра Chrome Web Guest")
+    def set_first_web_guest_name():
+        expected_value = "example"
+        wg_page.delete_text(wg_page.SECURITY_NAME)
+        wg_page.input_text(wg_page.SECURITY_NAME, "example")
+        actual_value = wg_page.get_input_value(wg_page.SECURITY_NAME)
+        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+
+    @log_step(logger, "Авторизация")
+    def authorization():
+        wg_page.input_text(wg_page.SECURITY_LOGIN, login)
+        wg_page.input_text(wg_page.SECURITY_PASSWORD, password)
+        wg_page.click(wg_page.SECURITY_CONNECT_BUTTON)
+
+    first_window = driver.current_window_handle
+    logger.info(f"Дескриптор второго окна: {first_window}")
+
+    @log_step(logger, "Запуск второго экземпляра Chrome Web Guest")
+    def start_second_web_guest(drv):
+        drv.execute_script("window.open('');")
+        drv.switch_to.window(drv.window_handles[1])  # Переключаемся на новое окно
+        time.sleep(1.5)
+        expected_url = web_guest_url
+        drv.get(expected_url)
+        current_url = drv.current_url
+        logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")
+
+        assert current_url == expected_url, f"Ожидался URL: {expected_url}, но был: {current_url}"
+
+    @log_step(logger, "Ввод значения в поле Name для второго экземпляра Chrome Web Guest")
+    def set_second_web_guest_name():
+        expected_value = "example2"
+        wg_page.delete_text(wg_page.SECURITY_NAME)
+        wg_page.input_text(wg_page.SECURITY_NAME, "example2")
+        actual_value = wg_page.get_input_value(wg_page.SECURITY_NAME)
+        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
     @log_step(logger, "Авторизация")
     def authorization():
@@ -105,17 +137,10 @@ def test_security_account_connection_limit(driver, logger):
             WebDriverWait(drv, 10).until(
                 EC.text_to_be_present_in_element(wg_page.NOTIFICATION_ELEMENT, expected_notification_text)
             )
-            logger.info("Уведомление 'You are not authorized to access this link' успешно отображено.")
+            logger.info("Уведомление 'Can't connect: connection limit exceeded' успешно отображено.")
         except TimeoutException:
-            logger.error("Уведомление 'You are not authorized to access this link' не отображается.")
-            pytest.fail("Уведомление 'You are not authorized to access this link' не отображается.")
-
-    @log_step(logger, "Проверка WebRTC трансляции")
-    def check_webrtc_stream():
-        stream_audio = webrtc_stream_handler.is_audio_stream_active()
-        stream_video = webrtc_stream_handler.is_video_stream_active()  # Исправлено на video_stream_active
-        assert not (stream_audio or stream_video), "WebRTC трансляция активна: audio={} video={}".format(stream_audio,
-                                                                                                         stream_video)
+            logger.error("Уведомление 'Can't connect: connection limit exceeded' не отображается.")
+            pytest.fail("Уведомление 'Can't connect: connection limit exceeded' не отображается.")
 
     @log_step(logger, "Удаление Security Account")
     def remove_security_account():
@@ -135,18 +160,29 @@ def test_security_account_connection_limit(driver, logger):
     try:
         check_vt_anonymous_access_state_on()
         add_security_account()
-        start_web_guest(driver)
+        start_first_web_guest(driver)
         check_authorization_form()
         check_name_field()
-        check_location_field()
         check_login_field()
         check_password_field()
+        set_first_web_guest_name()
+        authorization()
+        start_second_web_guest(driver)
+        set_second_web_guest_name()
         authorization()
         check_authorized_notification(driver)
-        check_webrtc_stream()
-        remove_security_account()
-        check_vt_anonymous_access_state_off()
 
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении теста: {e}")
         pytest.fail(f"Ошибка при выполнении теста: {e}")
+
+    finally:
+        try:
+            remove_security_account()
+        except Exception as cleanup_error:
+            logger.error(f"Ошибка при удалении Security Account: {cleanup_error}")
+
+        try:
+            check_vt_anonymous_access_state_off()
+        except Exception as cleanup_error:
+            logger.error(f"Ошибка при включении anonymous access: {cleanup_error}")
