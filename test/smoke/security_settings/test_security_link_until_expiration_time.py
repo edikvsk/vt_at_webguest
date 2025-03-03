@@ -107,7 +107,7 @@ def test_security_link_until_expiration_time(driver, logger):
     @log_step(logger, "Проверка WebRTC трансляции")
     def check_webrtc_stream():
         stream_audio = webrtc_stream_handler.is_audio_stream_active()
-        stream_video = webrtc_stream_handler.is_video_stream_active()  # Исправлено на video_stream_active
+        stream_video = webrtc_stream_handler.is_video_stream_active()
         assert stream_audio and stream_video, "WebRTC трансляция не активна: audio={} video={}".format(stream_audio,
                                                                                                        stream_video)
 
@@ -152,9 +152,18 @@ def test_security_link_until_expiration_time(driver, logger):
         check_authorized_notification()
         check_webrtc_stream()
         wait_for_expired_notification(driver)
-        remove_security_account()
-        check_vt_anonymous_access_state_off()
 
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении теста: {e}")
         pytest.fail(f"Ошибка при выполнении теста: {e}")
+
+    finally:
+        try:
+            remove_security_account()
+        except Exception as cleanup_error:
+            logger.error(f"Ошибка при удалении Security Account: {cleanup_error}")
+
+        try:
+            check_vt_anonymous_access_state_off()
+        except Exception as cleanup_error:
+            logger.error(f"Ошибка при включении anonymous access: {cleanup_error}")

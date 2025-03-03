@@ -73,9 +73,18 @@ def test_add_new_security_account(driver, logger):
     try:
         check_vt_anonymous_access_state_on()
         add_security_account()
-        remove_security_account()
-        check_vt_anonymous_access_state_off()
 
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении теста: {e}")
         pytest.fail(f"Ошибка при выполнении теста: {e}")
+
+    finally:
+        try:
+            remove_security_account()
+        except Exception as cleanup_error:
+            logger.error(f"Ошибка при удалении Security Account: {cleanup_error}")
+
+        try:
+            check_vt_anonymous_access_state_off()
+        except Exception as cleanup_error:
+            logger.error(f"Ошибка при включении anonymous access: {cleanup_error}")

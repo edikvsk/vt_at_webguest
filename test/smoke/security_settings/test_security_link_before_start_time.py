@@ -137,9 +137,18 @@ def test_security_link_before_start_time(driver, logger):
         check_password_field()
         authorization()
         check_authorized_notification()
-        remove_security_account()
-        check_vt_anonymous_access_state_off()
 
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении теста: {e}")
         pytest.fail(f"Ошибка при выполнении теста: {e}")
+
+    finally:
+        try:
+            remove_security_account()
+        except Exception as cleanup_error:
+            logger.error(f"Ошибка при удалении Security Account: {cleanup_error}")
+
+        try:
+            check_vt_anonymous_access_state_off()
+        except Exception as cleanup_error:
+            logger.error(f"Ошибка при включении anonymous access: {cleanup_error}")
