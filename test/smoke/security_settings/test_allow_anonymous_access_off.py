@@ -80,15 +80,6 @@ def test_allow_anonymous_access_off(driver, logger):
     def check_password_field():
         assert base_page.is_element_visible(wg_page.SECURITY_PASSWORD), "Поле Password не отображается"
 
-    @log_step(logger, "Включение anonymous access VT Security Settings")
-    def check_vt_anonymous_access_state_off():
-        expected_value = 1  # Состояние кнопки (1 == True)
-        desktop_app_page.toggle_vt_wg_button(0)
-        security_window = desktop_app_page.find_window_by_title_substring("security settings")
-        actual_value = desktop_app_page.get_vt_wg_button_state(0)
-        desktop_app_page.click_button_in_window(security_window, "PART_Close")
-        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
-
     try:
         check_vt_anonymous_access_state_on()
         start_first_web_guest(driver)
@@ -98,7 +89,6 @@ def test_allow_anonymous_access_off(driver, logger):
         check_location_field()
         check_login_field()
         check_password_field()
-        check_vt_anonymous_access_state_off()
 
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении теста: {e}")

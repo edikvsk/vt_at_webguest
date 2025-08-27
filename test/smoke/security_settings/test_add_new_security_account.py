@@ -55,21 +55,6 @@ def test_add_new_security_account(driver, logger):
         desktop_app_page.set_vt_wg_settings_field_value(4, expiration_time)
         desktop_app_page.click_button_by_name("OK")
 
-    @log_step(logger, "Удаление Security Account")
-    def remove_security_account():
-        security_window = desktop_app_page.find_window_by_title_substring("security settings")
-        desktop_app_page.click_data_item_in_window(security_window, "VT_Common.SecurityAccount")
-        desktop_app_page.click_button_by_name("Delete")
-
-    @log_step(logger, "Включение anonymous access VT Security Settings")
-    def check_vt_anonymous_access_state_off():
-        expected_value = 1  # Состояние кнопки (1 == True)
-        desktop_app_page.toggle_vt_wg_button(0)
-        security_window = desktop_app_page.find_window_by_title_substring("security settings")
-        actual_value = desktop_app_page.get_vt_wg_button_state(0)
-        desktop_app_page.click_button_in_window(security_window, "PART_Close")
-        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
-
     try:
         check_vt_anonymous_access_state_on()
         add_security_account()
@@ -77,14 +62,3 @@ def test_add_new_security_account(driver, logger):
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении теста: {e}")
         pytest.fail(f"Ошибка при выполнении теста: {e}")
-
-    finally:
-        try:
-            remove_security_account()
-        except Exception as cleanup_error:
-            logger.error(f"Ошибка при удалении Security Account: {cleanup_error}")
-
-        try:
-            check_vt_anonymous_access_state_off()
-        except Exception as cleanup_error:
-            logger.error(f"Ошибка при включении anonymous access: {cleanup_error}")
