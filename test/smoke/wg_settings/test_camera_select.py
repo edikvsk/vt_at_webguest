@@ -79,8 +79,5 @@ def test_camera_select(driver, logger):
         except (NoSuchElementException, TimeoutException) as e:
             logger.error(f"Ошибка при выполнении теста: {e}")
             pytest.fail(f"Ошибка при выполнении теста: {e}")
-
-        # При необходимости закрыть VT
-        # finally:
-
-        # desktop_app.close_application()
+        finally:
+            desktop_app.close_application()

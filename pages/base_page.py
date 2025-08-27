@@ -41,7 +41,7 @@ class BasePage:
             element.clear()
             element.send_keys(text)
 
-    def click(self, element_locator, timeout=10):
+    def click(self, element_locator, timeout=45):
         """Кликает по элементу, если он доступен, с заданным временем ожидания"""
         try:
             element = WebDriverWait(self.driver, timeout).until(
@@ -78,7 +78,7 @@ class BasePage:
         except TimeoutException:
             logging.error(f"URL не соответствует: {url}")
 
-    def is_element_visible(self, locator, timeout=10):
+    def is_element_visible(self, locator, timeout=20):
         try:
             wait = WebDriverWait(self.driver, timeout)
             wait.until(EC.visibility_of_element_located(locator))

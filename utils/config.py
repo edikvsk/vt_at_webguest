@@ -1,19 +1,19 @@
 # CONFIG BROWSER
 CHROME_DRIVER_PATH = "D:/chromedriver/chromedriver.exe"
-CHROME_BROWSER_PATH = "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
+CHROME_BROWSER_PATH = "C:/Program Files/Google/Chrome/Application/chrome.exe"
 
 # CONFIG DESKTOP
-CONFIG_INI = "C:/Users/Николай Беликов/PycharmProjects/vt_at_webguest/utils/config.ini"
-PROCESS_PATH = "D:/VT/Video Transport 1.9.5.1080(x64)/VT_Publisher.exe"
+CONFIG_INI = "C:/Users/edwar/PycharmProjects/vt_at_webguest/utils/config.ini"
+PROCESS_PATH = "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/VT_Publisher.exe"
 PROCESS_NAME = "VT_Publisher.exe"
 
 # CONFIG VT
 SOURCE_TO_PUBLISHING = "mp://mplaylist"
 
 # CONFIG INPUT MEDIA DEVICES
-VIDEO_DEVICE_ID = "8381375a5322592502987a99a4a57727661cfbf29116e845f10b766767ae596f"
-AUDIO_DEVICE_ID = "e583fb0c4b6e4c2aa41ebbab2784cc771351bc711de849a1d2dd86f21529bd11"
+VIDEO_DEVICE_ID = "85c5169a41b10634c11c439fb883f3b990ad69b6082dbabedea6635e12c61591"
+AUDIO_DEVICE_ID = "7fd76655b10bf621fbeb2a96c3021f33c5c325b9b4fff386263f9d59556f5c6a"
 
 # CONFIG TESTS
 CAMERA_FOR_SELECTION_IN_TEST_CAMERA_SELECT = "LOGI C270 HD WEBCAM (046D:0825)"
-MIC_FOR_SELECTION_IN_TEST_MICROPHONE_SELECT = "ПО УМОЛЧАНИЮ - МИКРОФОН (HD WEBCAM C270) (046D:0825)"
+MIC_FOR_SELECTION_IN_TEST_MICROPHONE_SELECT = "DEFAULT - MICROPHONE (LOGI C270 HD WEBCAM) (046D:0825)"
