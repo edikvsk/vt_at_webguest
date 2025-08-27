@@ -6,6 +6,7 @@ CHROME_BROWSER_PATH = "C:/Program Files/Google/Chrome/Application/chrome.exe"
 CONFIG_INI = "C:/Users/edwar/PycharmProjects/vt_at_webguest/utils/config.ini"
 PROCESS_PATH = "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/VT_Publisher.exe"
 PROCESS_NAME = "VT_Publisher.exe"
+PUBLISHER_XML_PATH = "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/DLL/publisher.xml"
 
 # CONFIG VT
 SOURCE_TO_PUBLISHING = "mp://mplaylist"

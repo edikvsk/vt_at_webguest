@@ -12,7 +12,7 @@ from pages.base_page import BasePage
 from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
 from utils.config import (CHROME_DRIVER_PATH, CHROME_BROWSER_PATH, PROCESS_PATH, PROCESS_NAME, SOURCE_TO_PUBLISHING,
-                          VIDEO_DEVICE_ID, AUDIO_DEVICE_ID, CONFIG_INI)
+                          VIDEO_DEVICE_ID, AUDIO_DEVICE_ID, CONFIG_INI, PUBLISHER_XML_PATH)
 from utils.desktop_app import DesktopApp
 from utils.notificaton_handler import NotificationHandler
 from utils.process_handler import ProcessManager
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="function")
 def driver():
-    process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME)
+    process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME, PUBLISHER_XML_PATH)
     process_manager.start_process()
 
     chrome_options = Options()

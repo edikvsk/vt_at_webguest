@@ -1,3 +1,4 @@
+import os
 import subprocess
 import time
 
@@ -12,16 +13,34 @@ from utils.logger_config import setup_logger
 class ProcessManager:
     _instance = None
 
-    def __new__(cls, process_path, process_name):
+    def __new__(cls, process_path, process_name, config_file_path=None):
         if cls._instance is None:
             cls._instance = super(ProcessManager, cls).__new__(cls)
-            cls._instance.init(process_path, process_name)
+            cls._instance.init(process_path, process_name, config_file_path)
         return cls._instance
 
-    def init(self, process_path, process_name):
+    def init(self, process_path, process_name, config_file_path=None):
         self.process_path = process_path
         self.process_name = process_name
+        self.config_file_path = config_file_path
         self.logger = setup_logger(self.process_name)
+
+    def delete_config_file(self):
+        """Удаляет конфигурационный файл перед запуском процесса."""
+        if self.config_file_path and os.path.exists(self.config_file_path):
+            try:
+                os.remove(self.config_file_path)
+                self.logger.info(f"Файл конфигурации {self.config_file_path} был удален.")
+                return True
+            except Exception as e:
+                self.logger.error(f"Ошибка при удалении файла конфигурации: {e}")
+                return False
+        elif self.config_file_path:
+            self.logger.info(f"Файл конфигурации {self.config_file_path} не существует.")
+            return True
+        else:
+            self.logger.info("Путь к файлу конфигурации не указан.")
+            return True
 
     def is_process_running(self):
         """Проверяет, запущен ли процесс с заданным именем."""
@@ -31,17 +50,27 @@ class ProcessManager:
         return None
 
     def start_process(self):
-        """Запускает процесс, если он не запущен."""
-        if not self.is_process_running():
-            try:
-                subprocess.Popen(self.process_path)  # Запускаем процесс напрямую
-                time.sleep(15)  # Задержка для ожидания запуска процесса
-                self.logger.info(f"{self.process_name} был запущен.")
-            except Exception as e:
-                self.logger.error(f"Ошибка при запуске процесса: {e}")
-                raise  # Поднимаем исключение, чтобы остановить тест
-        else:
-            self.logger.info(f"{self.process_name} уже запущен. Процесс не будет запущен.")
+        """Запускает процесс, предварительно закрывая его (если запущен) и удаляя конфигурационный файл."""
+        # Сначала проверяем, запущен ли процесс, и если да - закрываем его
+        process = self.is_process_running()
+        if process:
+            self.logger.info(f"{self.process_name} уже запущен. Завершаем процесс...")
+            self.kill_process()
+            # Даем время для корректного завершения
+            time.sleep(5)
+
+        # Затем удаляем конфигурационный файл
+        if not self.delete_config_file():
+            self.logger.warning("Не удалось удалить конфигурационный файл, но продолжим запуск процесса.")
+
+        # Запускаем процесс
+        try:
+            subprocess.Popen(self.process_path)  # Запускаем процесс напрямую
+            time.sleep(15)  # Задержка для ожидания запуска процесса
+            self.logger.info(f"{self.process_name} был запущен.")
+        except Exception as e:
+            self.logger.error(f"Ошибка при запуске процесса: {e}")
+            raise  # Поднимаем исключение, чтобы остановить тест
 
     def kill_process(self):
         """Завершает дерево процессов с заданным именем."""
