@@ -18,7 +18,7 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("login_fixture")
-def test_maximize_preview_window(driver, logger):
+def test_maximize_preview_window_vt1200(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
 
