@@ -132,6 +132,12 @@ dmypy.json
 logs/
 *.log
 
+# pytest cache and reports
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
 # IDE files
 .vscode/
 .idea/

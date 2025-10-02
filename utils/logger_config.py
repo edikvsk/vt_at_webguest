@@ -77,7 +77,7 @@ class LoggerManager:
         self, 
         test_name: str, 
         level: int = logging.INFO,
-        console_output: bool = True,
+        console_output: bool = False,  # Отключаем по умолчанию - pytest уже логирует в консоль
         file_output: bool = True,
         structured_logging: bool = False
     ) -> logging.Logger:
@@ -87,7 +87,7 @@ class LoggerManager:
         Args:
             test_name: Имя теста
             level: Уровень логирования
-            console_output: Выводить ли логи в консоль
+            console_output: Выводить ли логи в консоль (False по умолчанию, так как pytest уже логирует)
             file_output: Сохранять ли логи в файл
             structured_logging: Использовать ли структурированное логирование
             
@@ -104,7 +104,11 @@ class LoggerManager:
         # Очищаем существующие обработчики
         logger.handlers.clear()
         
-        # Настройка консольного вывода
+        # Запрещаем логгеру передавать сообщения выше по иерархии,
+        # чтобы избежать дублирования с pytest логированием
+        logger.propagate = True  # Оставляем True для pytest
+        
+        # Настройка консольного вывода (только если явно запрошено)
         if console_output:
             console_handler = logging.StreamHandler(sys.stdout)
             
@@ -235,7 +239,7 @@ logger_manager = LoggerManager()
 def setup_logger(
     test_name: str, 
     level: int = logging.INFO,
-    console_output: bool = True,
+    console_output: bool = False,  # Изменено по умолчанию
     file_output: bool = True,
     structured_logging: bool = False
 ) -> logging.Logger:
@@ -245,7 +249,7 @@ def setup_logger(
     """
     # Получаем настройки из переменных окружения
     level = getattr(logging, os.getenv('LOG_LEVEL', 'INFO').upper(), logging.INFO)
-    console_output = os.getenv('LOG_CONSOLE', 'true').lower() in ('true', '1', 'yes')
+    console_output = os.getenv('LOG_CONSOLE', 'false').lower() in ('true', '1', 'yes')  # Изменено на false
     file_output = os.getenv('LOG_FILE', 'true').lower() in ('true', '1', 'yes')
     structured_logging = os.getenv('LOG_STRUCTURED', 'false').lower() in ('true', '1', 'yes')
     
