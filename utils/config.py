@@ -1,20 +1,31 @@
-# CONFIG BROWSER
-CHROME_DRIVER_PATH = "D:/chromedriver/chromedriver.exe"
-CHROME_BROWSER_PATH = "C:/Program Files/Google/Chrome/Application/chrome.exe"
+"""
+Модуль конфигурации для автотестов VT WebGuest.
+Теперь использует улучшенный ConfigManager с поддержкой переменных окружения.
+"""
 
-# CONFIG DESKTOP
-CONFIG_INI = "C:/Users/edwar/PycharmProjects/vt_at_webguest/utils/config.ini"
-PROCESS_PATH = "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/VT_Publisher.exe"
-PROCESS_NAME = "VT_Publisher.exe"
-PUBLISHER_XML_PATH = "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/DLL/publisher.xml"
+# Импортируем новый менеджер конфигурации
+from utils.config_manager import config
 
-# CONFIG VT
-SOURCE_TO_PUBLISHING = "mp://mplaylist"
+# Экспортируем константы для обратной совместимости
+CHROME_DRIVER_PATH = config.browser.chrome_driver_path
+CHROME_BROWSER_PATH = config.browser.chrome_browser_path
+CONFIG_INI = config.desktop.config_ini_path
+PROCESS_PATH = config.desktop.process_path
+PROCESS_NAME = config.desktop.process_name
+PUBLISHER_XML_PATH = config.desktop.publisher_xml_path
+SOURCE_TO_PUBLISHING = config.desktop.source_to_publishing
+VIDEO_DEVICE_ID = config.media.video_device_id
+AUDIO_DEVICE_ID = config.media.audio_device_id
+CAMERA_FOR_SELECTION_IN_TEST_CAMERA_SELECT = config.media.camera_for_selection
+MIC_FOR_SELECTION_IN_TEST_MICROPHONE_SELECT = config.media.mic_for_selection
 
-# CONFIG INPUT MEDIA DEVICES
-VIDEO_DEVICE_ID = "85c5169a41b10634c11c439fb883f3b990ad69b6082dbabedea6635e12c61591"
-AUDIO_DEVICE_ID = "7fd76655b10bf621fbeb2a96c3021f33c5c325b9b4fff386263f9d59556f5c6a"
+# Валидируем конфигурацию при импорте
+if not config.validate_config():
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning("Конфигурация содержит ошибки. Некоторые тесты могут работать некорректно.")
 
-# CONFIG TESTS
-CAMERA_FOR_SELECTION_IN_TEST_CAMERA_SELECT = "LOGI C270 HD WEBCAM (046D:0825)"
-MIC_FOR_SELECTION_IN_TEST_MICROPHONE_SELECT = "DEFAULT - MICROPHONE (LOGI C270 HD WEBCAM) (046D:0825)"
+# Выводим сводку конфигурации в режиме отладки
+import os
+if os.getenv('SHOW_CONFIG_SUMMARY', '').lower() in ('true', '1', 'yes'):
+    config.print_config_summary()

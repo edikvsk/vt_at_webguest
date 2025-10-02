@@ -1,5 +1,6 @@
 import configparser
 import logging
+from typing import Optional
 
 import pyperclip
 import pytest
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="function")
 def driver():
+    """Основная фикстура для создания WebDriver с настройкой браузера и запуском процесса."""
     process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME, PUBLISHER_XML_PATH)
     process_manager.start_process()
 
@@ -32,6 +34,8 @@ def driver():
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
     chrome_options.add_argument("--enable-gpu")
     chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-dev-shm-usage")  # Избегаем проблем с памятью
+    chrome_options.add_argument("--no-sandbox")  # Для стабильности в некоторых средах
     chrome_options.binary_location = CHROME_BROWSER_PATH
 
     media_constraints = {
@@ -42,55 +46,123 @@ def driver():
 
     service = Service(CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=chrome_options)
+    
+    # Максимизируем окно для более стабильной работы
+    driver.maximize_window()
+    
     yield driver
     driver.quit()
 
 
-def get_web_url(desktop_app_page, logger, copy_command):
-    desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
-    is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
-    is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
+@pytest.fixture(scope="function")
+def desktop_app_setup():
+    """Фикстура для настройки десктопного приложения."""
+    desktop_app = DesktopApp(PROCESS_PATH)
+    desktop_app_page = DesktopAppPage(desktop_app.main_window)
+    return desktop_app, desktop_app_page
 
-    if is_enabled_start_publishing and not is_enabled_stop_publishing:
-        desktop_app_page.click_button_by_name("Start Publishing")
-        desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-        desktop_app_page.click_vt_source_item(copy_command)
-        return pyperclip.paste()
-    elif not is_enabled_start_publishing and is_enabled_stop_publishing:
-        desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-        desktop_app_page.click_vt_source_item(copy_command)
-        logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
-        return pyperclip.paste()
-    else:
-        logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
+
+@pytest.fixture(scope="function")
+def web_guest_page_setup(driver):
+    """Фикстура для настройки веб-страницы гостя."""
+    web_guest_page = WebGuestPage(driver)
+    base_page = BasePage(driver)
+    notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
+    stream_handler = StreamHandler(driver)
+    return web_guest_page, base_page, notification_handler, stream_handler
+
+
+def get_web_url(desktop_app_page: DesktopAppPage, logger: logging.Logger, copy_command: str) -> Optional[str]:
+    """
+    Универсальная функция для получения URL веб-страницы.
+    
+    Args:
+        desktop_app_page: Страница десктопного приложения
+        logger: Логгер для записи сообщений
+        copy_command: Команда копирования URL
+        
+    Returns:
+        URL или None в случае ошибки
+    """
+    try:
+        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
+        is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
+        is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
+
+        if is_enabled_start_publishing and not is_enabled_stop_publishing:
+            desktop_app_page.click_button_by_name("Start Publishing")
+            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+            desktop_app_page.click_vt_source_item(copy_command)
+            url = pyperclip.paste()
+            logger.info(f"Получен URL: {url}")
+            return url
+        elif not is_enabled_start_publishing and is_enabled_stop_publishing:
+            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+            desktop_app_page.click_vt_source_item(copy_command)
+            logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
+            url = pyperclip.paste()
+            logger.info(f"Получен URL: {url}")
+            return url
+        else:
+            logger.warning("Кнопка 'Start Publishing' отключена, клик не выполнен.")
+            return None
+    except Exception as e:
+        logger.error(f"Ошибка при получении URL: {e}")
         return None
 
 
-def update_config(config_file_path, section, key, value):
-    config = configparser.ConfigParser()
-    config.read(config_file_path)
-    config[section][key] = value
-    with open(config_file_path, 'w') as configfile:
-        config.write(configfile)
+def update_config(config_file_path: str, section: str, key: str, value: str) -> bool:
+    """
+    Обновляет значение в конфигурационном файле.
+    
+    Args:
+        config_file_path: Путь к файлу конфигурации
+        section: Секция конфигурации
+        key: Ключ
+        value: Значение
+        
+    Returns:
+        True если успешно, False в случае ошибки
+    """
+    try:
+        config = configparser.ConfigParser()
+        config.read(config_file_path)
+        
+        # Создаем секцию если её нет
+        if section not in config:
+            config.add_section(section)
+            
+        config[section][key] = value
+        
+        with open(config_file_path, 'w') as configfile:
+            config.write(configfile)
+        logger.info(f"Конфигурация обновлена: {section}.{key} = {value}")
+        return True
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении конфигурации: {e}")
+        return False
 
 
 @pytest.fixture(scope="function")
 def login_fixture(driver, logger):
-    web_guest_page = WebGuestPage(driver)
-    notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
-    stream_handler = StreamHandler(driver)
+    """Фикстура для авторизации на веб-странице гостя."""
+    # Создаем объекты напрямую для обратной совместимости
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
+    
+    web_guest_page = WebGuestPage(driver)
+    base_page = BasePage(driver)
+    notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
+    stream_handler = StreamHandler(driver)
 
     try:
-        WEB_GUEST_PAGE_URL = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
-        if not WEB_GUEST_PAGE_URL:
+        web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
+        if not web_guest_url:
             logger.error("Не удалось получить Web Guest URL.")
             raise ValueError("Web Guest URL не был инициализирован.")
 
         logger.info("Переходим на страницу Web Guest")
-        driver.get(WEB_GUEST_PAGE_URL)
-        base_page = BasePage(driver)
+        driver.get(web_guest_url)
 
         notification_handler.check_notification()
         base_page.click(web_guest_page.LOGIN_BUTTON)
@@ -105,46 +177,51 @@ def login_fixture(driver, logger):
 
 @pytest.fixture(scope="function")
 def modified_fixture(driver, logger):
-    web_guest_page = WebGuestPage(driver)
+    """Фикстура для модифицированной настройки с сохранением URL в конфигурацию."""
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
+    web_guest_page = WebGuestPage(driver)
 
     try:
-        WEB_GUEST_PAGE_URL = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
-        if not WEB_GUEST_PAGE_URL:
+        web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
+        if not web_guest_url:
             logger.error("Не удалось получить Web Guest URL.")
             raise ValueError("Web Guest URL не был инициализирован.")
 
-        update_config(CONFIG_INI, 'DEFAULT', 'WEB_GUEST_PAGE_URL', WEB_GUEST_PAGE_URL)
+        update_config(CONFIG_INI, 'DEFAULT', 'WEB_GUEST_PAGE_URL', web_guest_url)
         yield web_guest_page
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при переходе на страницу: {e}")
+        raise
 
 
 @pytest.fixture(scope="function")
 def web_preview_fixture(driver, logger):
-    web_guest_page = WebGuestPage(driver)
+    """Фикстура для настройки веб-превью."""
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
+    web_guest_page = WebGuestPage(driver)
 
     try:
-        WEB_PREVIEW_PAGE_URL = get_web_url(desktop_app_page, logger, "Copy Preview URL")
-        if not WEB_PREVIEW_PAGE_URL:
+        web_preview_url = get_web_url(desktop_app_page, logger, "Copy Preview URL")
+        if not web_preview_url:
             logger.error("Не удалось получить Preview URL.")
             raise ValueError("Preview URL не был инициализирован.")
 
-        update_config(CONFIG_INI, 'DEFAULT', 'WEB_PREVIEW_PAGE_URL', WEB_PREVIEW_PAGE_URL)
+        update_config(CONFIG_INI, 'DEFAULT', 'WEB_PREVIEW_PAGE_URL', web_preview_url)
         yield web_guest_page
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при переходе на страницу: {e}")
+        raise
 
 
 @pytest.fixture(scope="function")
 def open_web_preview_fixture(driver, logger):
-    base_page = BasePage(driver)
-    web_guest_page = WebGuestPage(driver)
+    """Фикстура для открытия веб-превью."""
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
+    web_guest_page = WebGuestPage(driver)
+    base_page = BasePage(driver)
     notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
 
     try:
@@ -170,3 +247,28 @@ def open_web_preview_fixture(driver, logger):
         yield web_guest_page
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при переходе на страницу: {e}")
+        raise
+
+
+@pytest.fixture(scope="function")
+def test_logger():
+    """Фикстура для создания логгера для конкретного теста."""
+    import os
+    import inspect
+    
+    # Получаем имя тестового файла
+    frame = inspect.currentframe()
+    test_file = None
+    while frame:
+        if 'test_' in frame.f_code.co_filename:
+            test_file = frame.f_code.co_filename
+            break
+        frame = frame.f_back
+    
+    if test_file:
+        test_name = os.path.splitext(os.path.basename(test_file))[0]
+    else:
+        test_name = "unknown_test"
+    
+    from utils.logger_config import setup_logger
+    return setup_logger(test_name)
