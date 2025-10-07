@@ -1,34 +1,70 @@
-1. pip install selenium
-2. pip install pytest
-3. pip install psutil
-4. pip install pyperclip
-5. По пути \vt_at_webguest\utils\config.py изменить значение переменной CHROME_DRIVER_PATH = "<Путь к Chromedriver>"
-6. По пути \vt_at_webguest\utils\config.py изменить значение переменной PROCESS_PATH = "<Путь к исполняемому файлу VT>"
-7. По пути \vt_at_webguest\utils\config.py изменить значение переменной CHROME_BROWSER_PATH = "<Путь к Chrome Browser>"
-8. По пути \vt_at_webguest\utils\config.py изменить значение переменной CONFIG_INI = "<\vt_at_webguest\utils\>"
-9. По пути \vt_at_webguest\utils\config.py изменить значение переменной SOURCE_TO_PUBLISHING = "<Наименование источника
-   для паблишинга>"
-10. По пути \vt_at_webguest\utils\config.py изменить значение переменных VIDEO_DEVICE_ID/AUDIO_DEVICE_ID ->
-    --> Необходимо указать идентификаторы устройств ввода аудио/видео.
-    --> Алгоритм получения идентификаторов:
-    1. Запустить веб гест стрим
-    2. В Chrome DevTools консоли ввести скрипт:
-       navigator.mediaDevices.enumerateDevices()
-       .then(devices => {
-       devices.forEach(device => {
-       if (device.kind === 'videoinput') {
-       console.log('Video Device ID:', device.deviceId, 'Label:', device.label);
-       } else if (device.kind === 'audioinput') {
-       console.log('Audio Device ID:', device.deviceId, 'Label:', device.label);
-       }
-       });
-       })
-       .catch(err => {
-       console.error('Error accessing media devices.', err);
-       });
-    3. По наименованию видео/аудио девайса скопировать требуемый идентификатор
+# VT WebGuest Autotests
 
-11. По пути \vt_at_webguest\utils\config.py изменить значение переменной CAMERA_FOR_SELECTION_IN_TEST_CAMERA_SELECT -
-    на наименование веб камеры
-12. По пути \vt_at_webguest\utils\config.py изменить значение переменной MIC_FOR_SELECTION_IN_TEST_MICROPHONE_SELECT -
-    на наименование микрофона
+## Установка зависимостей и подготовка окружения
+
+Рекомендуемый способ — автоматизированный скрипт для Windows PowerShell.
+
+```powershell
+# 1) Запустить из корня репозитория
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+
+# 2) (опционально) Активировать окружение вручную в новых сессиях
+. .\.venv\Scripts\Activate.ps1
+```
+
+Альтернативно вручную:
+```powershell
+py -3 -m venv .venv
+. .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## Настройка конфигурации
+Система конфигурации теперь управляется через `utils/config_manager.py` и поддерживает переменные окружения. Менять `utils/config.py` больше не требуется — он проксирует значения из менеджера конфигурации.
+
+Минимальный набор переменных окружения (при необходимости переопределить значения по умолчанию):
+```powershell
+# Пути к Chrome и Chromedriver
+set CHROME_DRIVER_PATH=C:\path\to\chromedriver.exe
+set CHROME_BROWSER_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe
+
+# Пути к VT Publisher
+set VT_PROCESS_PATH=C:\path\to\VT_Publisher.exe
+set VT_PUBLISHER_XML_PATH=C:\path\to\DLL\publisher.xml
+set VT_CONFIG_INI_PATH=C:\path\to\repo\utils\config.ini
+
+# Идентификаторы медиа-устройств
+set VIDEO_DEVICE_ID=<video_device_id>
+set AUDIO_DEVICE_ID=<audio_device_id>
+set CAMERA_FOR_SELECTION=<camera name>
+set MIC_FOR_SELECTION=<microphone name>
+```
+
+Как получить `VIDEO_DEVICE_ID` и `AUDIO_DEVICE_ID`:
+1. Запустить WebGuest стрим
+2. Открыть Chrome DevTools → Console и выполнить:
+```js
+navigator.mediaDevices.enumerateDevices()
+  .then(devices => {
+    devices.forEach(device => {
+      if (device.kind === 'videoinput') {
+        console.log('Video Device ID:', device.deviceId, 'Label:', device.label);
+      } else if (device.kind === 'audioinput') {
+        console.log('Audio Device ID:', device.deviceId, 'Label:', device.label);
+      }
+    });
+  })
+  .catch(err => console.error('Error accessing media devices.', err));
+```
+
+## Быстрая проверка конфигурации
+```powershell
+py -3 -c "from utils.config_manager import config; config.print_config_summary()"
+```
+
+## Запуск тестов (пример)
+```powershell
+py -3 -m pytest --collect-only -q
+py -3 -m pytest test\smoke\stream_controls\test_start_stream.py -v
+```
