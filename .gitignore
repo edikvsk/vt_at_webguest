@@ -131,6 +131,10 @@ dmypy.json
 # Project-specific
 logs/
 *.log
+.tools/
+.tools/**
+scripts/*.log
+scripts/tmp/
 
 # pytest cache and reports
 .pytest_cache/
