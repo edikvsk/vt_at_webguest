@@ -64,6 +64,34 @@ class ConfigManager:
         
         # Загружаем конфигурацию при инициализации
         self._load_config()
+
+    def _repo_root(self) -> Path:
+        """Возвращает корень репозитория (папка с utils/ на один уровень выше)."""
+        return Path(__file__).resolve().parent.parent
+
+    def _detect_browser_paths_from_tools(self) -> Dict[str, Optional[str]]:
+        """Пытается найти Chrome/Chromedriver в локальном каталоге .tools.
+        Возвращает словарь с ключами chrome_path, driver_path (или None).
+        """
+        tools_dir = self._repo_root() / ".tools"
+        chrome_path: Optional[str] = None
+        driver_path: Optional[str] = None
+        try:
+            if tools_dir.exists():
+                # Ищем Chrome for Testing
+                chrome_candidates = list(tools_dir.glob("chrome-*/chrome-win64/chrome.exe"))
+                if chrome_candidates:
+                    # Берем наиболее свежий по времени изменения
+                    chrome_candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+                    chrome_path = str(chrome_candidates[0])
+                # Ищем Chromedriver
+                driver_candidates = list(tools_dir.glob("chromedriver-*/chromedriver-win64/chromedriver.exe"))
+                if driver_candidates:
+                    driver_candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+                    driver_path = str(driver_candidates[0])
+        except Exception as e:
+            self.logger.debug(f"Автопоиск в .tools завершился с ошибкой: {e}")
+        return {"chrome_path": chrome_path, "driver_path": driver_path}
     
     def _get_env_or_default(self, env_var: str, default: Any, var_type: type = str) -> Any:
         """
@@ -120,15 +148,18 @@ class ConfigManager:
     def _load_config(self) -> None:
         """Загружает конфигурацию из различных источников."""
         try:
+            # Автопоиск путей к браузеру/драйверу из .tools, если переменные окружения не заданы
+            detected = self._detect_browser_paths_from_tools()
+
             # Загружаем конфигурацию браузера
             self._browser_config = BrowserConfig(
                 chrome_driver_path=self._get_env_or_default(
                     'CHROME_DRIVER_PATH', 
-                    "D:/chromedriver/chromedriver.exe"
+                    detected.get('driver_path') or "D:/chromedriver/chromedriver.exe"
                 ),
                 chrome_browser_path=self._get_env_or_default(
                     'CHROME_BROWSER_PATH',
-                    "C:/Program Files/Google/Chrome/Application/chrome.exe"
+                    detected.get('chrome_path') or "C:/Program Files/Google/Chrome/Application/chrome.exe"
                 ),
                 window_width=self._get_env_or_default('BROWSER_WINDOW_WIDTH', 1920, int),
                 window_height=self._get_env_or_default('BROWSER_WINDOW_HEIGHT', 1080, int),

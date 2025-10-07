@@ -28,5 +28,12 @@ python -m pip install --upgrade pip
 Write-Host '[4/5] Installing dependencies from requirements.txt...' -ForegroundColor Cyan
 pip install -r requirements.txt
 
-Write-Host '[5/5] Done. Virtual environment is active.' -ForegroundColor Green
+# Install Chrome Beta + Chromedriver matching versions into local .tools and export paths
+Write-Host '[5/6] Installing Chrome Beta + Chromedriver (Chrome for Testing)...' -ForegroundColor Cyan
+& "$PSScriptRoot/./install_chrome_beta.ps1" -Channel "beta"
+if (Test-Path "$PSScriptRoot/../.tools/.env.browser.ps1") {
+    . "$PSScriptRoot/../.tools/.env.browser.ps1"
+}
+
+Write-Host '[6/6] Done. Virtual environment is active.' -ForegroundColor Green
 Write-Host 'Example: py -3 -m pytest --collect-only -q' -ForegroundColor Yellow
