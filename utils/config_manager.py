@@ -5,7 +5,11 @@
 import os
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, Tuple
+import re
+import zipfile
+import urllib.request
+import shutil
 from dataclasses import dataclass, field
 
 
@@ -92,6 +96,83 @@ class ConfigManager:
         except Exception as e:
             self.logger.debug(f"Автопоиск в .tools завершился с ошибкой: {e}")
         return {"chrome_path": chrome_path, "driver_path": driver_path}
+
+    def _vt_cache_dir(self) -> Path:
+        """Локальный кэш для VT сборок."""
+        return self._repo_root() / ".tools" / "VT"
+
+    def _fetch_url_text(self, url: str) -> str:
+        """Скачивает содержимое URL как текст (utf-8)."""
+        with urllib.request.urlopen(url) as resp:
+            return resp.read().decode("utf-8", errors="ignore")
+
+    def _detect_latest_vt_version(self) -> Optional[str]:
+        """Определяет последнюю доступную версию VT с индексной страницы.
+
+        Ожидается формат подкаталогов вида 1.9.5.1199/
+        """
+        try:
+            index_html = self._fetch_url_text("http://releases.medialooks.net/VT/")
+        except Exception as e:
+            self.logger.warning(f"Не удалось получить список сборок VT: {e}")
+            return None
+
+        # Ищем ссылки на подкаталоги версий
+        # Пример: <a href="1.9.5.1199/">1.9.5.1199/</a>
+        versions = re.findall(r"href=\"(\d+\.\d+\.\d+\.\d+)/\"", index_html)
+        if not versions:
+            return None
+
+        def version_key(v: str) -> Tuple[int, int, int, int]:
+            try:
+                return tuple(int(x) for x in v.split("."))  # type: ignore[return-value]
+            except Exception:
+                return (0, 0, 0, 0)
+
+        versions.sort(key=version_key, reverse=True)
+        return versions[0]
+
+    def _ensure_latest_vt_downloaded(self) -> Optional[Path]:
+        """Гарантирует наличие распакованной последней dev.dev.x64 сборки.
+
+        Возвращает путь к корневой папке вида "Video Transport <ver>(x64)",
+        либо None при неудаче.
+        """
+        latest = self._detect_latest_vt_version()
+        if not latest:
+            return None
+
+        cache_dir = self._vt_cache_dir() / latest
+        target_dir_glob = list(cache_dir.glob("Video Transport * (x64)"))
+        # Некоторые индексы содержат формат без пробела: "Video Transport 1.9.5.1199(x64)"
+        if not target_dir_glob:
+            target_dir_glob = list(cache_dir.glob("Video Transport *(x64)"))
+
+        if target_dir_glob:
+            return target_dir_glob[0]
+
+        try:
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            zip_name = f"Video Transport {latest}.dev.dev.x64.zip"
+            zip_url = f"http://releases.medialooks.net/VT/{latest}/{urllib.parse.quote(zip_name)}"
+            zip_path = cache_dir / zip_name
+
+            if not zip_path.exists():
+                self.logger.info(f"Скачиваю VT сборку: {zip_url}")
+                urllib.request.urlretrieve(zip_url, str(zip_path))
+
+            self.logger.info("Распаковываю архив VT...")
+            with zipfile.ZipFile(zip_path, 'r') as zf:
+                zf.extractall(cache_dir)
+
+            target_dir_glob = list(cache_dir.glob("Video Transport * (x64)"))
+            if not target_dir_glob:
+                target_dir_glob = list(cache_dir.glob("Video Transport *(x64)"))
+
+            return target_dir_glob[0] if target_dir_glob else None
+        except Exception as e:
+            self.logger.warning(f"Не удалось скачать/распаковать VT {latest}: {e}")
+            return None
     
     def _get_env_or_default(self, env_var: str, default: Any, var_type: type = str) -> Any:
         """
@@ -166,23 +247,63 @@ class ConfigManager:
                 headless=self._get_env_or_default('BROWSER_HEADLESS', False, bool)
             )
             
+            # Пытаемся автоматически подготовить пути VT, если env не заданы
+            env_process_path = os.getenv('VT_PROCESS_PATH')
+            env_xml_path = os.getenv('VT_PUBLISHER_XML_PATH')
+
+            auto_root = None
+            if not env_process_path or not env_xml_path:
+                auto_root = self._ensure_latest_vt_downloaded()
+
+            if auto_root is not None:
+                default_process = str(auto_root / "VT_Publisher.exe")
+                default_xml = str(auto_root / "DLL" / "publisher.xml")
+            else:
+                # fallback на прежние дефолты, если автозагрузка не удалась
+                default_process = "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/VT_Publisher.exe"
+                default_xml = "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/DLL/publisher.xml"
+
             # Загружаем конфигурацию десктопного приложения
             self._desktop_config = DesktopAppConfig(
-                process_path=self._get_env_or_default(
-                    'VT_PROCESS_PATH',
-                    "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/VT_Publisher.exe"
-                ),
+                process_path=self._get_env_or_default('VT_PROCESS_PATH', default_process),
                 process_name=self._get_env_or_default('VT_PROCESS_NAME', "VT_Publisher.exe"),
-                publisher_xml_path=self._get_env_or_default(
-                    'VT_PUBLISHER_XML_PATH',
-                    "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/DLL/publisher.xml"
-                ),
+                publisher_xml_path=self._get_env_or_default('VT_PUBLISHER_XML_PATH', default_xml),
                 config_ini_path=self._get_env_or_default(
                     'VT_CONFIG_INI_PATH',
-                    "C:/Users/edwar/PycharmProjects/vt_at_webguest/utils/config.ini"
+                    str(self._repo_root() / "utils" / "config.ini")
                 ),
                 source_to_publishing=self._get_env_or_default('VT_SOURCE_TO_PUBLISHING', "mp://mplaylist")
             )
+
+            # Копируем private.json рядом с VT_Publisher.exe, если указано
+            try:
+                private_json_src = self._get_env_or_default(
+                    'VT_PRIVATE_JSON_PATH',
+                    r"\\192.168.10.100\MLFiles\Trash\EdikV_tester\auto@test.ru_vt08.medialooks.com.private.json"
+                )
+                if private_json_src:
+                    # Нормализуем UNC: приводим к виду \\server\share\...
+                    if private_json_src.startswith('\\\\\\\\'):
+                        # Сжимаем четыре начальных слеша до двух
+                        private_json_src = '\\\\' + private_json_src.lstrip('\\')
+                    elif private_json_src.startswith('\\\\'):
+                        # уже корректный UNC
+                        pass
+                    elif private_json_src.startswith('\\'):
+                        # одиночная обратная черта в начале → сделаем UNC
+                        private_json_src = '\\' + private_json_src
+
+                    proc_dir = Path(self._desktop_config.process_path).parent
+                    src_path = Path(private_json_src)
+                    dst_path = proc_dir / src_path.name
+                    # Пытаемся скопировать, перезаписываем при необходимости
+                    if src_path.exists():
+                        shutil.copy2(str(src_path), str(dst_path))
+                        self.logger.info(f"Скопирован private.json в: {dst_path}")
+                    else:
+                        self.logger.warning(f"Файл private.json не найден по пути: {private_json_src}")
+            except Exception as copy_err:
+                self.logger.warning(f"Не удалось скопировать private.json: {copy_err}")
             
             # Загружаем конфигурацию медиа-устройств
             self._media_config = MediaDevicesConfig(
