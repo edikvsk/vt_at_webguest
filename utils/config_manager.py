@@ -272,7 +272,7 @@ class ConfigManager:
                     'VT_CONFIG_INI_PATH',
                     str(self._repo_root() / "utils" / "config.ini")
                 ),
-                source_to_publishing=self._get_env_or_default('VT_SOURCE_TO_PUBLISHING', "mp://mplaylist")
+                source_to_publishing=self._get_env_or_default('VT_SOURCE_TO_PUBLISHING', "Screen:")
             )
 
             # Копируем private.json рядом с VT_Publisher.exe, если указано
