@@ -43,11 +43,20 @@ class ProcessManager:
             return True
 
     def is_process_running(self):
-        """Проверяет, запущен ли процесс с заданным именем."""
+        """Поддержка обратной совместимости: возвращает первый найденный процесс."""
         for proc in psutil.process_iter(attrs=['name']):
-            if proc.info['name'].lower() == self.process_name.lower():
-                return proc  # Возвращаем объект процесса
+            if proc.info['name'] and proc.info['name'].lower() == self.process_name.lower():
+                return proc
         return None
+
+    def iter_processes(self):
+        """Возвращает генератор по всем процессам с нужным именем."""
+        for proc in psutil.process_iter(attrs=['name']):
+            try:
+                if proc.info['name'] and proc.info['name'].lower() == self.process_name.lower():
+                    yield proc
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
 
     def start_process(self):
         """Запускает процесс, предварительно закрывая его (если запущен) и удаляя конфигурационный файл."""
@@ -73,35 +82,52 @@ class ProcessManager:
             raise  # Поднимаем исключение, чтобы остановить тест
 
     def kill_process(self):
-        """Завершает дерево процессов с заданным именем."""
-        process = self.is_process_running()
-        if process:
-            try:
-                # Функция для отправки сообщения WM_CLOSE
-                def close_process(proc):
-                    hwnd = self.get_window_handle(proc.pid)
-                    if hwnd:
-                        win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
-                    else:
-                        proc.terminate()  # Если окна нет, принудительно завершаем
+        """Завершает все инстансы процесса. Мягко (WM_CLOSE/terminate), затем форс-килл (taskkill)."""
+        found_any = False
+        try:
+            # Сначала мягко закрываем все найденные процессы и их потомков
+            for process in list(self.iter_processes()):
+                found_any = True
 
-                # Попытка закрыть дочерние процессы
+                def close_process(proc):
+                    try:
+                        hwnd = self.get_window_handle(proc.pid)
+                        if hwnd:
+                            win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+                        else:
+                            proc.terminate()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+
                 for child in process.children(recursive=True):
                     close_process(child)
-
-                # Попытка закрыть основной процесс
                 close_process(process)
 
-                process.wait()  # Ждем завершения процесса
-                self.logger.info(f"Процесс '{self.process_name}' и его дочерние процессы завершены.")
-            except psutil.NoSuchProcess:
-                self.logger.info("Процесс уже завершен.")
-            except psutil.AccessDenied:
-                self.logger.warning("Нет доступа для завершения процесса.")
-            except Exception as e:
-                self.logger.error(f"Ошибка при завершении процесса: {e}")
-        else:
-            self.logger.info(f"Процесс '{self.process_name}' не найден.")
+            # Ждем до 5 секунд, чтобы мягкое закрытие сработало
+            deadline = time.time() + 5
+            while time.time() < deadline:
+                if not any(True for _ in self.iter_processes()):
+                    break
+                time.sleep(0.2)
+
+            # Если что-то осталось — форс-киллим через taskkill
+            if any(True for _ in self.iter_processes()):
+                self.logger.info("Остались живые процессы, выполняем форс-килл через taskkill /F /T ...")
+                try:
+                    subprocess.run([
+                        'taskkill', '/F', '/IM', self.process_name, '/T'
+                    ], check=False, capture_output=True, text=True)
+                except Exception as e:
+                    self.logger.error(f"Ошибка при вызове taskkill: {e}")
+
+            if any(True for _ in self.iter_processes()):
+                self.logger.warning(f"Некоторые процессы '{self.process_name}' все еще живы после форс-килла.")
+            elif found_any:
+                self.logger.info(f"Все инстансы процесса '{self.process_name}' завершены.")
+            else:
+                self.logger.info(f"Процесс '{self.process_name}' не найден.")
+        except Exception as e:
+            self.logger.error(f"Непредвиденная ошибка при завершении процесса: {e}")
 
     def get_window_handle(self, pid):
         """Возвращает дескриптор окна для процесса по его PID."""

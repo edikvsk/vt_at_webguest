@@ -24,6 +24,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+@pytest.fixture(autouse=True, scope="function")
+def ensure_vt_killed_before_test():
+    """Гарантированно закрывает VT перед каждым тестом, чтобы избежать зависаний на открытой вкладке."""
+    pm = ProcessManager(PROCESS_PATH, PROCESS_NAME, PUBLISHER_XML_PATH)
+    pm.kill_process()
+    # небольшая пауза, чтобы ОС пересобрала дескрипторы окон
+    import time as _t
+    _t.sleep(1)
+
+
 @pytest.fixture(scope="function")
 def driver():
     """Основная фикстура для создания WebDriver с настройкой браузера и запуском процесса."""
