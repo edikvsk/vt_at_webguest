@@ -16,7 +16,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\smoke\
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\ -v
 ```
-
+########
 Дополнительно (при необходимости):
 - Активировать окружение вручную в новой сессии
 ```powershell
@@ -32,7 +32,7 @@ pip install -r requirements.txt
 ```
 Chrome for Testing (Beta) и Chromedriver устанавливаются автоматически в `setup.ps1`. Проект сам находит их в каталоге `.tools` — ничего дополнительно подключать не нужно.
 
-# Идентификаторы медиа-устройств
+# Идентификаторы медиа-устройств (править)
 $env:VIDEO_DEVICE_ID = "<video_device_id>"
 $env:AUDIO_DEVICE_ID = "<audio_device_id>"
 $env:CAMERA_FOR_SELECTION = "<camera name>"
@@ -57,18 +57,7 @@ navigator.mediaDevices.enumerateDevices()
   .catch(err => console.error('Error accessing media devices.', err));
 ```
 
-## Проверка конфигурации (опционально)
+## Проверка конфигурации
 ```powershell
 py -3 -c "from utils.config_manager import config; config.print_config_summary()"
-```
-
-## Запуск тестов
-```powershell
-py -3 -m pytest --collect-only -q
-py -3 -m pytest test\smoke\stream_controls\test_start_stream.py -v
-```
-
-Либо коротко через скрипт:
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\smoke\stream_controls\test_start_stream.py -v
 ```
