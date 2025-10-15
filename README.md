@@ -7,9 +7,14 @@
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
 
-2) Запуск одного теста (Chrome Beta подхватится автоматически)
+2) Запуск одного теста
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\smoke\stream_controls\test_start_stream.py -v
+```
+
+3) Запуск всех тестов
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\ -v
 ```
 
 Дополнительно (при необходимости):
@@ -26,14 +31,6 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 Chrome for Testing (Beta) и Chromedriver устанавливаются автоматически в `setup.ps1`. Проект сам находит их в каталоге `.tools` — ничего дополнительно подключать не нужно.
-
-## Настройка параметров окружения (опционально)
-Система конфигурации управляется через `utils/config_manager.py`. Значения можно переопределять переменными окружения при необходимости:
-```powershell
-# Пути к VT Publisher (обязательно указать под вашу машину)
-$env:VT_PROCESS_PATH = "C:\Path\To\VT\VT_Publisher.exe"
-$env:VT_PUBLISHER_XML_PATH = "C:\Path\To\VT\DLL\publisher.xml"
-$env:VT_CONFIG_INI_PATH = "$PWD\utils\config.ini"
 
 # Идентификаторы медиа-устройств
 $env:VIDEO_DEVICE_ID = "<video_device_id>"
