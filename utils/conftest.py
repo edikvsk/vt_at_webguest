@@ -42,6 +42,7 @@ def driver():
 
     chrome_options = Options()
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
+    chrome_options.add_argument("--use-fake-device-for-media-stream")
     chrome_options.add_argument("--enable-gpu")
     chrome_options.add_argument("--disable-software-rasterizer")
     chrome_options.add_argument("--disable-dev-shm-usage")  # Избегаем проблем с памятью
