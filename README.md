@@ -1,73 +1,63 @@
 # VT WebGuest Autotests
 
-Автотесты для VT WebGuest с поддержкой автоматического определения медиа-устройств.
+## Quick Start (Windows PowerShell)
 
-## Быстрый старт
-
-### 1. Установка
+1) Установка всего необходимого (виртуальное окружение, зависимости, Chrome Beta + Chromedriver)
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
 
-### 2. Настройка медиа-устройств
+2) Запуск одного теста
 ```powershell
-# Автоматическое определение (рекомендуется)
-$env:USE_DYNAMIC_MEDIA_DETECTION = "true"
-$env:CAMERA_FOR_SELECTION = "Logi"
-$env:MIC_FOR_SELECTION = "Logi"
-
-# Или найти устройства вручную
-python scripts/detect_media_devices.py --list
+powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\smoke\stream_controls\test_start_stream.py -v
 ```
 
-### 3. Запуск тестов
+3) Запуск всех тестов
 ```powershell
-# Один тест
-powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\smoke\stream_controls\test_start_stream.py -v
-
-# Все тесты
 powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\ -v
 ```
-
-## Документация
-
-- **[Настройка медиа-устройств](docs/MEDIA_DEVICES.md)** - подробное руководство по настройке камеры и микрофона
-- **[Конфигурация](docs/CONFIGURATION.md)** - все переменные окружения и настройки
-- **[Скрипты и утилиты](docs/SCRIPTS.md)** - описание всех доступных скриптов
-
-## Основные возможности
-
-- ✅ **Автоматическое определение медиа-устройств** - система сама находит камеру и микрофон
-- ✅ **Динамическая конфигурация** - устройства определяются при каждом запуске
-- ✅ **Автоматическая установка зависимостей** - Chrome, ChromeDriver, VT Publisher
-- ✅ **Гибкая настройка** - через переменные окружения или автоматически
-- ✅ **Подробное логирование** - для отладки и мониторинга
-
-## Проверка работы
-
+########
+Дополнительно (при необходимости):
+- Активировать окружение вручную в новой сессии
 ```powershell
-# Проверить конфигурацию
+. .\.venv\Scripts\Activate.ps1
+```
+
+## Альтернативная ручная установка (без setup.ps1)
+```powershell
+py -3 -m venv .venv
+. .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+Chrome for Testing (Beta) и Chromedriver устанавливаются автоматически в `setup.ps1`. Проект сам находит их в каталоге `.tools` — ничего дополнительно подключать не нужно.
+
+# Идентификаторы медиа-устройств (править)
+$env:VIDEO_DEVICE_ID = "<video_device_id>"
+$env:AUDIO_DEVICE_ID = "<audio_device_id>"
+$env:CAMERA_FOR_SELECTION = "<camera name>"
+$env:MIC_FOR_SELECTION = "<microphone name>"
+```
+Пути к Chrome/Chromedriver задавать не требуется: проект автоматически использует установки из `.tools`. При желании можно переопределить через `$env:CHROME_BROWSER_PATH` и `$env:CHROME_DRIVER_PATH`.
+
+Как получить `VIDEO_DEVICE_ID` и `AUDIO_DEVICE_ID`:
+1. Запустить WebGuest стрим
+2. Открыть Chrome DevTools → Console и выполнить:
+```js
+navigator.mediaDevices.enumerateDevices()
+  .then(devices => {
+    devices.forEach(device => {
+      if (device.kind === 'videoinput') {
+        console.log('Video Device ID:', device.deviceId, 'Label:', device.label);
+      } else if (device.kind === 'audioinput') {
+        console.log('Audio Device ID:', device.deviceId, 'Label:', device.label);
+      }
+    });
+  })
+  .catch(err => console.error('Error accessing media devices.', err));
+```
+
+## Проверка конфигурации
+```powershell
 py -3 -c "from utils.config_manager import config; config.print_config_summary()"
-
-# Проверить медиа-устройства
-python scripts/detect_media_devices.py --list
 ```
-
-## Структура проекта
-
-```
-vt_at_webguest/
-├── docs/                    # Документация
-├── scripts/                 # Скрипты установки и запуска
-├── test/                    # Тесты
-├── utils/                   # Утилиты и конфигурация
-├── pages/                   # Page Object Model
-└── logs/                    # Логи тестов
-```
-
-## Требования
-
-- Windows 10/11
-- Python 3.8+
-- PowerShell 5.0+
-- Доступ к интернету (для скачивания зависимостей)

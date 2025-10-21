@@ -174,70 +174,6 @@ class ConfigManager:
             self.logger.warning(f"Не удалось скачать/распаковать VT {latest}: {e}")
             return None
     
-    def _load_media_devices_config(self) -> MediaDevicesConfig:
-        """
-        Загружает конфигурацию медиа-устройств с возможностью автоматического определения.
-        
-        Returns:
-            Конфигурация медиа-устройств
-        """
-        # Проверяем, включено ли автоматическое определение устройств
-        auto_detect = self._get_env_or_default('AUTO_DETECT_MEDIA_DEVICES', False, bool)
-        
-        if auto_detect:
-            self.logger.info("Автоматическое определение медиа-устройств включено")
-            try:
-                from utils.media_device_detector import MediaDeviceDetector
-                
-                detector = MediaDeviceDetector(
-                    chrome_driver_path=self._browser_config.chrome_driver_path,
-                    chrome_browser_path=self._browser_config.chrome_browser_path
-                )
-                
-                # Получаем предпочтительные названия устройств из переменных окружения
-                preferred_camera = self._get_env_or_default('CAMERA_FOR_SELECTION', "LOGI")
-                preferred_mic = self._get_env_or_default('MIC_FOR_SELECTION', "LOGI")
-                
-                # Автоматически определяем устройства
-                video_device_id, audio_device_id = detector.get_preferred_devices(
-                    preferred_camera_name=preferred_camera,
-                    preferred_mic_name=preferred_mic
-                )
-                
-                if video_device_id and audio_device_id:
-                    self.logger.info("Медиа-устройства успешно определены автоматически")
-                    return MediaDevicesConfig(
-                        video_device_id=video_device_id,
-                        audio_device_id=audio_device_id,
-                        camera_for_selection=preferred_camera,
-                        mic_for_selection=preferred_mic
-                    )
-                else:
-                    self.logger.warning("Не удалось автоматически определить все медиа-устройства")
-                    
-            except Exception as e:
-                self.logger.warning(f"Ошибка при автоматическом определении устройств: {e}")
-        
-        # Fallback на значения по умолчанию или из переменных окружения
-        return MediaDevicesConfig(
-            video_device_id=self._get_env_or_default(
-                'VIDEO_DEVICE_ID',
-                "85c5169a41b10634c11c439fb883f3b990ad69b6082dbabedea6635e12c61591"
-            ),
-            audio_device_id=self._get_env_or_default(
-                'AUDIO_DEVICE_ID',
-                "7fd76655b10bf621fbeb2a96c3021f33c5c325b9b4fff386263f9d59556f5c6a"
-            ),
-            camera_for_selection=self._get_env_or_default(
-                'CAMERA_FOR_SELECTION',
-                "LOGI C270 HD WEBCAM (046D:0825)"
-            ),
-            mic_for_selection=self._get_env_or_default(
-                'MIC_FOR_SELECTION',
-                "DEFAULT - MICROPHONE (LOGI C270 HD WEBCAM) (046D:0825)"
-            )
-        )
-    
     def _get_env_or_default(self, env_var: str, default: Any, var_type: type = str) -> Any:
         """
         Получает значение из переменной окружения или возвращает значение по умолчанию.
@@ -370,7 +306,24 @@ class ConfigManager:
                 self.logger.warning(f"Не удалось скопировать private.json: {copy_err}")
             
             # Загружаем конфигурацию медиа-устройств
-            self._media_config = self._load_media_devices_config()
+            self._media_config = MediaDevicesConfig(
+                video_device_id=self._get_env_or_default(
+                    'VIDEO_DEVICE_ID',
+                    "85c5169a41b10634c11c439fb883f3b990ad69b6082dbabedea6635e12c61591"
+                ),
+                audio_device_id=self._get_env_or_default(
+                    'AUDIO_DEVICE_ID',
+                    "7fd76655b10bf621fbeb2a96c3021f33c5c325b9b4fff386263f9d59556f5c6a"
+                ),
+                camera_for_selection=self._get_env_or_default(
+                    'CAMERA_FOR_SELECTION',
+                    "LOGI C270 HD WEBCAM (046D:0825)"
+                ),
+                mic_for_selection=self._get_env_or_default(
+                    'MIC_FOR_SELECTION',
+                    "DEFAULT - MICROPHONE (LOGI C270 HD WEBCAM) (046D:0825)"
+                )
+            )
             
             # Загружаем конфигурацию тестов
             self._test_config = TestConfig(
@@ -478,104 +431,13 @@ class ConfigManager:
         options.extend(self.browser.additional_options)
         
         # Добавляем медиа-ограничения
-        media_constraints = self.get_media_constraints()
-        options.append(f"mediaStreamConstraints={media_constraints}")
-        
-        return options
-    
-    def get_media_constraints(self) -> Dict[str, Any]:
-        """
-        Получает media_constraints для текущей конфигурации.
-        
-        Returns:
-            Словарь с media_constraints
-        """
-        # Проверяем, включено ли динамическое определение устройств
-        use_dynamic_detection = self._get_env_or_default('USE_DYNAMIC_MEDIA_DETECTION', False, bool)
-        
-        if use_dynamic_detection:
-            try:
-                from utils.stable_media_config import StableMediaManager
-                
-                manager = StableMediaManager(
-                    chrome_driver_path=self.browser.chrome_driver_path,
-                    chrome_browser_path=self.browser.chrome_browser_path
-                )
-                
-                # Используем названия устройств из конфигурации
-                camera_name = self.media.camera_for_selection
-                mic_name = self.media.mic_for_selection
-                
-                constraints = manager.get_media_constraints(camera_name, mic_name)
-                self.logger.info(f"Используются динамические media_constraints: {constraints}")
-                return constraints
-                
-            except Exception as e:
-                self.logger.warning(f"Ошибка при динамическом определении устройств: {e}")
-        
-        # Fallback на статические ID
         media_constraints = {
             "video": {"deviceId": {"exact": self.media.video_device_id}},
             "audio": {"deviceId": {"exact": self.media.audio_device_id}}
         }
-        return media_constraints
-    
-    def detect_and_update_media_devices(self, 
-                                      preferred_camera_name: Optional[str] = None,
-                                      preferred_mic_name: Optional[str] = None) -> bool:
-        """
-        Автоматически определяет и обновляет конфигурацию медиа-устройств.
+        options.append(f"mediaStreamConstraints={media_constraints}")
         
-        Args:
-            preferred_camera_name: Название предпочтительной камеры
-            preferred_mic_name: Название предпочтительного микрофона
-            
-        Returns:
-            True если устройства успешно определены и обновлены
-        """
-        try:
-            from utils.media_device_detector import MediaDeviceDetector
-            
-            detector = MediaDeviceDetector(
-                chrome_driver_path=self.browser.chrome_driver_path,
-                chrome_browser_path=self.browser.chrome_browser_path
-            )
-            
-            # Определяем устройства
-            video_device_id, audio_device_id = detector.get_preferred_devices(
-                preferred_camera_name=preferred_camera_name or self.media.camera_for_selection,
-                preferred_mic_name=preferred_mic_name or self.media.mic_for_selection
-            )
-            
-            if video_device_id and audio_device_id:
-                # Обновляем конфигурацию
-                self._media_config.video_device_id = video_device_id
-                self._media_config.audio_device_id = audio_device_id
-                
-                self.logger.info("Конфигурация медиа-устройств успешно обновлена")
-                return True
-            else:
-                self.logger.error("Не удалось определить все необходимые медиа-устройства")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Ошибка при обновлении медиа-устройств: {e}")
-            return False
-    
-    def print_available_media_devices(self) -> None:
-        """Выводит список доступных медиа-устройств."""
-        try:
-            from utils.media_device_detector import MediaDeviceDetector
-            
-            detector = MediaDeviceDetector(
-                chrome_driver_path=self.browser.chrome_driver_path,
-                chrome_browser_path=self.browser.chrome_browser_path
-            )
-            
-            detector.print_available_devices()
-            
-        except Exception as e:
-            self.logger.error(f"Ошибка при получении списка устройств: {e}")
+        return options
     
     def print_config_summary(self) -> None:
         """Выводит сводку конфигурации."""
