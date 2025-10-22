@@ -14,6 +14,7 @@ from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
 from utils.config import (CHROME_DRIVER_PATH, CHROME_BROWSER_PATH, PROCESS_PATH, PROCESS_NAME, SOURCE_TO_PUBLISHING,
                           VIDEO_DEVICE_ID, AUDIO_DEVICE_ID, CONFIG_INI, PUBLISHER_XML_PATH)
+from utils.config_manager import config
 from utils.desktop_app import DesktopApp
 from utils.notificaton_handler import NotificationHandler
 from utils.process_handler import ProcessManager
@@ -41,25 +42,101 @@ def driver():
     process_manager.start_process()
 
     chrome_options = Options()
-    chrome_options.add_argument("--use-fake-ui-for-media-stream")
-    chrome_options.add_argument("--use-fake-device-for-media-stream")
-    chrome_options.add_argument("--enable-gpu")
-    chrome_options.add_argument("--disable-software-rasterizer")
-    chrome_options.add_argument("--disable-dev-shm-usage")  # Избегаем проблем с памятью
-    chrome_options.add_argument("--no-sandbox")  # Для стабильности в некоторых средах
+    
+    # Получаем опции Chrome из конфигурационного менеджера
+    chrome_options_list = config.get_chrome_options()
+    for option in chrome_options_list:
+        chrome_options.add_argument(option)
+    
     chrome_options.binary_location = CHROME_BROWSER_PATH
 
+    # Добавляем медиа-ограничения через экспериментальные опции
     media_constraints = {
         "video": {"deviceId": {"exact": VIDEO_DEVICE_ID}},
         "audio": {"deviceId": {"exact": AUDIO_DEVICE_ID}}
     }
-    chrome_options.add_argument(f"mediaStreamConstraints={media_constraints}")
+    
+    # Устанавливаем медиа-ограничения через экспериментальные опции
+    chrome_options.add_experimental_option("prefs", {
+        "profile.default_content_setting_values.media_stream_mic": 1,
+        "profile.default_content_setting_values.media_stream_camera": 1,
+        "profile.default_content_setting_values.notifications": 1
+    })
+    
+    # Добавляем медиа-ограничения через экспериментальные опции
+    chrome_options.add_experimental_option("useAutomationExtension", False)
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
 
     service = Service(CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     
     # Максимизируем окно для более стабильной работы
     driver.maximize_window()
+    
+    # Устанавливаем медиа-ограничения через JavaScript после загрузки страницы
+    driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+        'source': f'''
+            // Переопределяем getUserMedia для автоматического выбора устройств
+            const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
+            navigator.mediaDevices.getUserMedia = function(constraints) {{
+                console.log('Original constraints:', constraints);
+                
+                // Сначала получаем список доступных устройств
+                return navigator.mediaDevices.enumerateDevices().then(devices => {{
+                    console.log('Available devices:', devices);
+                    
+                    // Ищем устройства по имени (частичное совпадение)
+                    const cameraName = "{config.media.camera_for_selection}";
+                    const micName = "{config.media.mic_for_selection}";
+                    
+                    let videoDeviceId = null;
+                    let audioDeviceId = null;
+                    
+                    // Ищем видеоустройство
+                    const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                    for (const device of videoDevices) {{
+                        if (device.label.toLowerCase().includes(cameraName.toLowerCase())) {{
+                            videoDeviceId = device.deviceId;
+                            console.log('Found video device:', device.label, 'ID:', device.deviceId);
+                            break;
+                        }}
+                    }}
+                    
+                    // Ищем аудиоустройство
+                    const audioDevices = devices.filter(d => d.kind === 'audioinput');
+                    for (const device of audioDevices) {{
+                        if (device.label.toLowerCase().includes(micName.toLowerCase())) {{
+                            audioDeviceId = device.deviceId;
+                            console.log('Found audio device:', device.label, 'ID:', device.deviceId);
+                            break;
+                        }}
+                    }}
+                    
+                    // Формируем constraints с найденными устройствами
+                    const modifiedConstraints = {{}};
+                    
+                    if (constraints.video !== false) {{
+                        if (videoDeviceId) {{
+                            modifiedConstraints.video = {{ deviceId: {{ exact: videoDeviceId }} }};
+                        }} else {{
+                            modifiedConstraints.video = true; // Используем первое доступное
+                        }}
+                    }}
+                    
+                    if (constraints.audio !== false) {{
+                        if (audioDeviceId) {{
+                            modifiedConstraints.audio = {{ deviceId: {{ exact: audioDeviceId }} }};
+                        }} else {{
+                            modifiedConstraints.audio = true; // Используем первое доступное
+                        }}
+                    }}
+                    
+                    console.log('Modified constraints:', modifiedConstraints);
+                    return originalGetUserMedia.call(this, modifiedConstraints);
+                }});
+            }};
+        '''
+    })
     
     yield driver
     driver.quit()

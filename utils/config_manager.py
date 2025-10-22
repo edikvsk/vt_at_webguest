@@ -11,6 +11,7 @@ import zipfile
 import urllib.request
 import shutil
 from dataclasses import dataclass, field
+from .device_manager import device_manager
 
 
 @dataclass
@@ -305,25 +306,8 @@ class ConfigManager:
             except Exception as copy_err:
                 self.logger.warning(f"Не удалось скопировать private.json: {copy_err}")
             
-            # Загружаем конфигурацию медиа-устройств
-            self._media_config = MediaDevicesConfig(
-                video_device_id=self._get_env_or_default(
-                    'VIDEO_DEVICE_ID',
-                    "85c5169a41b10634c11c439fb883f3b990ad69b6082dbabedea6635e12c61591"
-                ),
-                audio_device_id=self._get_env_or_default(
-                    'AUDIO_DEVICE_ID',
-                    "7fd76655b10bf621fbeb2a96c3021f33c5c325b9b4fff386263f9d59556f5c6a"
-                ),
-                camera_for_selection=self._get_env_or_default(
-                    'CAMERA_FOR_SELECTION',
-                    "LOGI C270 HD WEBCAM (046D:0825)"
-                ),
-                mic_for_selection=self._get_env_or_default(
-                    'MIC_FOR_SELECTION',
-                    "DEFAULT - MICROPHONE (LOGI C270 HD WEBCAM) (046D:0825)"
-                )
-            )
+            # Загружаем конфигурацию медиа-устройств с автоматическим определением ID
+            self._media_config = self._load_media_devices_config()
             
             # Загружаем конфигурацию тестов
             self._test_config = TestConfig(
@@ -387,7 +371,54 @@ class ConfigManager:
         else:
             self.logger.error("Конфигурация содержит ошибки")
             
-        return is_valid
+    def _load_media_devices_config(self) -> MediaDevicesConfig:
+        """
+        Загружает конфигурацию медиа-устройств с автоматическим определением ID.
+        
+        Returns:
+            Объект MediaDevicesConfig
+        """
+        # Получаем имена устройств из переменных окружения
+        camera_name = self._get_env_or_default('CAMERA_FOR_SELECTION', "Logi")
+        mic_name = self._get_env_or_default('MIC_FOR_SELECTION', "Logi")
+        
+        # Пытаемся найти устройства по имени
+        video_device_id = None
+        audio_device_id = None
+        
+        try:
+            # Ищем видеоустройство
+            video_device = device_manager.find_video_device_by_name(camera_name)
+            if video_device:
+                video_device_id = video_device.device_id
+                self.logger.info(f"Найдено видеоустройство: {video_device.label}")
+            else:
+                self.logger.warning(f"Видеоустройство с именем '{camera_name}' не найдено")
+            
+            # Ищем аудиоустройство
+            audio_device = device_manager.find_audio_device_by_name(mic_name)
+            if audio_device:
+                audio_device_id = audio_device.device_id
+                self.logger.info(f"Найдено аудиоустройство: {audio_device.label}")
+            else:
+                self.logger.warning(f"Аудиоустройство с именем '{mic_name}' не найдено")
+                
+        except Exception as e:
+            self.logger.error(f"Ошибка при поиске устройств: {e}")
+        
+        # Используем найденные ID или значения по умолчанию
+        return MediaDevicesConfig(
+            video_device_id=self._get_env_or_default(
+                'VIDEO_DEVICE_ID',
+                video_device_id or "85c5169a41b10634c11c439fb883f3b990ad69b6082dbabedea6635e12c61591"
+            ),
+            audio_device_id=self._get_env_or_default(
+                'AUDIO_DEVICE_ID',
+                audio_device_id or "7fd76655b10bf621fbeb2a96c3021f33c5c325b9b4fff386263f9d59556f5c6a"
+            ),
+            camera_for_selection=camera_name,
+            mic_for_selection=mic_name
+        )
     
     @property
     def browser(self) -> BrowserConfig:
@@ -430,12 +461,19 @@ class ConfigManager:
         # Добавляем дополнительные опции если есть
         options.extend(self.browser.additional_options)
         
-        # Добавляем медиа-ограничения
-        media_constraints = {
-            "video": {"deviceId": {"exact": self.media.video_device_id}},
-            "audio": {"deviceId": {"exact": self.media.audio_device_id}}
-        }
-        options.append(f"mediaStreamConstraints={media_constraints}")
+        # Добавляем опции для работы с реальными медиа-устройствами
+        if self.media.video_device_id:
+            options.append("--use-fake-ui-for-media-stream")  # Убираем запрос разрешений
+            options.append("--enable-experimental-web-platform-features")
+            options.append("--disable-features=VizDisplayCompositor")
+            options.append("--autoplay-policy=no-user-gesture-required")
+            options.append("--disable-web-security")
+            options.append("--allow-running-insecure-content")
+            options.append("--disable-features=TranslateUI")
+            options.append("--disable-ipc-flooding-protection")
+            # Разрешаем доступ к реальным устройствам
+            options.append("--enable-media-stream")
+            options.append("--allow-file-access-from-files")
         
         return options
     
