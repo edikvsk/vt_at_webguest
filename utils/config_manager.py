@@ -370,6 +370,7 @@ class ConfigManager:
             self.logger.info("Конфигурация прошла валидацию")
         else:
             self.logger.error("Конфигурация содержит ошибки")
+        return is_valid
             
     def _load_media_devices_config(self) -> MediaDevicesConfig:
         """
@@ -452,7 +453,27 @@ class ConfigManager:
             "--enable-gpu",
             "--disable-software-rasterizer",
             "--disable-dev-shm-usage",
-            "--no-sandbox"
+            "--no-sandbox",
+            # Минимизация WebRTC ошибок
+            "--disable-logging",
+            "--log-level=3",  # Только критические ошибки
+            "--disable-background-networking",
+            "--disable-background-timer-throttling",
+            "--disable-renderer-backgrounding",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-features=TranslateUI,BlinkGenPropertyTrees",
+            "--disable-ipc-flooding-protection",
+            "--disable-hang-monitor",
+            "--disable-prompt-on-repost",
+            "--disable-sync",
+            "--disable-default-apps",
+            "--disable-extensions",
+            "--disable-plugins",
+            "--disable-translate",
+            "--disable-web-security",
+            "--disable-features=VizDisplayCompositor",
+            "--silent",
+            "--disable-gpu-logging"
         ]
         
         if self.browser.headless:

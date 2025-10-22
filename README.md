@@ -36,7 +36,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\ -v
 - **[Конфигурация](docs/CONFIGURATION.md)** - все переменные окружения и настройки
 - **[Скрипты и утилиты](docs/SCRIPTS.md)** - описание всех доступных скриптов
 - **[Архитектура проекта](docs/ARCHITECTURE.md)** - структура кода и принципы работы
-- **[Отладка и логирование](docs/DEBUGGING.md)** - решение проблем и анализ логов
 
 ## Основные возможности
 

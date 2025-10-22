@@ -40,7 +40,7 @@ class NotificationHandler:
         base_page = BasePage(self.driver)
         try:
             self.logger.info("Ожидание уведомления...")
-            WebDriverWait(self.driver, 5).until(
+            WebDriverWait(self.driver, 10).until(
                 EC.visibility_of_element_located(self.notification_element)
             )
             notification_text = base_page.get_text(self.notification_element)
@@ -49,14 +49,14 @@ class NotificationHandler:
             # Проверка на игнорируемые уведомления
             if any(word in notification_text for word in NOTIFICATION_TO_IGNORE):
                 self.logger.info(f"Уведомление игнорируется: {notification_text}")
-                return  # Завершаем выполнение, если уведомление игнорируется
+                return notification_text  # Возвращаем текст уведомления, если оно игнорируется
 
             # Проверка на уведомления, которые прерывают тест
             if any(word in notification_text for word in NOTIFICATION_TO_FAIL):
                 self.logger.info(f"Уведомление найдено в списке прерывающих: {notification_text}")
                 if ignore_fail_notifications:
                     self.logger.info(f"Уведомление игнорируется: {notification_text}")
-                    return  # Выход из функции, если уведомление игнорируется
+                    return notification_text  # Возвращаем текст уведомления
                 else:
                     error_message = f"Тест прерван: {notification_text}"
                     if reason:
@@ -65,11 +65,14 @@ class NotificationHandler:
                     pytest.fail(error_message)
 
             self.logger.info(f"Уведомление не требует действий: {notification_text}")
+            return notification_text
 
         except TimeoutException:
             self.logger.warning("Уведомление не найдено, продолжаем тест.")
+            return None
         except Exception as e:
             self.logger.error(f"Произошла ошибка при проверке уведомления: {str(e)}")
+            return None
 
     def get_notification_text(self, timeout=10):
         base_page = BasePage(self.driver)

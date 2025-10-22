@@ -38,6 +38,11 @@ def ensure_vt_killed_before_test():
 @pytest.fixture(scope="function")
 def driver():
     """Основная фикстура для создания WebDriver с настройкой браузера и запуском процесса."""
+    # Подавляем WebRTC логи
+    import os
+    os.environ['WEBRTC_LOGGING'] = '0'
+    os.environ['WEBRTC_DEBUG'] = '0'
+    
     process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME, PUBLISHER_XML_PATH)
     process_manager.start_process()
 
