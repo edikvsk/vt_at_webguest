@@ -16,8 +16,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 - **DEMOSTAND** - использует устройства "A4"
 - **DEFAULT** - для всех остальных машин используются устройства "A4"
 
-> **Важно:** Скопируйте файл `appconfig.json` на сетевой путь `\\192.168.10.100\web\VT_WebGuest_config\appconfig.json`. Если файл недоступен или машина не найдена, используются настройки по умолчанию (A4).
-
 ### 3. Запуск тестов
 ```powershell
 # Один тест
