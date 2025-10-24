@@ -1,6 +1,6 @@
 # VT WebGuest Autotests
 
-Автотесты для VT WebGuest с поддержкой автоматического определения медиа-устройств.
+Автотесты для VT WebGuest с поддержкой автоматического определения медиа-устройств и конфигурации по машинам.
 
 ## Быстрый старт
 
@@ -10,16 +10,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
 
 ### 2. Настройка медиа-устройств
-```powershell
-# Указываем частичное имя устройства (например, "Logi" найдет "Logitech C270 HD Webcam")
-$env:CAMERA_FOR_SELECTION = "Logi"
-$env:MIC_FOR_SELECTION = "Logi"
-```
 
-Система автоматически:
-- Найдет устройство по частичному совпадению имени
-- Определит его уникальный ID
-- Настроит Chrome для использования именно этого устройства
+#### Автоматическая настройка (рекомендуется)
+Система автоматически определяет машину и загружает соответствующую конфигурацию:
+
+- **EDWARD** - использует устройства "Logi" (Logitech)
+- **DEMOSTAND** - использует устройства "A4"
+
+Конфигурация загружается с сетевого пути: `\\192.168.10.100\web\VT_WebGuest_config\appconfig.json`
+
 
 ### 3. Запуск тестов
 ```powershell
@@ -39,6 +38,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\ -v
 
 ## Основные возможности
 
+- ✅ **Автоматическое определение машины** - система сама определяет на какой машине запущены тесты
+- ✅ **Конфигурация по машинам** - разные настройки для разных машин
+- ✅ **Сетевая конфигурация** - загрузка настроек с `\\192.168.10.100\web\VT_WebGuest_config\appconfig.json`
 - ✅ **Автоматическое определение медиа-устройств** - система сама находит камеру и микрофон
 - ✅ **Динамическая конфигурация** - устройства определяются при каждом запуске
 - ✅ **Автоматическая установка зависимостей** - Chrome, ChromeDriver, VT Publisher
@@ -48,7 +50,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -TestPath test\ -v
 ## Проверка работы
 
 ```powershell
-# Проверить конфигурацию
+# Проверить конфигурацию и определение машины
 py -3 -c "from utils.config_manager import config; config.print_config_summary()"
 
 # Проверить медиа-устройства
@@ -66,6 +68,41 @@ vt_at_webguest/
 ├── pages/                   # Page Object Model
 └── logs/                    # Логи тестов
 ```
+
+## Конфигурация машин
+
+### Структура конфигурации
+Файл конфигурации `appconfig.json` содержит настройки для разных машин:
+
+```json
+{
+  "environments": {
+    "EDWARD": {
+      "description": "Машина EDWARD с устройствами Logitech",
+      "media_devices": {
+        "camera_for_selection": "Logi",
+        "mic_for_selection": "Logi"
+      }
+    },
+    "DEMOSTAND": {
+      "description": "Машина DEMOSTAND с устройствами A4",
+      "media_devices": {
+        "camera_for_selection": "A4",
+        "mic_for_selection": "A4"
+      }
+    }
+  }
+}
+```
+
+### Пути к конфигурации
+1. **Сетевой путь** (приоритет): `\\192.168.10.100\web\VT_WebGuest_config\appconfig.json`
+2. **Локальный путь**: `appconfig.json` в корне проекта
+3. **Встроенная конфигурация** (fallback)
+
+### Переменные окружения
+- `VT_CONFIG_NETWORK_PATH` - путь к сетевому файлу конфигурации
+- `VT_CONFIG_LOCAL_PATH` - путь к локальному файлу конфигурации
 
 ## Требования
 

@@ -12,6 +12,7 @@ import urllib.request
 import shutil
 from dataclasses import dataclass, field
 from .device_manager import device_manager
+from .machine_config import config_loader, machine_detector
 
 
 @dataclass
@@ -371,17 +372,70 @@ class ConfigManager:
         else:
             self.logger.error("Конфигурация содержит ошибки")
         return is_valid
+    
+    def _load_machine_config(self) -> Dict[str, Any]:
+        """
+        Загружает конфигурацию машины из различных источников.
+        
+        Returns:
+            Словарь с конфигурацией машины
+        """
+        try:
+            # Определяем имя машины
+            machine_name = machine_detector.get_machine_name()
+            self.logger.info(f"Определена машина: {machine_name}")
+            
+            # Пути к конфигурации
+            network_config_path = self._get_env_or_default(
+                'VT_CONFIG_NETWORK_PATH',
+                r"\\192.168.10.100\web\VT_WebGuest_config\appconfig.json"
+            )
+            local_config_path = self._get_env_or_default(
+                'VT_CONFIG_LOCAL_PATH',
+                str(self._repo_root() / "appconfig.json")
+            )
+            
+            # Загружаем конфигурацию
+            machine_config = config_loader.load_config(
+                network_path=network_config_path,
+                local_path=local_config_path
+            )
+            
+            if machine_config:
+                self.logger.info(f"Конфигурация машины загружена для: {machine_name}")
+                return machine_config
+            else:
+                self.logger.warning("Не удалось загрузить конфигурацию машины, используются значения по умолчанию")
+                return {}
+                
+        except Exception as e:
+            self.logger.error(f"Ошибка при загрузке конфигурации машины: {e}")
+            return {}
             
     def _load_media_devices_config(self) -> MediaDevicesConfig:
         """
         Загружает конфигурацию медиа-устройств с автоматическим определением ID.
+        Использует новую систему конфигурации с определением машины.
         
         Returns:
             Объект MediaDevicesConfig
         """
-        # Получаем имена устройств из переменных окружения
-        camera_name = self._get_env_or_default('CAMERA_FOR_SELECTION', "Logi")
-        mic_name = self._get_env_or_default('MIC_FOR_SELECTION', "Logi")
+        # Загружаем конфигурацию машины
+        machine_config = self._load_machine_config()
+        
+        # Получаем имена устройств из конфигурации машины или переменных окружения
+        camera_name = self._get_env_or_default(
+            'CAMERA_FOR_SELECTION', 
+            machine_config.get('media_devices', {}).get('camera_for_selection', "Logi")
+        )
+        mic_name = self._get_env_or_default(
+            'MIC_FOR_SELECTION', 
+            machine_config.get('media_devices', {}).get('mic_for_selection', "Logi")
+        )
+        
+        # Получаем ID устройств из конфигурации машины
+        config_video_id = machine_config.get('media_devices', {}).get('video_device_id', "")
+        config_audio_id = machine_config.get('media_devices', {}).get('audio_device_id', "")
         
         # Пытаемся найти устройства по имени
         video_device_id = None
@@ -407,15 +461,15 @@ class ConfigManager:
         except Exception as e:
             self.logger.error(f"Ошибка при поиске устройств: {e}")
         
-        # Используем найденные ID или значения по умолчанию
+        # Используем найденные ID, ID из конфигурации или значения по умолчанию
         return MediaDevicesConfig(
             video_device_id=self._get_env_or_default(
                 'VIDEO_DEVICE_ID',
-                video_device_id or "85c5169a41b10634c11c439fb883f3b990ad69b6082dbabedea6635e12c61591"
+                video_device_id or config_video_id or "85c5169a41b10634c11c439fb883f3b990ad69b6082dbabedea6635e12c61591"
             ),
             audio_device_id=self._get_env_or_default(
                 'AUDIO_DEVICE_ID',
-                audio_device_id or "7fd76655b10bf621fbeb2a96c3021f33c5c325b9b4fff386263f9d59556f5c6a"
+                audio_device_id or config_audio_id or "7fd76655b10bf621fbeb2a96c3021f33c5c325b9b4fff386263f9d59556f5c6a"
             ),
             camera_for_selection=camera_name,
             mic_for_selection=mic_name
@@ -500,9 +554,16 @@ class ConfigManager:
     
     def print_config_summary(self) -> None:
         """Выводит сводку конфигурации."""
+        machine_name = machine_detector.get_machine_name()
+        environment_name = machine_detector.get_environment_name()
+        
         print("\n" + "="*50)
         print("СВОДКА КОНФИГУРАЦИИ")
         print("="*50)
+        
+        print(f"\n🖥️ МАШИНА:")
+        print(f"  Имя машины: {machine_name}")
+        print(f"  Окружение: {environment_name}")
         
         print(f"\n📁 ПУТИ:")
         print(f"  Chrome Driver: {self.browser.chrome_driver_path}")
