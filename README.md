@@ -4,7 +4,7 @@
 
 ## Быстрый старт
 
-### 1. Установка
+### 1. Установка зависимостей
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
