@@ -375,7 +375,7 @@ class ConfigManager:
     
     def _load_machine_config(self) -> Dict[str, Any]:
         """
-        Загружает конфигурацию машины из различных источников.
+        Загружает конфигурацию машины с сетевого пути.
         
         Returns:
             Словарь с конфигурацией машины
@@ -385,27 +385,17 @@ class ConfigManager:
             machine_name = machine_detector.get_machine_name()
             self.logger.info(f"Определена машина: {machine_name}")
             
-            # Пути к конфигурации
-            network_config_path = self._get_env_or_default(
-                'VT_CONFIG_NETWORK_PATH',
-                r"\\192.168.10.100\web\VT_WebGuest_config\appconfig.json"
-            )
-            local_config_path = self._get_env_or_default(
-                'VT_CONFIG_LOCAL_PATH',
-                str(self._repo_root() / "appconfig.json")
-            )
+            # Путь к сетевой конфигурации
+            network_config_path = r"\\192.168.10.100\web\VT_WebGuest_config\appconfig.json"
             
-            # Загружаем конфигурацию
-            machine_config = config_loader.load_config(
-                network_path=network_config_path,
-                local_path=local_config_path
-            )
+            # Загружаем конфигурацию только с сетевого пути
+            machine_config = config_loader.load_config(network_config_path)
             
             if machine_config:
                 self.logger.info(f"Конфигурация машины загружена для: {machine_name}")
                 return machine_config
             else:
-                self.logger.warning("Не удалось загрузить конфигурацию машины, используются значения по умолчанию")
+                self.logger.warning("Не удалось загрузить конфигурацию с сетевого пути")
                 return {}
                 
         except Exception as e:

@@ -58,9 +58,9 @@ class MachineDetector:
                 self.logger.info(f"Найдено частичное совпадение: {machine_name} -> {mapped_name}")
                 return mapped_name
         
-        # Если ничего не найдено, возвращаем имя машины как есть
-        self.logger.warning(f"Не найдено соответствие для машины '{machine_name}', используем как есть")
-        return machine_name
+        # Если ничего не найдено, используем DEFAULT (A4)
+        self.logger.info(f"Машина '{machine_name}' не найдена в конфигурации, используется DEFAULT (A4)")
+        return "DEFAULT"
 
 
 class ConfigLoader:
@@ -166,30 +166,22 @@ class ConfigLoader:
                 self.logger.error(f"Окружение '{environment_name}' не найдено и нет окружения по умолчанию")
                 return None
     
-    def load_config(self, network_path: str = None, local_path: str = None) -> Optional[Dict[str, Any]]:
+    def load_config(self, network_path: str) -> Optional[Dict[str, Any]]:
         """
-        Загружает конфигурацию с приоритетом: сетевой путь -> локальный путь -> встроенная конфигурация.
+        Загружает конфигурацию только с сетевого пути.
         
         Args:
             network_path: Путь к сетевому файлу конфигурации
-            local_path: Путь к локальному файлу конфигурации
             
         Returns:
             Конфигурация окружения или None
         """
-        config = None
+        # Загружаем только с сетевого пути
+        config = self.load_config_from_network(network_path)
         
-        # Пытаемся загрузить с сетевого пути
-        if network_path:
-            config = self.load_config_from_network(network_path)
-        
-        # Если не удалось с сетевого пути, пытаемся локально
-        if config is None and local_path:
-            config = self.load_config_from_local(local_path)
-        
-        # Если ничего не загрузилось, используем встроенную конфигурацию
+        # Если не удалось загрузить с сетевого пути, используем встроенную конфигурацию
         if config is None:
-            self.logger.warning("Не удалось загрузить внешнюю конфигурацию, используется встроенная")
+            self.logger.warning("Не удалось загрузить конфигурацию с сетевого пути, используется встроенная")
             config = self._get_default_config()
         
         if config is None:
@@ -214,16 +206,6 @@ class ConfigLoader:
                         "mic_for_selection": "Logi",
                         "video_device_id": "",
                         "audio_device_id": ""
-                    },
-                    "browser": {
-                        "window_width": 1920,
-                        "window_height": 1080,
-                        "headless": False
-                    },
-                    "test_settings": {
-                        "default_timeout": 10,
-                        "long_timeout": 30,
-                        "retry_count": 3
                     }
                 },
                 "DEMOSTAND": {
@@ -233,20 +215,19 @@ class ConfigLoader:
                         "mic_for_selection": "A4",
                         "video_device_id": "",
                         "audio_device_id": ""
-                    },
-                    "browser": {
-                        "window_width": 1920,
-                        "window_height": 1080,
-                        "headless": False
-                    },
-                    "test_settings": {
-                        "default_timeout": 10,
-                        "long_timeout": 30,
-                        "retry_count": 3
+                    }
+                },
+                "DEFAULT": {
+                    "description": "Конфигурация по умолчанию с устройствами A4",
+                    "media_devices": {
+                        "camera_for_selection": "A4",
+                        "mic_for_selection": "A4",
+                        "video_device_id": "",
+                        "audio_device_id": ""
                     }
                 }
             },
-            "default_environment": "EDWARD",
+            "default_environment": "DEFAULT",
             "config_version": "1.0",
             "last_updated": "2024-01-01"
         }

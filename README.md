@@ -10,15 +10,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
 
 ### 2. Настройка медиа-устройств
+Система автоматически определяет машину и загружает конфигурацию с `\\192.168.10.100\web\VT_WebGuest_config\appconfig.json`
 
-#### Автоматическая настройка (рекомендуется)
-Система автоматически определяет машину и загружает соответствующую конфигурацию:
-
-- **EDWARD** - использует устройства "Logi" (Logitech)
+- **EDWARD** - использует устройства "Logi" (Logitech)  
 - **DEMOSTAND** - использует устройства "A4"
+- **DEFAULT** - для всех остальных машин используются устройства "A4"
 
-Конфигурация загружается с сетевого пути: `\\192.168.10.100\web\VT_WebGuest_config\appconfig.json`
-
+> **Важно:** Скопируйте файл `appconfig.json` на сетевой путь `\\192.168.10.100\web\VT_WebGuest_config\appconfig.json`. Если файл недоступен или машина не найдена, используются настройки по умолчанию (A4).
 
 ### 3. Запуск тестов
 ```powershell
@@ -71,21 +69,25 @@ vt_at_webguest/
 
 ## Конфигурация машин
 
-### Структура конфигурации
-Файл конфигурации `appconfig.json` содержит настройки для разных машин:
+Система автоматически определяет машину и загружает конфигурацию с `\\192.168.10.100\web\VT_WebGuest_config\appconfig.json`
 
+### Структура конфигурации
 ```json
 {
   "environments": {
     "EDWARD": {
-      "description": "Машина EDWARD с устройствами Logitech",
       "media_devices": {
         "camera_for_selection": "Logi",
         "mic_for_selection": "Logi"
       }
     },
     "DEMOSTAND": {
-      "description": "Машина DEMOSTAND с устройствами A4",
+      "media_devices": {
+        "camera_for_selection": "A4", 
+        "mic_for_selection": "A4"
+      }
+    },
+    "DEFAULT": {
       "media_devices": {
         "camera_for_selection": "A4",
         "mic_for_selection": "A4"
@@ -94,15 +96,6 @@ vt_at_webguest/
   }
 }
 ```
-
-### Пути к конфигурации
-1. **Сетевой путь** (приоритет): `\\192.168.10.100\web\VT_WebGuest_config\appconfig.json`
-2. **Локальный путь**: `appconfig.json` в корне проекта
-3. **Встроенная конфигурация** (fallback)
-
-### Переменные окружения
-- `VT_CONFIG_NETWORK_PATH` - путь к сетевому файлу конфигурации
-- `VT_CONFIG_LOCAL_PATH` - путь к локальному файлу конфигурации
 
 ## Требования
 
