@@ -250,7 +250,7 @@ def setup_logger(
     # Получаем настройки из переменных окружения
     level = getattr(logging, os.getenv('LOG_LEVEL', 'INFO').upper(), logging.INFO)
     console_output = os.getenv('LOG_CONSOLE', 'false').lower() in ('true', '1', 'yes')  # Изменено на false
-    file_output = os.getenv('LOG_FILE', 'false').lower() in ('true', '1', 'yes')
+    file_output = os.getenv('LOG_FILE', 'true').lower() in ('true', '1', 'yes')
     structured_logging = os.getenv('LOG_STRUCTURED', 'false').lower() in ('true', '1', 'yes')
     
     return logger_manager.setup_logger(
