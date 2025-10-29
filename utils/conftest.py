@@ -1,6 +1,7 @@
 import configparser
 import logging
 from typing import Optional
+import threading
 
 import pyperclip
 import pytest
@@ -23,6 +24,27 @@ from utils.webrtc_stream_handler import StreamHandler
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Глобальные структуры для сбора краткой сводки
+_summary_data = {}
+_current_nodeid = threading.local()
+
+
+class _StepCaptureHandler(logging.Handler):
+    """Перехватывает сообщения о шагах теста, чтобы включить в summary."""
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            nodeid = getattr(_current_nodeid, 'value', None)
+            if not nodeid:
+                return
+            message = self.format(record) if self.formatter else record.getMessage()
+            # Эвристика: интересуют сообщения, содержащие слово "Шаг"
+            if isinstance(message, str) and 'Шаг' in message:
+                data = _summary_data.setdefault(nodeid, {})
+                data['last_step'] = message
+        except Exception:
+            # Не мешаем выполнению тестов при любых проблемах с обработкой
+            pass
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -348,6 +370,7 @@ def test_logger():
     """Фикстура для создания логгера для конкретного теста."""
     import os
     import inspect
+    from pathlib import Path
     
     # Получаем имя тестового файла
     frame = inspect.currentframe()
@@ -364,4 +387,131 @@ def test_logger():
         test_name = "unknown_test"
     
     from utils.logger_config import setup_logger
-    return setup_logger(test_name)
+    # Если запущено несколько тестов, отключаем файловое логирование по умолчанию
+    try:
+        import pytest
+        from _pytest.fixtures import FixtureRequest  # type: ignore
+    except Exception:
+        request = None  # на случай отсутствия pytest internals
+
+    file_output = False  # по умолчанию не пишем файл
+    try:
+        # Попробуем определить количество собранных тестов через текущую сессию
+        # Если 1 тест — можно включить файловый лог (удобно для отладки одиночного теста)
+        # Если >1 — отключаем, чтобы не плодить файлы
+        import inspect as _ins
+        request = None
+        for frame_info in _ins.stack():
+            loc = frame_info.frame.f_locals
+            if 'request' in loc:
+                request = loc['request']
+                break
+        if request is not None and hasattr(request, 'session'):
+            total = getattr(request.session, 'testscollected', None)
+            if isinstance(total, int) and total <= 1:
+                file_output = True
+    except Exception:
+        # В сомнительных случаях не пишем файлы
+        file_output = False
+
+    return setup_logger(test_name, file_output=file_output)
+
+
+def pytest_runtest_setup(item):
+    """Перед началом каждого теста сохраняем его nodeid и подготавливаем слот для сводки."""
+    try:
+        _current_nodeid.value = item.nodeid
+        _summary_data.setdefault(item.nodeid, {})
+    except Exception:
+        pass
+
+
+def pytest_configure(config):
+    """Подключаем перехватчик шагов к корневому логгеру один раз за сессию."""
+    try:
+        root = logging.getLogger()
+        # Не дублируем, если уже установлен
+        for h in root.handlers:
+            if isinstance(h, _StepCaptureHandler):
+                break
+        else:
+            handler = _StepCaptureHandler()
+            # Формат без времени, чтобы шаг легче читался в summary
+            handler.setFormatter(logging.Formatter('%(message)s'))
+            root.addHandler(handler)
+    except Exception:
+        pass
+
+
+def pytest_runtest_makereport(item, call):
+    """Сохраняем краткий текст ошибки для сводки при падении."""
+    try:
+        if call.when == 'call':
+            rep = call.result  # type: ignore[attr-defined]
+            if rep.failed:
+                text = getattr(rep, 'longreprtext', None)
+                if not text and hasattr(rep, 'longrepr'):
+                    try:
+                        text = str(rep.longrepr)
+                    except Exception:
+                        text = None
+                if isinstance(text, str):
+                    # Берём первую строку как краткую причину
+                    first_line = text.splitlines()[0] if text.splitlines() else text
+                else:
+                    first_line = str(getattr(rep, 'head_line', ''))
+                data = _summary_data.setdefault(item.nodeid, {})
+                data['error'] = first_line
+    except Exception:
+        pass
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus):
+    """Пишем короткий summary-файл с итогами прогона (только PASSED и FAILED)."""
+    try:
+        from pathlib import Path
+        import datetime as _dt
+
+        stats = terminalreporter.stats
+        passed = [r for r in stats.get('passed', []) if getattr(r, 'when', '') == 'call']
+        failed = [r for r in stats.get('failed', []) if getattr(r, 'when', '') == 'call']
+
+        total_collected = getattr(terminalreporter, '_numcollected', None)
+        timestamp = _dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        lines = []
+        lines.append(f"Summary at {timestamp}")
+        if isinstance(total_collected, int):
+            lines.append(f"Collected: {total_collected}")
+        lines.append(f"PASSED: {len(passed)}")
+        lines.append(f"FAILED: {len(failed)}")
+
+        if failed:
+            lines.append("")
+            lines.append("Failed tests:")
+            for rep in failed:
+                # nodeid формата path::test_name[param]
+                nodeid = getattr(rep, 'nodeid', None) or getattr(rep, 'location', [None])[0]
+                if nodeid is None and hasattr(rep, 'location'):
+                    loc = rep.location
+                    if isinstance(loc, (list, tuple)) and loc:
+                        nodeid = loc[0]
+                data = _summary_data.get(nodeid, {}) if nodeid else {}
+                last_step = data.get('last_step')
+                err = data.get('error')
+                lines.append(f"- {nodeid}")
+                if last_step:
+                    lines.append(f"  step: {last_step}")
+                if err:
+                    lines.append(f"  error: {err}")
+
+        log_dir = Path('logs')
+        log_dir.mkdir(exist_ok=True)
+        out_file = log_dir / 'summary.txt'
+        out_file.write_text('\n'.join(lines), encoding='utf-8')
+
+        # Также кратко выводим путь к файлу в консоль pytest
+        terminalreporter.write_line(f"Summary written to {out_file}")
+    except Exception as e:
+        # Не ломаем прогон, если запись summary не удалась
+        terminalreporter.write_line(f"Failed to write summary: {e}")
