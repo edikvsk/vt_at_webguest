@@ -134,6 +134,7 @@ def test_disable_security_account_while_stream(driver, logger):
         check_vt_anonymous_access_state_on()
         add_security_account()
         start_web_guest(driver)
+        base_page.hover(wg_page.AUTHORIZATION_FORM)
         check_authorization_form()
         check_name_field()
         check_location_field()
