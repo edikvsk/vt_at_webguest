@@ -54,7 +54,9 @@ def driver():
         chrome_options.add_argument(option)
     
     chrome_options.binary_location = CHROME_BROWSER_PATH
-
+    # suppression control
+    suppress = not bool(os.environ.get('BROWSER_NO_MEDIA_SUPPRESS', '').lower() in ('true', '1', 'yes', 'on'))
+    
     # Добавляем медиа-ограничения через экспериментальные опции
     media_constraints = {
         "video": {"deviceId": {"exact": VIDEO_DEVICE_ID}},
@@ -78,70 +80,55 @@ def driver():
     # Максимизируем окно для более стабильной работы
     driver.maximize_window()
     
-    # Устанавливаем медиа-ограничения через JavaScript после загрузки страницы
-    driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-        'source': f'''
-            // Переопределяем getUserMedia для автоматического выбора устройств
-            const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
-            navigator.mediaDevices.getUserMedia = function(constraints) {{
-                console.log('Original constraints:', constraints);
-                
-                // Сначала получаем список доступных устройств
-                return navigator.mediaDevices.enumerateDevices().then(devices => {{
-                    console.log('Available devices:', devices);
-                    
-                    // Ищем устройства по имени (частичное совпадение)
-                    const cameraName = "{config.media.camera_for_selection}";
-                    const micName = "{config.media.mic_for_selection}";
-                    
-                    let videoDeviceId = null;
-                    let audioDeviceId = null;
-                    
-                    // Ищем видеоустройство
-                    const videoDevices = devices.filter(d => d.kind === 'videoinput');
-                    for (const device of videoDevices) {{
-                        if (device.label.toLowerCase().includes(cameraName.toLowerCase())) {{
-                            videoDeviceId = device.deviceId;
-                            console.log('Found video device:', device.label, 'ID:', device.deviceId);
-                            break;
+    # suppression-инъекция только если suppress=True
+    if suppress:
+        driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+            'source': f'''
+                // Переопределяем getUserMedia для автоматического выбора устройств
+                const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
+                navigator.mediaDevices.getUserMedia = function(constraints) {{
+                    console.log('Original constraints:', constraints);
+                    // Сначала получаем список доступных устройств
+                    return navigator.mediaDevices.enumerateDevices().then(devices => {{
+                        console.log('Available devices:', devices);
+                        const cameraName = "{config.media.camera_for_selection}";
+                        const micName = "{config.media.mic_for_selection}";
+                        let videoDeviceId = null;
+                        let audioDeviceId = null;
+                        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                        for (const device of videoDevices) {{
+                            if (device.label.toLowerCase().includes(cameraName.toLowerCase())) {{
+                                videoDeviceId = device.deviceId;
+                                break;
+                            }}
                         }}
-                    }}
-                    
-                    // Ищем аудиоустройство
-                    const audioDevices = devices.filter(d => d.kind === 'audioinput');
-                    for (const device of audioDevices) {{
-                        if (device.label.toLowerCase().includes(micName.toLowerCase())) {{
-                            audioDeviceId = device.deviceId;
-                            console.log('Found audio device:', device.label, 'ID:', device.deviceId);
-                            break;
+                        const audioDevices = devices.filter(d => d.kind === 'audioinput');
+                        for (const device of audioDevices) {{
+                            if (device.label.toLowerCase().includes(micName.toLowerCase())) {{
+                                audioDeviceId = device.deviceId;
+                                break;
+                            }}
                         }}
-                    }}
-                    
-                    // Формируем constraints с найденными устройствами
-                    const modifiedConstraints = {{}};
-                    
-                    if (constraints.video !== false) {{
-                        if (videoDeviceId) {{
-                            modifiedConstraints.video = {{ deviceId: {{ exact: videoDeviceId }} }};
-                        }} else {{
-                            modifiedConstraints.video = true; // Используем первое доступное
+                        const modifiedConstraints = {{}};
+                        if (constraints.video !== false) {{
+                            if (videoDeviceId) {{
+                                modifiedConstraints.video = {{ deviceId: {{ exact: videoDeviceId }} }};
+                            }} else {{
+                                modifiedConstraints.video = true;
+                            }}
                         }}
-                    }}
-                    
-                    if (constraints.audio !== false) {{
-                        if (audioDeviceId) {{
-                            modifiedConstraints.audio = {{ deviceId: {{ exact: audioDeviceId }} }};
-                        }} else {{
-                            modifiedConstraints.audio = true; // Используем первое доступное
+                        if (constraints.audio !== false) {{
+                            if (audioDeviceId) {{
+                                modifiedConstraints.audio = {{ deviceId: {{ exact: audioDeviceId }} }};
+                            }} else {{
+                                modifiedConstraints.audio = true;
+                            }}
                         }}
-                    }}
-                    
-                    console.log('Modified constraints:', modifiedConstraints);
-                    return originalGetUserMedia.call(this, modifiedConstraints);
-                }});
-            }};
-        '''
-    })
+                        return originalGetUserMedia.call(this, modifiedConstraints);
+                    }});
+                }};
+            '''
+        })
     
     yield driver
     driver.quit()
