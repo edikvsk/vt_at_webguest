@@ -2,6 +2,7 @@ import os
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
+import re
 
 from pages.base_page import BasePage
 from pages.desktop_app_page import DesktopAppPage
@@ -40,28 +41,33 @@ def test_other_channels_invalid_value(driver, logger):
         base_page.click(wg_page.SETTINGS_BUTTON)
         assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
-    @log_step(logger, "Ввод значений в Other Channels")
-    def input_other_channels_value():
+    @log_step(logger, "Ввод невалидных значений в Other Channels")
+    def input_other_channels_invalid_value():
         wg_page.select_audio_channels(audio_channels_value)
         wg_page.input_text(wg_page.INPUT_FIELD_OTHER_CHANNELS, other_channels_value)
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
         actual_value = wg_page.get_settings_item_value_text(wg_page.AUDIO_CHANNELS_VALUE)
-        expected_value = other_channels_value
-        assert expected_value == actual_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+        # Проверяем, что значение не совпадает с невалидным вводом,
+        # и состоит только из цифр или запятых, либо пустое
+        assert actual_value != other_channels_value, f"Поле не должно принимать невалидное значение '{other_channels_value}'"
+        assert all(c.isdigit() or c == ',' for c in actual_value) or actual_value == "", \
+            f"В поле должны быть только цифры и запятые, получено '{actual_value}'"
 
     @log_step(logger, "Проверка значения OtherChannels в VT WebGuest Settings")
     def check_other_channels_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
         actual_value = desktop_app_page.get_vt_wg_settings_field_value(2)
-        expected_value = other_channels_value
+        assert (
+            actual_value == "" or
+            re.fullmatch(r'-?\d+(,\d+)*', actual_value) is not None
+        ), f"В Desktop OtherChannels только числа, запятые, минус или пусто, а получено: '{actual_value}'"
         desktop_app_page.click_button_by_name(desktop_app_page.VT_OK_BUTTON)
-        assert expected_value == actual_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
     steps = [
         check_settings_button,
         click_settings_button,
-        input_other_channels_value,
+        input_other_channels_invalid_value,
         check_other_channels_field_value_vt
     ]
 
