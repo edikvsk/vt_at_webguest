@@ -50,6 +50,10 @@ def test_url_autojoin_volume_fader_vt1420(driver, logger):
     @log_step(logger, "Клик по MUTE/UNMUTE и проверка появления Volume Fader")
     def toggle_mute_unmute_and_check_fader_visible():
         # Первый клик (mute или unmute)
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver import ActionChains
+        ActionChains(driver).move_to_element(driver.find_element(By.TAG_NAME, "body")).perform()
+        wg_page.hover_element(wg_page.MUTE_BUTTON)
         assert base_page.click(wg_page.MUTE_BUTTON), "Не удалось кликнуть по кнопке MUTE"
 
         # Проверяем появление фейдера; если не появился, кликаем повторно (unmute/mute)
