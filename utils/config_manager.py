@@ -20,8 +20,8 @@ class BrowserConfig:
     """Конфигурация браузера."""
     chrome_driver_path: str
     chrome_browser_path: str
-    window_width: int = 1280
-    window_height: int = 720
+    window_width: int = 1920
+    window_height: int = 1080
     headless: bool = False
     additional_options: list = field(default_factory=list)
 
@@ -488,16 +488,19 @@ class ConfigManager:
     def get_chrome_options(self) -> list:
         """
         Возвращает список опций для Chrome.
-        Можно отключить suppression-флаги, если экспортирована BROWSER_NO_MEDIA_SUPPRESS=true
+        
+        Returns:
+            Список опций Chrome
         """
         options = [
+            "--use-fake-ui-for-media-stream",
             "--enable-gpu",
             "--disable-software-rasterizer",
             "--disable-dev-shm-usage",
             "--no-sandbox",
             # Минимизация WebRTC ошибок
             "--disable-logging",
-            "--log-level=3",
+            "--log-level=3",  # Только критические ошибки
             "--disable-background-networking",
             "--disable-background-timer-throttling",
             "--disable-renderer-backgrounding",
@@ -516,16 +519,16 @@ class ConfigManager:
             "--silent",
             "--disable-gpu-logging"
         ]
-        suppress = not self._get_env_or_default('BROWSER_NO_MEDIA_SUPPRESS', False, bool)
-        if suppress:
-            options.insert(0, "--use-fake-ui-for-media-stream")
+        
         if self.browser.headless:
             options.append("--headless")
+            
+        # Добавляем дополнительные опции если есть
         options.extend(self.browser.additional_options)
+        
         # Добавляем опции для работы с реальными медиа-устройствами
         if self.media.video_device_id:
-            if suppress:
-                options.append("--use-fake-ui-for-media-stream")  # Убираем запрос разрешений
+            options.append("--use-fake-ui-for-media-stream")  # Убираем запрос разрешений
             options.append("--enable-experimental-web-platform-features")
             options.append("--disable-features=VizDisplayCompositor")
             options.append("--autoplay-policy=no-user-gesture-required")
@@ -533,8 +536,10 @@ class ConfigManager:
             options.append("--allow-running-insecure-content")
             options.append("--disable-features=TranslateUI")
             options.append("--disable-ipc-flooding-protection")
+            # Разрешаем доступ к реальным устройствам
             options.append("--enable-media-stream")
             options.append("--allow-file-access-from-files")
+        
         return options
     
     def print_config_summary(self) -> None:
