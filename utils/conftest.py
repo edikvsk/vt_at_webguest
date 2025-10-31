@@ -70,9 +70,12 @@ def driver():
     
     # Добавляем медиа-ограничения через экспериментальные опции
     chrome_options.add_experimental_option("useAutomationExtension", False)
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    # Убираем лишние логи Chrome/ChromeDriver в консоль
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])  # скрыть драйвер-логи
+    chrome_options.add_argument("--log-level=3")  # минимизировать уровень логов Chrome
 
-    service = Service(CHROME_DRIVER_PATH)
+    # Глушим лог-файл chromedriver
+    service = Service(CHROME_DRIVER_PATH, log_path=os.devnull)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     
     # Максимизируем окно для более стабильной работы
