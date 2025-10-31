@@ -1,6 +1,9 @@
 import configparser
 import logging
 from typing import Optional
+import os
+import glob
+from datetime import datetime
 
 import pyperclip
 import pytest
@@ -374,3 +377,124 @@ def test_logger():
     
     from utils.logger_config import setup_logger
     return setup_logger(test_name)
+
+
+# -----------------------
+# Pytest summary-репортинг
+# -----------------------
+
+def _find_latest_test_log_file(test_file_base: str) -> Optional[str]:
+    """Ищет последний (по времени) лог-файл для указанного тестового файла.
+
+    Логи создаются как logs/<test_file_base>_<timestamp>.log
+    """
+    pattern = os.path.join("logs", f"{test_file_base}_*.log")
+    candidates = glob.glob(pattern)
+    if not candidates:
+        return None
+    candidates.sort(key=lambda p: os.path.getmtime(p))
+    return candidates[-1]
+
+
+def _extract_last_step_or_error_from_log(log_path: str) -> Optional[str]:
+    """Возвращает последнюю строку шага/ошибки из лог-файла.
+
+    Ищем снизу строки, содержащие ключи шагов/ошибок.
+    """
+    try:
+        with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+            lines = f.readlines()
+        # Ищем с конца наиболее информативную строку
+        keys = ("test_step", "шаг", " - ERROR - ", "✗", "ERROR")
+        for line in reversed(lines):
+            low = line.lower()
+            if any(k in low for k in ("test_step", "шаг")) or " - ERROR - " in line or "✗" in line or "error" in low:
+                return line.strip()
+    except Exception:
+        return None
+    return None
+
+
+def pytest_sessionstart(session):
+    """Инициализируем накопитель результатов."""
+    session.config._vt_results = []  # type: ignore[attr-defined]
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Собираем результаты тестов и, для fail, пытаемся достать шаг ошибки из лога."""
+    outcome = yield  # получаем отчёт
+    report = outcome.get_result()
+
+    # Интересует стадия выполнения тестового тела
+    if report.when != "call":
+        return
+
+    nodeid = report.nodeid
+    result = {
+        "nodeid": nodeid,
+        "outcome": report.outcome,
+    }
+
+    if report.failed:
+        # Короткая причина из traceback (первую строку)
+        longrepr = getattr(report, "longreprtext", "") or str(getattr(report, "longrepr", ""))
+        reason = longrepr.strip().splitlines()[0] if longrepr else "Причина не определена"
+        result["reason"] = reason
+
+        # Пытаемся найти последний шаг/ошибку из логов тестового файла
+        # Берём базовое имя файла из item.fspath
+        try:
+            test_file_base = os.path.splitext(os.path.basename(str(item.fspath)))[0]
+            log_path = _find_latest_test_log_file(test_file_base)
+            if log_path:
+                step = _extract_last_step_or_error_from_log(log_path)
+                if step:
+                    result["failed_step"] = step
+        except Exception:
+            pass
+
+    # Сохраняем
+    item.config._vt_results.append(result)  # type: ignore[attr-defined]
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """В конце сессии пишем summary, если выполнено более одного теста."""
+    results = getattr(session.config, "_vt_results", [])  # type: ignore[attr-defined]
+    if not results or len(results) <= 1:
+        return
+
+    os.makedirs("logs", exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    summary_path = os.path.join("logs", f"summary_{ts}.log")
+
+    passed = [r for r in results if r.get("outcome") == "passed"]
+    failed = [r for r in results if r.get("outcome") == "failed"]
+
+    lines = []
+    # Шапка с количеством
+    total = len(results)
+    lines.append(f"TOTAL: {total} | PASSED: {len(passed)} | FAILED: {len(failed)}")
+    lines.append("")
+    if passed:
+        lines.append("PASSED:")
+        for r in passed:
+            lines.append(f"  - SUCCESS {r['nodeid']}")
+        lines.append("")
+
+    if failed:
+        lines.append("FAILED:")
+        for r in failed:
+            lines.append(f"  - FAIL {r['nodeid']}")
+            if r.get("reason"):
+                lines.append(f"    Reason: {r['reason']}")
+            if r.get("failed_step"):
+                lines.append(f"    Step: {r['failed_step']}")
+        lines.append("")
+    else:
+        lines.append("FAILED: none")
+
+    with open(summary_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+    logger.info(f"Summary файл создан: {summary_path}")
