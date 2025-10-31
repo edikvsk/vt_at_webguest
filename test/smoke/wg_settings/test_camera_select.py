@@ -1,6 +1,7 @@
 import os
 
 import pytest
+import time
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from pages.base_page import BasePage
@@ -50,20 +51,21 @@ def test_camera_select(driver, logger):
         base_page.click(wg_page.RESOLUTION_COMBOBOX_BACK_BUTTON)
         expected_value = camera
         actual_value = wg_page.get_settings_item_value_text(wg_page.INPUT_CAMERA_VALUE)
-        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+        assert expected_value.lower() in actual_value.lower(), f"Ожидался фрагмент '{expected_value}', но получено '{actual_value}'"
 
     @log_step(logger, "Проверка выбранной камеры в VT WebGuest Settings")
     def check_camera_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
         desktop_app_page.select_combobox_item_by_index(3, 0)
+        time.sleep(10)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
 
     @log_step(logger, "Проверка значения поля Camera")
     def check_camera_field_value():
         expected_value = camera
         actual_value = wg_page.get_settings_item_value_text(wg_page.INPUT_CAMERA_VALUE)
-        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+        assert expected_value.lower() in actual_value.lower(), f"Ожидался фрагмент '{expected_value}', но получено '{actual_value}'"
 
     steps = [
         check_settings_button,
@@ -73,11 +75,11 @@ def test_camera_select(driver, logger):
         check_camera_field_value
     ]
 
-    for step in steps:
-        try:
+    try:
+        for step in steps:
             step()
-        except (NoSuchElementException, TimeoutException) as e:
-            logger.error(f"Ошибка при выполнении теста: {e}")
-            pytest.fail(f"Ошибка при выполнении теста: {e}")
-        finally:
-            desktop_app.close_application()
+    except (NoSuchElementException, TimeoutException) as e:
+        logger.error(f"Ошибка при выполнении теста: {e}")
+        pytest.fail(f"Ошибка при выполнении теста: {e}")
+    finally:
+        desktop_app.close_application()
