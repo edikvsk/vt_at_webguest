@@ -167,40 +167,37 @@ def web_guest_page_setup(driver):
 
 def get_web_url(desktop_app_page: DesktopAppPage, logger: logging.Logger, copy_command: str) -> Optional[str]:
     """
-    Универсальная функция для получения URL веб-страницы.
-    
-    Args:
-        desktop_app_page: Страница десктопного приложения
-        logger: Логгер для записи сообщений
-        copy_command: Команда копирования URL
-        
-    Returns:
-        URL или None в случае ошибки
+    Упрощённый и быстрый способ получить URL из десктопного приложения.
+
+    Всегда выполняет только "Start Publishing" (без логики переключения) и копирует URL
+    через контекстное меню. Используется там, где требуется именно путь через UI.
     """
     try:
         desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
-        is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
-        is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
 
-        if is_enabled_start_publishing and not is_enabled_stop_publishing:
+        # Всегда пытаемся нажать только Start Publishing (приложение запускается с нуля)
+        if desktop_app_page.check_element_enabled_by_title_part("Start Publishing"):
             desktop_app_page.click_button_by_name("Start Publishing")
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            desktop_app_page.click_vt_source_item(copy_command)
-            url = pyperclip.paste()
-            logger.info(f"Получен URL: {url}")
-            return url
-        elif not is_enabled_start_publishing and is_enabled_stop_publishing:
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            desktop_app_page.click_vt_source_item(copy_command)
-            logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
-            url = pyperclip.paste()
-            logger.info(f"Получен URL: {url}")
-            return url
-        else:
-            logger.warning("Кнопка 'Start Publishing' отключена, клик не выполнен.")
-            return None
+
+        # Быстрый клик по пункту копирования без лишних проверок
+        desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+        desktop_app_page.click_vt_source_item(copy_command)
+        url = pyperclip.paste()
+        logger.info(f"Получен URL: {url}")
+        return url
     except Exception as e:
         logger.error(f"Ошибка при получении URL: {e}")
+        return None
+
+
+def _read_web_guest_url_from_config(config_path: str) -> Optional[str]:
+    """Быстро читает web_guest_page_url из utils/config.ini (без UI)."""
+    try:
+        parser = configparser.ConfigParser()
+        parser.read(config_path, encoding="utf-8")
+        url = parser.get("DEFAULT", "web_guest_page_url", fallback=None)
+        return url
+    except Exception:
         return None
 
 
@@ -238,20 +235,30 @@ def update_config(config_file_path: str, section: str, key: str, value: str) -> 
 
 @pytest.fixture(scope="function")
 def login_fixture(driver, logger):
-    """Фикстура для авторизации на веб-странице гостя."""
-    # Создаем объекты напрямую для обратной совместимости
+    """Фикстура для авторизации на веб-странице гостя.
+
+    Оптимизации:
+    - Только запуск публикации (Start Publishing) без логики переключения.
+    - Ссылку получаем через быстрый UI-путь копирования (актуальные динамические URL).
+    """
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
-    
+
     web_guest_page = WebGuestPage(driver)
     base_page = BasePage(driver)
     notification_handler = NotificationHandler(driver, web_guest_page.NOTIFICATION_ELEMENT, logger)
     stream_handler = StreamHandler(driver)
 
     try:
+        # 1) Стартуем публикацию только одним действием
+        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
+        if desktop_app_page.check_element_enabled_by_title_part("Start Publishing"):
+            desktop_app_page.click_button_by_name("Start Publishing")
+
+        # 2) Получаем актуальный URL через копирование из UI
         web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
         if not web_guest_url:
-            logger.error("Не удалось получить Web Guest URL.")
+            logger.error("Не удалось получить Web Guest URL через UI.")
             raise ValueError("Web Guest URL не был инициализирован.")
 
         logger.info("Переходим на страницу Web Guest")
@@ -310,7 +317,11 @@ def web_preview_fixture(driver, logger):
 
 @pytest.fixture(scope="function")
 def open_web_preview_fixture(driver, logger):
-    """Фикстура для открытия веб-превью."""
+    """Фикстура для открытия веб-превью (ускорённая).
+
+    - Только один клик "Start Publishing" (если доступен).
+    - Копируем Preview URL через UI и открываем напрямую в `driver` (не через меню "Open Preview URL").
+    """
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
     web_guest_page = WebGuestPage(driver)
@@ -319,21 +330,16 @@ def open_web_preview_fixture(driver, logger):
 
     try:
         desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
-        is_enabled_start_publishing = desktop_app_page.check_element_enabled_by_title_part("Start Publishing")
-        is_enabled_stop_publishing = desktop_app_page.check_element_enabled_by_title_part("Stop Publishing")
-
-        if is_enabled_start_publishing and not is_enabled_stop_publishing:
+        if desktop_app_page.check_element_enabled_by_title_part("Start Publishing"):
             desktop_app_page.click_button_by_name("Start Publishing")
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            desktop_app_page.click_vt_source_item("Open Preview URL")
-        elif not is_enabled_start_publishing and is_enabled_stop_publishing:
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            desktop_app_page.click_vt_source_item("Open Preview URL")
-            logger.info("Паблишинг выбранного источника уже осуществляется. Продолжаем тест.")
-        else:
-            logger.info("Кнопка 'Start Publishing' отключена, клик не выполнен. Продолжаем тест.")
+
+        preview_url = get_web_url(desktop_app_page, logger, "Copy Preview URL")
+        if not preview_url:
+            logger.error("Не удалось получить Preview URL через UI.")
+            raise ValueError("Preview URL не был инициализирован.")
 
         logger.info("Переходим на страницу Web Preview")
+        driver.get(preview_url)
         notification_handler.check_notification()
         base_page.click(web_guest_page.LOGIN_BUTTON)
 
