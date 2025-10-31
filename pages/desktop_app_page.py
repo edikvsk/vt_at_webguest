@@ -334,3 +334,67 @@ class DesktopAppPage:
         except Exception as e:
             raise RuntimeError(
                 f"Ошибка при получении текста в ComboBox с индексом {combo_index} и элементом {item_index}: {e}")
+
+    def select_combobox_item_by_name(self, combo_index, item_text, exact_match=True, timeout=10):
+        """Выбирает элемент в ComboBox по названию (тексту).
+
+        :param combo_index: Индекс ComboBox в окне
+        :param item_text: Текст элемента для выбора
+        :param exact_match: Если True — ищет точное совпадение; иначе допускает частичное
+        :param timeout: Время ожидания
+        """
+        start_time = time.time()
+        try:
+            combo_box = self.main_window.child_window(control_type="ComboBox", found_index=combo_index)
+            if not (combo_box.exists() and combo_box.is_enabled()):
+                raise ElementNotFoundError(f"ComboBox с индексом {combo_index} не найден или недоступен.")
+
+            combo_box.click_input()
+
+            # Собираем все элементы списка
+            items = []
+            while time.time() - start_time < timeout:
+                try:
+                    # pywinauto: получить все ListItem под комбобоксом
+                    items = combo_box.descendants(control_type="ListItem")
+                    if items:
+                        break
+                except Exception:
+                    pass
+                time.sleep(0.2)
+
+            if not items:
+                raise ElementNotFoundError("Элементы списка в ComboBox не найдены.")
+
+            target = None
+            text_lower = item_text.lower()
+
+            # Сначала точное совпадение по видимому тексту
+            if exact_match:
+                for it in items:
+                    try:
+                        texts = (it.texts() or [])
+                        if any(t.lower() == text_lower for t in texts):
+                            target = it
+                            break
+                    except Exception:
+                        continue
+
+            # Если не нашли, пробуем частичное совпадение
+            if target is None:
+                for it in items:
+                    try:
+                        texts = (it.texts() or [])
+                        if any(text_lower in t.lower() for t in texts):
+                            target = it
+                            break
+                    except Exception:
+                        continue
+
+            if target and target.is_enabled():
+                target.click_input()
+            else:
+                raise ElementNotFoundError(f"Элемент с текстом '{item_text}' не найден или недоступен.")
+        except Exception as e:
+            raise RuntimeError(
+                f"Ошибка при выборе элемента по имени в ComboBox с индексом {combo_index}: {e}")

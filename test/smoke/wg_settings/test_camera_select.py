@@ -57,7 +57,7 @@ def test_camera_select(driver, logger):
     def check_camera_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
-        desktop_app_page.select_combobox_item_by_index(3, 0)
+        desktop_app_page.select_combobox_item_by_name(3, camera)
         time.sleep(10)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
 
