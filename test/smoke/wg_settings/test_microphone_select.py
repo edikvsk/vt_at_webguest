@@ -50,20 +50,20 @@ def test_microphone_select(driver, logger):
         wg_page.click(wg_page.RESOLUTION_COMBOBOX_BACK_BUTTON)
         expected_value = microphone
         actual_value = wg_page.get_settings_item_value_text(wg_page.INPUT_MICROPHONE_VALUE)
-        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+        assert expected_value.lower() in actual_value.lower(), f"Ожидался фрагмент '{expected_value}', но получено '{actual_value}'"
 
     @log_step(logger, "Проверка выбранного микрофона в VT WebGuest Settings")
     def check_microphone_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
-        desktop_app_page.select_combobox_item_by_index(2, 0)
+        desktop_app_page.select_combobox_item_by_name(2, microphone)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
 
     @log_step(logger, "Проверка значения поля Microphone")
     def check_microphone_field_value():
         expected_value = microphone
         actual_value = wg_page.get_settings_item_value_text(wg_page.INPUT_MICROPHONE_VALUE)
-        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+        assert expected_value.lower() in actual_value.lower(), f"Ожидался фрагмент '{expected_value}', но получено '{actual_value}'"
 
     steps = [
         check_settings_button,

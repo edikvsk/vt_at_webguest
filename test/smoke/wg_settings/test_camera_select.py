@@ -1,7 +1,6 @@
 import os
 
 import pytest
-import time
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from pages.base_page import BasePage
@@ -58,7 +57,6 @@ def test_camera_select(driver, logger):
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
         desktop_app_page.select_combobox_item_by_name(3, camera)
-        time.sleep(10)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
 
     @log_step(logger, "Проверка значения поля Camera")
