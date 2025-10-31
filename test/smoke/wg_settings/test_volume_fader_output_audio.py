@@ -7,6 +7,7 @@ from pages.base_page import BasePage
 from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
 from utils.config import PROCESS_PATH
+from utils.config import SOURCE_TO_PUBLISHING
 from utils.conftest import driver, login_fixture
 from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
@@ -31,7 +32,7 @@ def test_volume_fader_output_audio(driver, logger):
 
     volume_fader_value_state_off = '0'
 
-    vt_source_name = "mp://mplaylist"
+    vt_source_name = SOURCE_TO_PUBLISHING
 
     @log_step(logger, "Проверка отображения кнопки MUTE")
     def check_mute_button():
@@ -59,6 +60,7 @@ def test_volume_fader_output_audio(driver, logger):
 
     @log_step(logger, "Проверка отображения Volume Fader - состояние: ВЫКЛ.")
     def check_volume_fader_value_state_off():
+        wg_page.focus_browser_window()
         wg_page.hover_element(wg_page.PREVIEW_WINDOW)
         wg_page.hover_element(wg_page.MUTE_BUTTON)
         expected_value = volume_fader_value_state_off

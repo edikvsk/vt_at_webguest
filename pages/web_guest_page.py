@@ -606,3 +606,20 @@ class WebGuestPage(BasePage):
         except NoSuchElementException as e:
             print(f"Ошибка при проверке состояния кнопки: {e}")
             return False
+
+    def focus_browser_window(self):
+        """
+        Наводит курсор на окно браузера (на элемент body) и фокусирует вкладку.
+        Используется как безопасная подготовка перед hover на конкретные элементы,
+        чтобы избежать ошибки "move target out of bounds".
+        """
+        try:
+            # Фокусируем текущую вкладку
+            self.driver.switch_to.window(self.driver.current_window_handle)
+            self.driver.execute_script("window.focus();")
+
+            # Наводим на body (гарантированно в границах окна)
+            body = self.wait_for_element((By.TAG_NAME, 'body'))
+            ActionChains(self.driver).move_to_element(body).perform()
+        except Exception as e:
+            print(f"Ошибка при наведении на окно браузера: {e}")
