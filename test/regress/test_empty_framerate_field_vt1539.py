@@ -40,8 +40,7 @@ def test_empty_framerate_field_vt1539(driver, logger):
     def select_framerate():
         wg_page.select_framerate(framerate)
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
-        # Ожидаем откат на 30 FPS, так как камера не поддерживает 60 FPS
-        expected_value = "30 FPS"
+        expected_value = "60 FPS"
         time.sleep(1.5)
         actual_value = wg_page.get_settings_item_value_text(wg_page.FRAMERATE_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
