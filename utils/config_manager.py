@@ -151,6 +151,11 @@ class ConfigManager:
             target_dir_glob = list(cache_dir.glob("Video Transport *(x64)"))
 
         if target_dir_glob:
+            # Найдена уже распакованная последняя версия — почистим старые версии и вернем путь
+            try:
+                self._cleanup_old_vt_versions(keep_version=latest)
+            except Exception as _e:
+                self.logger.debug(f"Очистка старых версий VT пропущена: {_e}")
             return target_dir_glob[0]
 
         try:
@@ -171,10 +176,43 @@ class ConfigManager:
             if not target_dir_glob:
                 target_dir_glob = list(cache_dir.glob("Video Transport *(x64)"))
 
-            return target_dir_glob[0] if target_dir_glob else None
+            target = target_dir_glob[0] if target_dir_glob else None
+
+            # После успешной распаковки чистим предыдущие версии
+            try:
+                self._cleanup_old_vt_versions(keep_version=latest)
+            except Exception as _e:
+                self.logger.debug(f"Очистка старых версий VT пропущена: {_e}")
+
+            return target
         except Exception as e:
             self.logger.warning(f"Не удалось скачать/распаковать VT {latest}: {e}")
             return None
+
+    def _cleanup_old_vt_versions(self, keep_version: str) -> None:
+        """Удаляет старые версии VT из кэша, оставляя только указанную.
+
+        Структура кэша: .tools/VT/<version>/...
+        Удаляются все директории версий, кроме keep_version, а также zip-файлы в них.
+        """
+        vt_root = self._vt_cache_dir()
+        if not vt_root.exists():
+            return
+        for child in vt_root.iterdir():
+            try:
+                if not child.is_dir():
+                    # На всякий случай удалим случайные файлы в корне .tools/VT
+                    child.unlink(missing_ok=True)  # type: ignore[arg-type]
+                    continue
+                if child.name == keep_version:
+                    # Внутри актуальной версии также удалим оставшиеся zip, чтобы не копились
+                    for z in child.glob("*.zip"):
+                        z.unlink(missing_ok=True)  # type: ignore[arg-type]
+                    continue
+                # Удаляем директорию старой версии целиком
+                shutil.rmtree(child, ignore_errors=True)
+            except Exception as e:
+                self.logger.debug(f"Не удалось удалить {child}: {e}")
     
     def _get_env_or_default(self, env_var: str, default: Any, var_type: type = str) -> Any:
         """
