@@ -35,9 +35,11 @@ def test_audio_channels_volume_fader(driver, logger):
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-    @log_step(logger, "Нажатие кнопки SETTINGS")
+        @log_step(logger, "Нажатие кнопки SETTINGS")
     def click_settings_button():
-        base_page.click(wg_page.SETTINGS_BUTTON)
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
+        import time
+        time.sleep(1)  # Небольшая задержка для открытия окна настроек
         assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     @log_step(logger, "Выбор Audio Channels")

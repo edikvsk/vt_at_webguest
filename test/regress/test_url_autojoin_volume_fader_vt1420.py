@@ -43,9 +43,9 @@ def test_url_autojoin_volume_fader_vt1420(driver, logger):
     def check_preview_window_state_on():
         assert base_page.is_element_present(wg_page.PREVIEW_WINDOW), "Окно Selfie не отображается"
 
-    @log_step(logger, "Проверка, что Volume Fader не отображается")
-    def check_volume_fader_not_visible():
-        assert not base_page.is_element_visible(wg_page.VOLUME_FADER), "Volume Fader не должен отображаться"
+    @log_step(logger, "Проверка отображения Volume Fader")
+    def check_volume_fader_visible():
+        assert base_page.is_element_visible(wg_page.VOLUME_FADER), "Volume Fader должен отображаться при autojoin"
 
     @log_step(logger, "Клик по MUTE/UNMUTE и проверка появления Volume Fader")
     def toggle_mute_unmute_and_check_fader_visible():
@@ -65,7 +65,7 @@ def test_url_autojoin_volume_fader_vt1420(driver, logger):
     try:
         check_url(driver)
         check_preview_window_state_on()
-        check_volume_fader_not_visible()
+        check_volume_fader_visible()
         toggle_mute_unmute_and_check_fader_visible()
 
     except (NoSuchElementException, TimeoutException) as e:

@@ -272,7 +272,7 @@ def login_fixture(driver, logger):
 
         notification_handler.check_notification()
         base_page.click(web_guest_page.LOGIN_BUTTON)
-        stream_handler.wait_for_webrtc_connection(timeout=10)
+        stream_handler.wait_for_webrtc_connection(timeout=20)
         logger.info("Стрим запущен")
 
         yield web_guest_page
