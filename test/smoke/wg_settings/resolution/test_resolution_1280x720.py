@@ -39,12 +39,7 @@ def test_resolution_1280x720(driver, logger):
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-        @log_step(logger, "Нажатие кнопки SETTINGS")
-    def click_settings_button():
-        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
-        import time
-        time.sleep(1)  # Небольшая задержка для открытия окна настроек
-        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
+
 
     @log_step(logger, "Выбор разрешения")
     def select_resolution():
@@ -80,6 +75,13 @@ def test_resolution_1280x720(driver, logger):
         expected_value = resolution
         actual_value = stream_handler.get_video_frame_dimensions()
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+
+    @log_step(logger, "Нажатие кнопки SETTINGS")
+    def click_settings_button():
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
+        import time
+        time.sleep(1)  # Небольшая задержка для открытия окна настроек
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     steps = [
         check_settings_button,

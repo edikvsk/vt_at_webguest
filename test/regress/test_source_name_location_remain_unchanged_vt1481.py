@@ -36,12 +36,7 @@ def test_source_name_location_remain_unchanged_vt1481(driver, logger):
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-        @log_step(logger, "Нажатие кнопки SETTINGS")
-    def click_settings_button():
-        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
-        import time
-        time.sleep(1)  # Небольшая задержка для открытия окна настроек
-        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
+
 
     @log_step(logger, "Ввод имени и Location")
     def input_name_and_location():
@@ -80,6 +75,13 @@ def test_source_name_location_remain_unchanged_vt1481(driver, logger):
                 assert actual == expected, f"{field}: ожидалось '{expected}', получено '{actual}'"
         finally:
             desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
+
+    @log_step(logger, "Нажатие кнопки SETTINGS")
+    def click_settings_button():
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
+        import time
+        time.sleep(1)  # Небольшая задержка для открытия окна настроек
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     steps = [
         check_settings_button,

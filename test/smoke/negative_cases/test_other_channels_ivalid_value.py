@@ -36,12 +36,7 @@ def test_other_channels_invalid_value(driver, logger):
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-        @log_step(logger, "Нажатие кнопки SETTINGS")
-    def click_settings_button():
-        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
-        import time
-        time.sleep(1)  # Небольшая задержка для открытия окна настроек
-        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
+
 
     @log_step(logger, "Ввод невалидных значений в Other Channels")
     def input_other_channels_invalid_value():
@@ -65,6 +60,13 @@ def test_other_channels_invalid_value(driver, logger):
             re.fullmatch(r'-?\d+(,\d+)*', actual_value) is not None
         ), f"В Desktop OtherChannels только числа, запятые, минус или пусто, а получено: '{actual_value}'"
         desktop_app_page.click_button_by_name(desktop_app_page.VT_OK_BUTTON)
+
+    @log_step(logger, "Нажатие кнопки SETTINGS")
+    def click_settings_button():
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
+        import time
+        time.sleep(1)  # Небольшая задержка для открытия окна настроек
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     steps = [
         check_settings_button,

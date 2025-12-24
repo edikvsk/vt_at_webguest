@@ -33,12 +33,7 @@ def test_mirroring(driver, logger):
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-        @log_step(logger, "Нажатие кнопки SETTINGS")
-    def click_settings_button():
-        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
-        import time
-        time.sleep(1)  # Небольшая задержка для открытия окна настроек
-        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
+
 
     @log_step(logger, "Проверка MIRRORING Switcher - состояние: ВЫКЛ. ")
     def check_mirroring_switcher_state_off():
@@ -60,6 +55,13 @@ def test_mirroring(driver, logger):
         actual_value = desktop_app_page.get_vt_wg_button_state(0)
         desktop_app_page.click_button_by_name(desktop_app_page.VT_OK_BUTTON)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+
+    @log_step(logger, "Нажатие кнопки SETTINGS")
+    def click_settings_button():
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
+        import time
+        time.sleep(1)  # Небольшая задержка для открытия окна настроек
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     steps = [
         check_settings_button,

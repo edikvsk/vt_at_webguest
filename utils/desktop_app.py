@@ -20,12 +20,12 @@ class DesktopApp:
         try:
             # Попытка подключиться к уже запущенному приложению
             self.app = Application(backend='uia').connect(path=self.app_path)
-            print("Приложение успешно подключено.")
+            print("Application connected successfully.")
         except AppStartError:
-            print("Приложение не запущено. Попытка запуска...")
+            print("Application not running. Attempting to start...")
             # Если приложение не запущено, запускаем его
             self.app = Application(backend='uia').start(self.app_path)
-            print("Приложение запущено.")
+            print("Application started.")
 
         # Получаем главное окно приложения
         self.main_window = self.app.window(title_re="VT Publisher.*")
@@ -41,4 +41,4 @@ class DesktopApp:
     def close_application(self):
         if self.app is not None:
             self.app.kill()  # Завершение процесса приложения
-            print("Приложение закрыто.")
+            print("Application closed.")

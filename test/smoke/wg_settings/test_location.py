@@ -34,12 +34,7 @@ def test_location(driver, logger):
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-        @log_step(logger, "Нажатие кнопки SETTINGS")
-    def click_settings_button():
-        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
-        import time
-        time.sleep(1)  # Небольшая задержка для открытия окна настроек
-        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
+
 
     @log_step(logger, "Ввод Location")
     def input_location():
@@ -60,6 +55,13 @@ def test_location(driver, logger):
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
         assert actual_value == expected_value, (f"Значение поля не совпадает: ожидаемое '{expected_value}', "
                                                 f"полученное '{actual_value}'")
+
+    @log_step(logger, "Нажатие кнопки SETTINGS")
+    def click_settings_button():
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
+        import time
+        time.sleep(1)  # Небольшая задержка для открытия окна настроек
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     steps = [
         check_settings_button,

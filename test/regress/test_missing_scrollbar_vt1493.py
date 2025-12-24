@@ -26,12 +26,7 @@ def test_missing_scrollbar_vt1493(driver, logger):
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-        @log_step(logger, "Нажатие кнопки SETTINGS")
-    def click_settings_button():
-        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
-        import time
-        time.sleep(1)  # Небольшая задержка для открытия окна настроек
-        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
+
 
     @log_step(logger, "Проверка отображения scrollbar")
     def check_scrollbar_visibility():
@@ -39,6 +34,13 @@ def test_missing_scrollbar_vt1493(driver, logger):
         wg_page.click_element_with_scroll(wg_page.INPUT_CAMERA_COMBOBOX)
         wg_page.set_window_resolution(640, 480)
         assert wg_page.is_vertical_scrollbar_visible(wg_page.SCROLLBAR_SELECT_DEVICE), "Scrollbar не отображается"
+
+    @log_step(logger, "Нажатие кнопки SETTINGS")
+    def click_settings_button():
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
+        import time
+        time.sleep(1)  # Небольшая задержка для открытия окна настроек
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     steps = [
         check_settings_button,
