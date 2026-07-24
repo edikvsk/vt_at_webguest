@@ -319,7 +319,7 @@ class ConfigManager:
             try:
                 private_json_src = self._get_env_or_default(
                     'VT_PRIVATE_JSON_PATH',
-                    r"\\192.168.10.100\MLFiles\Trash\EdikV_tester\auto@test.ru_vt08.medialooks.com.private.json"
+                    r"\\192.168.10.100\web\VT_WebGuest_config\qa123@test.ru_vt08.medialooks.com.private.json"
                 )
                 if private_json_src:
                     # Нормализуем UNC: приводим к виду \\server\share\...
