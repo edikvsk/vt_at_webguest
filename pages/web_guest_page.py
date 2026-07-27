@@ -171,16 +171,19 @@ class WebGuestPage(BasePage):
         except Exception as e:
             raise RuntimeError(f"Ошибка при вводе текста: {e}")
 
-    def delete_text(self, field_locator):
+    def delete_text(self, field_locator, timeout=20):
         """
         Удаляет текст из поля посимвольно с помощью клавиши BACKSPACE.
 
         :param field_locator: Локатор текстового поля
+        :param timeout: Максимальное время ожидания элемента (по умолчанию 20)
         :return: None
         :raises RuntimeError: При ошибках удаления
         """
         try:
-            text_field = self.wait_for_element(field_locator)
+            text_field = WebDriverWait(self.driver, timeout).until(
+                EC.visibility_of_element_located(field_locator)
+            )
             while text_field.get_attribute('value'):  # Проверяем, есть ли текст в поле
                 text_field.send_keys(Keys.BACKSPACE)  # Удаляем последнюю букву
                 sleep(0.5)  # Задержка для наглядности

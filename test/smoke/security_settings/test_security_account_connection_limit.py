@@ -76,6 +76,11 @@ def test_security_account_connection_limit(driver, logger):
     def check_authorization_form():
         assert base_page.is_element_visible(wg_page.AUTHORIZATION_FORM), "Authorization Form не отображается"
 
+    @log_step(logger, "Ожидание Authorization Form во втором окне (90 сек)")
+    def check_authorization_form_second_window():
+        assert base_page.is_element_visible(wg_page.AUTHORIZATION_FORM, timeout=90), \
+            "Authorization Form во втором окне не отображается за 90 секунд"
+
     @log_step(logger, "Проверка отображения поля ввода Name")
     def check_name_field():
         assert base_page.is_element_visible(wg_page.SECURITY_NAME), "Поле Name не отображается"
@@ -153,6 +158,7 @@ def test_security_account_connection_limit(driver, logger):
         set_first_web_guest_name()
         authorization()
         start_second_web_guest(driver)
+        check_authorization_form_second_window()
         set_second_web_guest_name()
         authorization()
         check_authorized_notification(driver)
