@@ -50,7 +50,7 @@ def test_other_channels(driver, logger):
     def check_other_channels_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
-        actual_value = desktop_app_page.get_vt_wg_settings_field_value(2)
+        actual_value = desktop_app_page.get_vt_wg_settings_field_value(3)
         expected_value = other_channels_value
         desktop_app_page.click_button_by_name(desktop_app_page.VT_OK_BUTTON)
         assert expected_value == actual_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
