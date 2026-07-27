@@ -291,6 +291,9 @@ def modified_fixture(driver, logger):
     try:
         web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
         if not web_guest_url:
+            logger.warning("Не удалось получить URL через UI, читаем из конфига...")
+            web_guest_url = _read_web_guest_url_from_config(CONFIG_INI)
+        if not web_guest_url:
             logger.error("Не удалось получить Web Guest URL.")
             raise ValueError("Web Guest URL не был инициализирован.")
 
