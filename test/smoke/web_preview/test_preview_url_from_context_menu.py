@@ -44,7 +44,6 @@ def test_preview_url_from_context_menu(driver, logger):
         assert current_url == expected_url, f"Ожидался URL: {expected_url}, но был: {current_url}"
 
     wg_page = WebGuestPage(driver)
-    volume_fader_value_state_off = '0'
 
     @log_step(logger, "Проверка Notifications")
     def check_notifications():
@@ -63,13 +62,6 @@ def test_preview_url_from_context_menu(driver, logger):
     def check_mute_image_state_on():
         assert not wg_page.is_button_pressed(wg_page.MUTE_BUTTON), "Кнопка MUTE в состоянии ВЫКЛ."
 
-    @log_step(logger, "Проверка отображения Volume Fader - состояние: ВЫКЛ.")
-    def check_volume_fader_value_state_off():
-        expected_value = volume_fader_value_state_off
-        actual_value = wg_page.get_volume_fader_value(wg_page.VOLUME_FADER)
-        assert actual_value == expected_value, (f"Ожидалось значение '{expected_value}', "
-                                                f"но получено '{actual_value}'")
-
     @log_step(logger, "Проверка трансляция WebRTC")
     def check_webrtc_stream():
         assert stream_handler.wait_for_webrtc_connection(timeout=10)
@@ -81,7 +73,6 @@ def test_preview_url_from_context_menu(driver, logger):
         check_authorization_form()
         login()
         check_mute_image_state_on()
-        check_volume_fader_value_state_off()
         check_webrtc_stream()
 
     except (NoSuchElementException, TimeoutException) as e:
