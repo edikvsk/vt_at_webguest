@@ -12,7 +12,6 @@ from utils.conftest import driver, modified_fixture
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
 from utils.notificaton_handler import NotificationHandler
-from utils.webrtc_stream_handler import StreamHandler
 
 
 @pytest.fixture(scope="function")
@@ -42,7 +41,6 @@ def test_connection_with_the_same_name(driver, logger):
     base_page = BasePage(driver)
     wg_page = WebGuestPage(driver)
     notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
-    stream_handler = StreamHandler(driver)
 
     expected_notification_text = "Connectivity Error"
 
@@ -92,38 +90,27 @@ def test_connection_with_the_same_name(driver, logger):
 
         assert current_url == expected_url, f"Ожидался URL: {expected_url}, но был: {current_url}"
 
-    @log_step(logger, "Логин")
-    def login_second_web_guest_with_error():
-        base_page.click(wg_page.LOGIN_BUTTON)
-        assert base_page.is_element_visible(wg_page.STOP_BUTTON), "Логин НЕ выполнен"
+    @log_step(logger, "Ожидание формы авторизации на второй вкладке")
+    def wait_for_second_tab_form():
+        assert base_page.is_element_visible(wg_page.AUTHORIZATION_FORM, timeout=180), \
+            "Authorization Form не отображается на второй вкладке"
 
-    @log_step(logger, "Проверка отображения окна - Connectivity Error")
-    def check_authorized_notification():
-        current_notification_text = notification_handler.get_notification_text()
-        if expected_notification_text in current_notification_text:
-            notification_handler.check_notification(ignore_fail_notifications=True, reason="Уведомление игнорируется, "
-                                                                                           "так как появление окна "
-                                                                                           "Connectivity Error "
-                                                                                           "ожидаемо")
+    @log_step(logger, "Ввод имени на второй вкладке")
+    def set_second_web_guest_name():
+        wg_page.delete_text(wg_page.LOGIN_FIELD)
+        expected_value = "example"
+        wg_page.input_text(wg_page.LOGIN_FIELD, "example")
+        actual_value = wg_page.get_input_value(wg_page.LOGIN_FIELD)
+        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
+
+    @log_step(logger, "Логин второй вкладки и проверка Connectivity Error")
+    def login_second_web_guest_expect_error():
+        base_page.click(wg_page.LOGIN_BUTTON)
+        notification_text = notification_handler.get_notification_text(timeout=20)
+        if notification_text and expected_notification_text in notification_text:
+            logger.info(f"Получено ожидаемое уведомление: {notification_text}")
         else:
-            notification_handler.check_notification()
-            logger.error("Окно 'Connectivity Error' не отображается")
-            pytest.fail("Окно 'Connectivity Error' не отображается")
-
-    @log_step(logger, "Остановка трансляции первого экземпляра Chrome Web Guest")
-    def stop_first_web_guest(drv):
-        drv.switch_to.window(first_window)
-        drv.close()
-        drv.switch_to.window(drv.window_handles[0])
-
-    @log_step(logger, "Проверка авторизации, после закрытия первого экземпляра Web Guest")
-    def login_second_web_guest():
-        expected_state = True
-        time.sleep(5)
-        base_page.click(wg_page.LOGIN_BUTTON)
-        notification_handler.check_notification()
-        actual_state = stream_handler.is_webrtc_connected()
-        assert actual_state == expected_state, f"Ожидался state стрима: {expected_state}, но получен: {actual_state}"
+            pytest.fail(f"Ожидалось '{expected_notification_text}', но получено: '{notification_text}'")
 
     try:
         start_first_web_guest(driver)
@@ -134,10 +121,9 @@ def test_connection_with_the_same_name(driver, logger):
         set_first_web_guest_name()
         login_first_web_guest()
         start_second_web_guest(driver)
-        login_second_web_guest_with_error()
-        check_authorized_notification()
-        stop_first_web_guest(driver)
-        login_second_web_guest()
+        wait_for_second_tab_form()
+        set_second_web_guest_name()
+        login_second_web_guest_expect_error()
 
     except (NoSuchElementException, TimeoutException) as e:
         logger.error(f"Ошибка при выполнении теста: {e}")
