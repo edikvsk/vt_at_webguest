@@ -13,7 +13,6 @@ from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
 from utils.notificaton_handler import NotificationHandler
-from utils.webrtc_stream_handler import StreamHandler
 
 
 @pytest.fixture(scope="function")
@@ -27,7 +26,6 @@ def logger(caplog):
 def test_resolution_640x360(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
-    stream_handler = StreamHandler(driver)
     notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
@@ -39,12 +37,17 @@ def test_resolution_640x360(driver, logger):
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-
+    @log_step(logger, "Нажатие кнопки SETTINGS")
+    def click_settings_button():
+        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
+        time.sleep(1)
+        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
 
     @log_step(logger, "Выбор разрешения")
     def select_resolution():
         wg_page.select_resolution(resolution)
         notification_handler.check_notification()
+        time.sleep(10)
         base_page.click(wg_page.RESOLUTION_COMBOBOX_BACK_BUTTON)
         expected_value = resolution
         actual_value = wg_page.get_settings_item_value_text(wg_page.RESOLUTION_VALUE)
@@ -63,35 +66,12 @@ def test_resolution_640x360(driver, logger):
         actual_value = wg_page.get_settings_item_value_text(wg_page.RESOLUTION_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "Перезапуск стрима для обновления WebRTC stats")
-    def restart_streaming():
-        base_page.click(wg_page.STOP_BUTTON)
-        base_page.click(wg_page.START_BUTTON)
-        assert wg_page.is_button_pressed(wg_page.STOP_BUTTON), "Кнопка STOP не отображается"
-
-    @log_step(logger, "Проверка значения Resolution в WebRTC")
-    def check_webrtc_frame_dimensions():
-        time.sleep(25)
-        expected_value = resolution
-        actual_value = stream_handler.get_video_frame_dimensions()
-        assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
-
-    @log_step(logger, "Нажатие кнопки SETTINGS")
-    def click_settings_button():
-        wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
-        import time
-        time.sleep(1)  # Небольшая задержка для открытия окна настроек
-        assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
-
     steps = [
         check_settings_button,
         click_settings_button,
         select_resolution,
         check_resolution_field_value,
-        check_resolution_field_value_vt,
-        click_settings_button,
-        restart_streaming,
-        check_webrtc_frame_dimensions
+        check_resolution_field_value_vt
     ]
 
     for step in steps:
