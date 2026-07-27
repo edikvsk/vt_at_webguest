@@ -46,7 +46,7 @@ class WebGuestPage(BasePage):
     RESOLUTION_VALUE = (By.XPATH, "//div[@data-cy='resolution']//span[contains(@class, 'text-ellipsis')]")
     RESOLUTION_COMBOBOX_BACK_BUTTON = (By.XPATH, "//div[@class='mr-1']")
     FRAMERATE_COMBOBOX = (By.XPATH, "//span[text()='Frame Rate']")
-    FRAMERATE_VALUE = (By.XPATH, "//div[@data-cy='frameRate']//span[contains(text(), 'fps')]")
+    FRAMERATE_VALUE = (By.XPATH, "//div[@data-cy='frameRate']//span[contains(@class, 'text-ellipsis')]")
     AUDIO_BITRATE_COMBOBOX = (By.XPATH, "//span[text()='Audio Bitrate']")
     AUDIO_BITRATE_VALUE = (By.XPATH, "//div[@data-cy='audioBitrate']")
     VIDEO_BITRATE_COMBOBOX = (By.XPATH, "//span[text()='Video Bitrate']")

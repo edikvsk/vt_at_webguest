@@ -39,6 +39,7 @@ def test_empty_framerate_field_vt1539(driver, logger):
     @log_step(logger, "Проверка отображения установленного Framerate")
     def select_framerate():
         wg_page.select_framerate(framerate)
+        notification_handler.check_notification()
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
         expected_value = "60 FPS"
         time.sleep(1.5)
