@@ -451,7 +451,9 @@ class WebGuestPage(BasePage):
                     break
 
             if option_to_select and option_to_select.is_enabled():
-                option_to_select.click()
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", option_to_select)
+                sleep(0.3)
+                ActionChains(self.driver).move_to_element(option_to_select).click().perform()
             else:
                 print("Элемент не доступен для клика или не найден.")
 

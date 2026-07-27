@@ -125,20 +125,20 @@ def driver():
                     
                     // Формируем constraints с найденными устройствами
                     const modifiedConstraints = {{}};
-                    
+
                     if (constraints.video !== false) {{
                         if (videoDeviceId) {{
-                            modifiedConstraints.video = {{ deviceId: {{ exact: videoDeviceId }} }};
+                            modifiedConstraints.video = {{ ...constraints.video, deviceId: {{ exact: videoDeviceId }} }};
                         }} else {{
-                            modifiedConstraints.video = true; // Используем первое доступное
+                            modifiedConstraints.video = true;
                         }}
                     }}
-                    
+
                     if (constraints.audio !== false) {{
                         if (audioDeviceId) {{
-                            modifiedConstraints.audio = {{ deviceId: {{ exact: audioDeviceId }} }};
+                            modifiedConstraints.audio = {{ ...constraints.audio, deviceId: {{ exact: audioDeviceId }} }};
                         }} else {{
-                            modifiedConstraints.audio = true; // Используем первое доступное
+                            modifiedConstraints.audio = true;
                         }}
                     }}
                     
