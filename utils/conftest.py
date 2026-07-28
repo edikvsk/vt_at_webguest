@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 import os
 import glob
+import time
 from datetime import datetime
 
 import pyperclip
@@ -184,10 +185,15 @@ def get_web_url(desktop_app_page: DesktopAppPage, logger: logging.Logger, copy_c
         # Всегда пытаемся нажать только Start Publishing (приложение запускается с нуля)
         if desktop_app_page.check_element_enabled_by_title_part("Start Publishing"):
             desktop_app_page.click_button_by_name("Start Publishing")
+            time.sleep(1)
 
-        # Быстрый клик по пункту копирования без лишних проверок
+        # Правый клик и ожидание появления контекстного меню
         desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+        time.sleep(0.5)
+
         desktop_app_page.click_vt_source_item(copy_command)
+        time.sleep(0.3)
+
         url = pyperclip.paste()
         logger.info(f"Получен URL: {url}")
         return url
@@ -256,12 +262,7 @@ def login_fixture(driver, logger):
     stream_handler = StreamHandler(driver)
 
     try:
-        # 1) Стартуем публикацию только одним действием
-        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
-        if desktop_app_page.check_element_enabled_by_title_part("Start Publishing"):
-            desktop_app_page.click_button_by_name("Start Publishing")
-
-        # 2) Получаем актуальный URL через копирование из UI
+        # 1) Получаем актуальный URL через копирование из UI
         web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
         if not web_guest_url:
             logger.error("Не удалось получить Web Guest URL через UI.")

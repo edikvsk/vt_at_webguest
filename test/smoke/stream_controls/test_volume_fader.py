@@ -1,4 +1,5 @@
 import os
+import time
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -36,6 +37,7 @@ def test_volume_fader(driver, logger):
     @log_step(logger, "Нажатие кнопки MUTE")
     def turn_off_mute():
         base_page.click(wg_page.MUTE_BUTTON)
+        time.sleep(0.5)
 
     @log_step(logger, "Проверка отображения Volume Fader - состояние: ВКЛ.")
     def check_volume_fader_value_state_on():

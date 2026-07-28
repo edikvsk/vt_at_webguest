@@ -276,18 +276,27 @@ class WebGuestPage(BasePage):
         :raises RuntimeError: При ошибках получения значения
         """
         try:
+            # Пробуем получить значение через JS — надёжнее чем ждать видимость
+            value = self.driver.execute_script(
+                "var thumb = document.querySelector('div[data-cy=\"sound-settings\"] .thumb'); "
+                "return thumb ? thumb.getAttribute('aria-valuenow') : null;"
+            )
+            if value is not None:
+                return value
+
+            # Fallback: классический Selenium путь
             volume_fader = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located(fader_locator)
             )
 
             if not volume_fader.is_displayed():
                 self.hover_element(self.MUTE_BUTTON)
-                volume_fader = WebDriverWait(self.driver, 10).until(
-                    EC.visibility_of_element_located(fader_locator)
-                )
+                sleep(1)
 
-            thumb_element = WebDriverWait(volume_fader, 10).until(
-                EC.visibility_of_element_located((By.XPATH, ".//div[contains(@class, 'thumb')]"))
+            thumb_element = WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located(
+                    (fader_locator[0], fader_locator[1] + "//div[contains(@class, 'thumb')]")
+                )
             )
 
             return thumb_element.get_attribute('aria-valuenow')
