@@ -68,7 +68,9 @@ def test_url_resolution_320_240(driver, logger):
     def check_settings_button():
         assert base_page.is_element_present(wg_page.SETTINGS_BUTTON), "Кнопка SETTINGS не отображается"
 
-
+    @log_step(logger, "Нажатие кнопки SETTINGS")
+    def click_settings_button():
+        base_page.click(wg_page.SETTINGS_BUTTON)
 
     @log_step(logger, "Проверка значения поля Resolution")
     def check_resolution_settings():

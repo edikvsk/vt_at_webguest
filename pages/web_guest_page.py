@@ -350,16 +350,19 @@ class WebGuestPage(BasePage):
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при установке значения слайдера с событиями: {e}")
 
-    def get_settings_item_value_text(self, element_locator):
+    def get_settings_item_value_text(self, element_locator, timeout=10):
         """
         Получает текстовое значение элемента настроек.
 
         :param element_locator: Локатор элемента
+        :param timeout: Максимальное время ожидания в секундах (по умолчанию 10)
         :return: Текст элемента
         :raises RuntimeError: Если элемент не найден
         """
         try:
-            element = self.wait_for_element(element_locator)
+            element = WebDriverWait(self.driver, timeout).until(
+                EC.visibility_of_element_located(element_locator)
+            )
             return element.text
         except TimeoutException:
             raise RuntimeError(f"Элемент не найден по локатору: {element_locator}")
