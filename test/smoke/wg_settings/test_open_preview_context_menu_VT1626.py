@@ -15,5 +15,5 @@ def logger(caplog):
 
 
 @pytest.mark.usefixtures("open_web_preview_fixture")
-def test_open_preview_from_context_menu(driver, logger):
+def test_open_preview_context_menu_VT1626(driver, logger):
     wg_page = WebGuestPage(driver)

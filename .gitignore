@@ -138,6 +138,7 @@ scripts/tmp/
 
 # pytest cache and reports
 .pytest_cache/
+.test-results/
 htmlcov/
 .coverage
 coverage.xml

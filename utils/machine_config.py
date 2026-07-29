@@ -81,13 +81,10 @@ class ConfigLoader:
             Словарь с конфигурацией или None при ошибке
         """
         try:
-            # Нормализуем UNC путь
-            if network_path.startswith('\\\\'):
-                # Уже корректный UNC путь
-                config_url = f"file:///{network_path.replace('\\\\', '/')}"
-            else:
-                # Добавляем префикс UNC
-                config_url = f"file:///{network_path.replace('\\', '/')}"
+            # Keep the backslash replacement outside the f-string expression
+            # so this remains compatible with the packaged Python 3.11 runtime.
+            normalized_network_path = network_path.replace('\\', '/')
+            config_url = f"file:///{normalized_network_path}"
             
             self.logger.info(f"Загружаю конфигурацию с сетевого пути: {network_path}")
             
