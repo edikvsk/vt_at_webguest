@@ -5,6 +5,7 @@ import os
 import glob
 import time
 from datetime import datetime
+from urllib.parse import urlparse
 
 import pyperclip
 import pytest
@@ -172,6 +173,19 @@ def web_guest_page_setup(driver):
     return web_guest_page, base_page, notification_handler, stream_handler
 
 
+def _valid_copied_url(value: Optional[str], copy_command: str = "") -> Optional[str]:
+    """Return a normalized copied URL only when it is a real HTTP endpoint."""
+    if not value:
+        return None
+    url = value.strip()
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return None
+    if "Web Guest" in copy_command and "/wg" not in parsed.path.casefold():
+        return None
+    return url
+
+
 def get_web_url(desktop_app_page: DesktopAppPage, logger: logging.Logger, copy_command: str) -> Optional[str]:
     """
     Упрощённый и быстрый способ получить URL из десктопного приложения.
@@ -187,16 +201,37 @@ def get_web_url(desktop_app_page: DesktopAppPage, logger: logging.Logger, copy_c
             desktop_app_page.click_button_by_name("Start Publishing")
             time.sleep(1)
 
-        # Правый клик и ожидание появления контекстного меню
-        desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-        time.sleep(0.5)
+        # Clear the clipboard so a failed menu click cannot reuse a URL from a
+        # previous test. Publisher may need a moment to create its room URL.
+        clipboard_marker = f"VT_URL_PENDING_{time.time_ns()}"
+        pyperclip.copy(clipboard_marker)
 
-        desktop_app_page.click_vt_source_item(copy_command)
-        time.sleep(0.3)
+        last_error = None
+        for attempt in range(1, 6):
+            try:
+                desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+                time.sleep(0.4)
+                desktop_app_page.click_vt_source_item(copy_command)
+            except Exception as exc:
+                last_error = exc
+                time.sleep(0.6)
+                continue
 
-        url = pyperclip.paste()
-        logger.info(f"Получен URL: {url}")
-        return url
+            deadline = time.time() + 2
+            while time.time() < deadline:
+                copied = pyperclip.paste()
+                url = _valid_copied_url(copied, copy_command)
+                if url:
+                    logger.info(f"Получен URL: {url}")
+                    return url
+                time.sleep(0.2)
+
+            last_error = RuntimeError(
+                f"Publisher did not copy a valid URL for '{copy_command}' "
+                f"(clipboard={pyperclip.paste()!r}, attempt={attempt})."
+            )
+
+        raise last_error or RuntimeError(f"Could not copy URL using '{copy_command}'.")
     except Exception as e:
         logger.error(f"Ошибка при получении URL: {e}")
         return None
@@ -208,7 +243,7 @@ def _read_web_guest_url_from_config(config_path: str) -> Optional[str]:
         parser = configparser.ConfigParser()
         parser.read(config_path, encoding="utf-8")
         url = parser.get("DEFAULT", "web_guest_page_url", fallback=None)
-        return url
+        return _valid_copied_url(url, "Copy Web Guest URL")
     except Exception:
         return None
 
