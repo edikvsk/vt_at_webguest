@@ -38,10 +38,14 @@ def ensure_vt_killed_before_test():
     # небольшая пауза, чтобы ОС пересобрала дескрипторы окон
     import time as _t
     _t.sleep(1)
+    try:
+        yield
+    finally:
+        pm.kill_process()
 
 
 @pytest.fixture(scope="function")
-def driver():
+def driver(ensure_vt_killed_before_test, request):
     """Основная фикстура для создания WebDriver с настройкой браузера и запуском процесса."""
     # Подавляем WebRTC логи
     import os
@@ -81,13 +85,15 @@ def driver():
 
     # Глушим лог-файл chromedriver
     service = Service(CHROME_DRIVER_PATH, log_path=os.devnull)
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    web_driver = webdriver.Chrome(service=service, options=chrome_options)
+    # Register cleanup immediately so setup failures cannot leak Chrome.
+    request.addfinalizer(web_driver.quit)
     
     # Максимизируем окно для более стабильной работы
-    driver.maximize_window()
+    web_driver.maximize_window()
     
     # Устанавливаем медиа-ограничения через JavaScript после загрузки страницы
-    driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+    web_driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
         'source': f'''
             // Переопределяем getUserMedia для автоматического выбора устройств
             const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
@@ -151,8 +157,7 @@ def driver():
         '''
     })
     
-    yield driver
-    driver.quit()
+    return web_driver
 
 
 @pytest.fixture(scope="function")
