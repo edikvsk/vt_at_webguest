@@ -86,22 +86,44 @@ class WebGuestPage(BasePage):
         :return: None
         """
         try:
-            # Ожидаем, пока элемент станет кликабельным
             element = WebDriverWait(self.driver, timeout).until(
                 EC.element_to_be_clickable(element_locator)
             )
-
-            # Прокручиваем к элементу, если он не виден
-            self.driver.execute_script("arguments[0].scrollIntoView();", element)
-
-            # Используем ActionChains для клика
-            actions = ActionChains(self.driver)
-            actions.move_to_element(element).click().perform()
-
+            self.driver.execute_script(
+                "arguments[0].scrollIntoView({block: 'center', inline: 'center'});",
+                element,
+            )
+            ActionChains(self.driver).move_to_element(element).click().perform()
+            return
         except TimeoutException:
-            print(f"Элемент {element_locator} не доступен для клика в течение {timeout} секунд.")
-        except Exception as e:
-            print(f"Ошибка при клике на элемент {element_locator}: {e}")
+            # The responsive bottom toolbar can overlap an otherwise visible
+            # button. Selenium then rejects a real user click even though the
+            # React control is present and enabled. Dispatch the button's DOM
+            # click as the bounded fallback instead of silently continuing
+            # with a closed settings modal.
+            try:
+                element = WebDriverWait(self.driver, timeout).until(
+                    EC.presence_of_element_located(element_locator)
+                )
+                if element.get_attribute("disabled") is not None:
+                    raise RuntimeError(
+                        f"Element is disabled and cannot be clicked: {element_locator}"
+                    )
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView({block: 'center', inline: 'center'});"
+                    "arguments[0].click();",
+                    element,
+                )
+                return
+            except Exception as error:
+                raise RuntimeError(
+                    f"Element could not be clicked within {timeout}s: "
+                    f"{element_locator}"
+                ) from error
+        except Exception as error:
+            raise RuntimeError(
+                f"Element click failed: {element_locator}"
+            ) from error
 
     def wait_for_element(self, locator, timeout=10):
         """
@@ -121,7 +143,10 @@ class WebGuestPage(BasePage):
         :param element: Локатор элемента для наведения
         :return: None
         """
-        ActionChains(self.driver).move_to_element(self.wait_for_element(element)).perform()
+        target = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located(element)
+        )
+        ActionChains(self.driver).move_to_element(target).perform()
 
     def get_tooltip_text(self, element, tooltip_locator):
         """
@@ -133,11 +158,22 @@ class WebGuestPage(BasePage):
         """
         try:
             self.hover_element(element)
-            tooltip_element = self.wait_for_element(tooltip_locator)
-            return tooltip_element.text
-        except (TimeoutException, NoSuchElementException) as e:
-            print(f"Ошибка при получении текста tooltip: {e}")
-            return None
+            tooltip_element = WebDriverWait(self.driver, 10).until(
+                lambda driver: self._visible_element_with_text(
+                    driver,
+                    tooltip_locator,
+                )
+            )
+            return tooltip_element.text.strip()
+        except (TimeoutException, NoSuchElementException) as error:
+            raise RuntimeError(
+                f"Tooltip did not become visible: {tooltip_locator}"
+            ) from error
+
+    @staticmethod
+    def _visible_element_with_text(driver, locator):
+        element = driver.find_element(*locator)
+        return element if element.is_displayed() and element.text.strip() else False
 
     def is_button_pressed(self, button_locator):
         """

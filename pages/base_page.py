@@ -157,23 +157,41 @@ class BasePage:
         """
         timeout = timeout or self.DEFAULT_TIMEOUT
         element = self.wait_for_element_clickable(locator, timeout)
-        
-        if element:
+        if element is None:
+            # Controls in the responsive bottom toolbar may be present and
+            # enabled while Selenium reports them as covered by the layout.
+            # Resolve the real button and dispatch its DOM click instead of
+            # silently allowing the test to continue with a closed panel.
+            element = self.wait_for_element(locator, timeout)
+            if element is None or element.get_attribute("disabled") is not None:
+                return False
             try:
-                if scroll_to:
-                    self.scroll_to_element(element)
-                element.click()
-                self.logger.debug(f"Клик выполнен: {locator}")
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView({block: 'center', inline: 'center'});"
+                    "arguments[0].click();",
+                    element,
+                )
+                self.logger.debug(f"Клик через JS выполнен: {locator}")
                 return True
-            except Exception as e:
-                self.logger.error(f"Ошибка клика по {locator}: {e}")
-                # Попытка клика через JavaScript как fallback
-                try:
-                    self.driver.execute_script("arguments[0].click();", element)
-                    self.logger.debug(f"Клик через JS выполнен: {locator}")
-                    return True
-                except Exception as js_error:
-                    self.logger.error(f"Ошибка JS клика по {locator}: {js_error}")
+            except Exception as js_error:
+                self.logger.error(f"Ошибка JS клика по {locator}: {js_error}")
+                return False
+
+        try:
+            if scroll_to:
+                self.scroll_to_element(element)
+            element.click()
+            self.logger.debug(f"Клик выполнен: {locator}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Ошибка клика по {locator}: {e}")
+            # Попытка клика через JavaScript как fallback
+            try:
+                self.driver.execute_script("arguments[0].click();", element)
+                self.logger.debug(f"Клик через JS выполнен: {locator}")
+                return True
+            except Exception as js_error:
+                self.logger.error(f"Ошибка JS клика по {locator}: {js_error}")
         return False
 
     def get_text(self, locator: Tuple[By, str], timeout: int = None) -> str:

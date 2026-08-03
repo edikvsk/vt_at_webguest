@@ -143,7 +143,12 @@ def driver(ensure_vt_killed_before_test, request):
                         if (videoDeviceId) {{
                             modifiedConstraints.video = {{ ...constraints.video, deviceId: {{ exact: videoDeviceId }} }};
                         }} else {{
-                            modifiedConstraints.video = true;
+                            // Preserve requested resolution/framerate when a
+                            // workstation-specific camera label is absent.
+                            // Replacing the object with `true` silently drops
+                            // URL constraints and makes the default 640x480
+                            // look like a product failure.
+                            modifiedConstraints.video = constraints.video;
                         }}
                     }}
 
@@ -151,7 +156,7 @@ def driver(ensure_vt_killed_before_test, request):
                         if (audioDeviceId) {{
                             modifiedConstraints.audio = {{ ...constraints.audio, deviceId: {{ exact: audioDeviceId }} }};
                         }} else {{
-                            modifiedConstraints.audio = true;
+                            modifiedConstraints.audio = constraints.audio;
                         }}
                     }}
                     
