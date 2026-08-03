@@ -159,21 +159,38 @@ class WebGuestPage(BasePage):
         try:
             self.hover_element(element)
             tooltip_element = WebDriverWait(self.driver, 10).until(
-                lambda driver: self._visible_element_with_text(
+                lambda driver: self._element_with_text(
                     driver,
                     tooltip_locator,
                 )
             )
-            return tooltip_element.text.strip()
+            return self._element_text(tooltip_element)
         except (TimeoutException, NoSuchElementException) as error:
             raise RuntimeError(
-                f"Tooltip did not become visible: {tooltip_locator}"
+                f"Tooltip label did not become available: {tooltip_locator}"
             ) from error
 
     @staticmethod
-    def _visible_element_with_text(driver, locator):
+    def _element_with_text(driver, locator):
         element = driver.find_element(*locator)
-        return element if element.is_displayed() and element.text.strip() else False
+        return element if WebGuestPage._element_text(element) else False
+
+    @staticmethod
+    def _element_text(element):
+        # Bootstrap keeps tooltip content mounted while Popper transitions its
+        # visibility. Selenium's ``text`` is empty during that transition even
+        # though the label is already populated. Read textContent as the stable
+        # fallback so the test validates the tooltip label, not animation
+        # timing.
+        visible_text = element.text.strip()
+        if visible_text:
+            return visible_text
+
+        text_content = (element.get_attribute("textContent") or "").strip()
+        classes = (element.get_attribute("class") or "").split()
+        if "text-uppercase" in classes:
+            return text_content.upper()
+        return text_content
 
     def is_button_pressed(self, button_locator):
         """

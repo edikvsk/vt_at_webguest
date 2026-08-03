@@ -199,16 +199,48 @@ class DesktopAppPage:
                     raise RuntimeError(f"Ошибка при выполнении клика на элементе после {max_attempts} попыток: {e}")
                 time.sleep(0.5)
 
-    def click_vt_source_item(self, menu_item_title):
-        """Кликает по элементу меню с заданным заголовком."""
-        try:
-            menu_item = self.main_window.child_window(title=menu_item_title, control_type="MenuItem")
-            if menu_item.exists() and menu_item.is_enabled():
-                menu_item.click_input()
-            else:
-                raise ElementNotFoundError(f"Элемент '{menu_item_title}' не доступен для клика.")
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при клике на элемент меню '{menu_item_title}': {e}")
+    def click_vt_source_item(self, menu_item_title, timeout=10):
+        """Wait for and click a VT context-menu item.
+
+        WPF context menus are separate popup windows. Depending on timing,
+        pywinauto may expose the popup under the main window or as another
+        top-level window owned by the VT process. Search both locations until
+        the item is actually visible and enabled instead of sampling once
+        immediately after the right-click.
+        """
+        deadline = time.time() + timeout
+        last_error = None
+
+        while time.time() < deadline:
+            roots = [self.main_window]
+            try:
+                roots.extend(self.main_window.app.windows())
+            except Exception as error:
+                last_error = error
+
+            for root in roots:
+                try:
+                    menu_item = root.child_window(
+                        title=menu_item_title,
+                        control_type="MenuItem",
+                    )
+                    if (
+                        menu_item.exists(timeout=0.2)
+                        and menu_item.is_visible()
+                        and menu_item.is_enabled()
+                    ):
+                        menu_item.click_input()
+                        return
+                except Exception as error:
+                    last_error = error
+
+            time.sleep(0.1)
+
+        detail = f": {last_error}" if last_error else ""
+        raise RuntimeError(
+            f"Menu item '{menu_item_title}' did not become visible and "
+            f"enabled within {timeout}s{detail}"
+        )
 
     def click_button_by_name(self, button_name, timeout=10):
         """Кликает по кнопке с заданным именем, ожидая её доступности."""
