@@ -5,7 +5,6 @@ import os
 import glob
 import time
 from datetime import datetime
-from urllib.parse import urlparse
 
 import pyperclip
 import pytest
@@ -24,6 +23,12 @@ from utils.desktop_app import DesktopApp
 from utils.notificaton_handler import NotificationHandler
 from utils.process_handler import ProcessManager
 from utils.webrtc_stream_handler import StreamHandler
+from utils.web_url import (
+    DesktopUrlAcquisitionError,
+    acquire_desktop_url,
+    is_web_guest_url,
+    read_url_from_config,
+)
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -178,79 +183,64 @@ def web_guest_page_setup(driver):
     return web_guest_page, base_page, notification_handler, stream_handler
 
 
-def _valid_copied_url(value: Optional[str], copy_command: str = "") -> Optional[str]:
-    """Return a normalized copied URL only when it is a real HTTP endpoint."""
-    if not value:
-        return None
-    url = value.strip()
-    parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        return None
-    if "Web Guest" in copy_command and "/wg" not in parsed.path.casefold():
-        return None
-    return url
-
-
-def get_web_url(desktop_app_page: DesktopAppPage, logger: logging.Logger, copy_command: str) -> Optional[str]:
+def get_web_url(
+    desktop_app_page: DesktopAppPage,
+    logger: logging.Logger,
+    copy_command: str,
+) -> str:
     """
-    Упрощённый и быстрый способ получить URL из десктопного приложения.
+    Надёжно получает динамический URL из десктопного приложения.
 
-    Всегда выполняет только "Start Publishing" (без логики переключения) и копирует URL
-    через контекстное меню. Используется там, где требуется именно путь через UI.
+    Запускает публикацию при необходимости и повторяет копирование через
+    контекстное меню, пока VT не создаст корректный URL или не истечёт таймаут.
     """
-    try:
-        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
-
-        # Всегда пытаемся нажать только Start Publishing (приложение запускается с нуля)
-        if desktop_app_page.check_element_enabled_by_title_part("Start Publishing"):
-            desktop_app_page.click_button_by_name("Start Publishing")
-            time.sleep(1)
-
-        # Clear the clipboard so a failed menu click cannot reuse a URL from a
-        # previous test. Publisher may need a moment to create its room URL.
-        clipboard_marker = f"VT_URL_PENDING_{time.time_ns()}"
-        pyperclip.copy(clipboard_marker)
-
-        last_error = None
-        for attempt in range(1, 6):
-            try:
-                desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-                time.sleep(0.4)
-                desktop_app_page.click_vt_source_item(copy_command)
-            except Exception as exc:
-                last_error = exc
-                time.sleep(0.6)
-                continue
-
-            deadline = time.time() + 2
-            while time.time() < deadline:
-                copied = pyperclip.paste()
-                url = _valid_copied_url(copied, copy_command)
-                if url:
-                    logger.info(f"Получен URL: {url}")
-                    return url
-                time.sleep(0.2)
-
-            last_error = RuntimeError(
-                f"Publisher did not copy a valid URL for '{copy_command}' "
-                f"(clipboard={pyperclip.paste()!r}, attempt={attempt})."
-            )
-
-        raise last_error or RuntimeError(f"Could not copy URL using '{copy_command}'.")
-    except Exception as e:
-        logger.error(f"Ошибка при получении URL: {e}")
-        return None
+    return acquire_desktop_url(
+        desktop_app_page=desktop_app_page,
+        logger=logger,
+        source_title=SOURCE_TO_PUBLISHING,
+        copy_command=copy_command,
+        clipboard_read=pyperclip.paste,
+        clipboard_clear=lambda: pyperclip.copy(""),
+    )
 
 
 def _read_web_guest_url_from_config(config_path: str) -> Optional[str]:
     """Быстро читает web_guest_page_url из utils/config.ini (без UI)."""
     try:
-        parser = configparser.ConfigParser()
-        parser.read(config_path, encoding="utf-8")
-        url = parser.get("DEFAULT", "web_guest_page_url", fallback=None)
-        return _valid_copied_url(url, "Copy Web Guest URL")
+        return read_url_from_config(
+            config_path,
+            "web_guest_page_url",
+            is_web_guest_url,
+        )
     except Exception:
         return None
+
+
+def _resolve_web_guest_url(
+    desktop_app_page: DesktopAppPage,
+    logger: logging.Logger,
+) -> str:
+    """Resolve the current room URL and retain the exact UI failure."""
+    try:
+        return get_web_url(
+            desktop_app_page,
+            logger,
+            "Copy Web Guest URL",
+        )
+    except DesktopUrlAcquisitionError as ui_error:
+        fallback_url = _read_web_guest_url_from_config(CONFIG_INI)
+        if fallback_url:
+            logger.warning(
+                "VT UI URL acquisition failed; using the validated runtime "
+                "config URL. UI failure: %s",
+                ui_error,
+            )
+            return fallback_url
+
+        raise DesktopUrlAcquisitionError(
+            f"{ui_error} The fallback config '{CONFIG_INI}' is missing or "
+            "does not contain a valid web_guest_page_url."
+        ) from ui_error
 
 
 def update_config(config_file_path: str, section: str, key: str, value: str) -> bool:
@@ -303,10 +293,7 @@ def login_fixture(driver, logger):
 
     try:
         # 1) Получаем актуальный URL через копирование из UI
-        web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
-        if not web_guest_url:
-            logger.error("Не удалось получить Web Guest URL через UI.")
-            raise ValueError("Web Guest URL не был инициализирован.")
+        web_guest_url = _resolve_web_guest_url(desktop_app_page, logger)
 
         logger.info("Переходим на страницу Web Guest")
         driver.get(web_guest_url)
@@ -330,13 +317,7 @@ def modified_fixture(driver, logger):
     web_guest_page = WebGuestPage(driver)
 
     try:
-        web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
-        if not web_guest_url:
-            logger.warning("Не удалось получить URL через UI, читаем из конфига...")
-            web_guest_url = _read_web_guest_url_from_config(CONFIG_INI)
-        if not web_guest_url:
-            logger.error("Не удалось получить Web Guest URL.")
-            raise ValueError("Web Guest URL не был инициализирован.")
+        web_guest_url = _resolve_web_guest_url(desktop_app_page, logger)
 
         update_config(CONFIG_INI, 'DEFAULT', 'WEB_GUEST_PAGE_URL', web_guest_url)
         yield web_guest_page
