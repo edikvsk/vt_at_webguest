@@ -218,21 +218,57 @@ class DesktopAppPage:
             except Exception as error:
                 last_error = error
 
+            seen_handles = set()
             for root in roots:
-                try:
-                    menu_item = root.child_window(
-                        title=menu_item_title,
-                        control_type="MenuItem",
-                    )
-                    if (
-                        menu_item.exists(timeout=0.2)
-                        and menu_item.is_visible()
-                        and menu_item.is_enabled()
-                    ):
-                        menu_item.click_input()
-                        return
-                except Exception as error:
-                    last_error = error
+                # WindowSpecification objects support child_window(), while
+                # Application.windows() returns UIAWrapper objects that only
+                # support descendants(). Handle both pywinauto types instead
+                # of calling child_window() blindly on every top-level window.
+                candidates = []
+
+                child_window = getattr(root, "child_window", None)
+                if callable(child_window):
+                    try:
+                        candidates.append(
+                            child_window(
+                                title=menu_item_title,
+                                control_type="MenuItem",
+                            )
+                        )
+                    except Exception as error:
+                        last_error = error
+
+                descendants = getattr(root, "descendants", None)
+                if callable(descendants):
+                    try:
+                        for item in descendants(control_type="MenuItem"):
+                            try:
+                                if (
+                                    item.window_text().strip().casefold()
+                                    == menu_item_title.strip().casefold()
+                                ):
+                                    candidates.append(item)
+                            except Exception as error:
+                                last_error = error
+                    except Exception as error:
+                        last_error = error
+
+                for menu_item in candidates:
+                    try:
+                        handle = getattr(menu_item, "handle", None)
+                        if handle and handle in seen_handles:
+                            continue
+                        if handle:
+                            seen_handles.add(handle)
+
+                        exists = getattr(menu_item, "exists", None)
+                        if callable(exists) and not exists(timeout=0.2):
+                            continue
+                        if menu_item.is_visible() and menu_item.is_enabled():
+                            menu_item.click_input()
+                            return
+                    except Exception as error:
+                        last_error = error
 
             time.sleep(0.1)
 

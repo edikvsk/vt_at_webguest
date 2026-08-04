@@ -26,8 +26,6 @@ from utils.webrtc_stream_handler import StreamHandler
 from utils.web_url import (
     DesktopUrlAcquisitionError,
     acquire_desktop_url,
-    is_web_guest_url,
-    read_url_from_config,
 )
 
 # Настройка логирования
@@ -209,23 +207,16 @@ def get_web_url(
     )
 
 
-def _read_web_guest_url_from_config(config_path: str) -> Optional[str]:
-    """Быстро читает web_guest_page_url из utils/config.ini (без UI)."""
-    try:
-        return read_url_from_config(
-            config_path,
-            "web_guest_page_url",
-            is_web_guest_url,
-        )
-    except Exception:
-        return None
-
-
 def _resolve_web_guest_url(
     desktop_app_page: DesktopAppPage,
     logger: logging.Logger,
 ) -> str:
-    """Resolve the current room URL and retain the exact UI failure."""
+    """Resolve the room created by the VT process running for this test.
+
+    WebGuest room IDs are process-scoped. A URL left in config.ini by an
+    earlier test can be syntactically valid but already revoked after VT is
+    restarted, so it must never be used as a fallback here.
+    """
     try:
         return get_web_url(
             desktop_app_page,
@@ -233,18 +224,15 @@ def _resolve_web_guest_url(
             "Copy Web Guest URL",
         )
     except DesktopUrlAcquisitionError as ui_error:
-        fallback_url = _read_web_guest_url_from_config(CONFIG_INI)
-        if fallback_url:
-            logger.warning(
-                "VT UI URL acquisition failed; using the validated runtime "
-                "config URL. UI failure: %s",
-                ui_error,
-            )
-            return fallback_url
-
+        logger.error(
+            "Could not acquire a current WebGuest URL from VT; a cached "
+            "config URL was intentionally ignored because room IDs expire "
+            "when VT restarts. UI failure: %s",
+            ui_error,
+        )
         raise DesktopUrlAcquisitionError(
-            f"{ui_error} The fallback config '{CONFIG_INI}' is missing or "
-            "does not contain a valid web_guest_page_url."
+            f"{ui_error} Cached config URLs are not valid fallbacks after "
+            "VT restarts."
         ) from ui_error
 
 
