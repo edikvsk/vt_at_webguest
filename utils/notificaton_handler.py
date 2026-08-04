@@ -31,16 +31,29 @@ NOTIFICATION_TO_IGNORE = [
 
 
 class NotificationHandler:
+    ABSENCE_CHECK_TIMEOUT = 2
+    POLL_FREQUENCY = 0.1
+
     def __init__(self, driver, notification_element, logger):
         self.driver = driver
         self.notification_element = notification_element
         self.logger = logger  # Сохраняем логгер
 
-    def check_notification(self, ignore_fail_notifications=False, reason=None):
+    def check_notification(
+        self,
+        ignore_fail_notifications=False,
+        reason=None,
+        timeout=ABSENCE_CHECK_TIMEOUT,
+    ):
+        """Return a visible notification without imposing a 10-second absence delay."""
         base_page = BasePage(self.driver)
         try:
             self.logger.info("Ожидание уведомления...")
-            WebDriverWait(self.driver, 10).until(
+            WebDriverWait(
+                self.driver,
+                timeout,
+                poll_frequency=self.POLL_FREQUENCY,
+            ).until(
                 EC.visibility_of_element_located(self.notification_element)
             )
             notification_text = base_page.get_text(self.notification_element)
@@ -77,7 +90,11 @@ class NotificationHandler:
     def get_notification_text(self, timeout=10):
         base_page = BasePage(self.driver)
         try:
-            WebDriverWait(self.driver, timeout).until(
+            WebDriverWait(
+                self.driver,
+                timeout,
+                poll_frequency=self.POLL_FREQUENCY,
+            ).until(
                 EC.visibility_of_element_located(self.notification_element)
             )
             return base_page.get_text(self.notification_element)

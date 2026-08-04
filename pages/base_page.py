@@ -14,10 +14,24 @@ class BasePage:
     
     DEFAULT_TIMEOUT = 10
     LONG_TIMEOUT = 20
+    POLL_FREQUENCY = 0.1
+    ACTION_DURATION_MS = 0
     
     def __init__(self, driver):
         self.driver = driver
         self.logger = logging.getLogger(self.__class__.__name__)
+
+    def _wait(self, timeout: float = None) -> WebDriverWait:
+        """Create a responsive wait while retaining the existing timeout ceiling."""
+        return WebDriverWait(
+            self.driver,
+            timeout or self.DEFAULT_TIMEOUT,
+            poll_frequency=self.POLL_FREQUENCY,
+        )
+
+    def _actions(self) -> ActionChains:
+        """Create actions without Selenium's human-like pointer movement delay."""
+        return ActionChains(self.driver, duration=self.ACTION_DURATION_MS)
 
     def wait_for_element(self, locator: Tuple[By, str], timeout: int = None) -> Optional[WebElement]:
         """
@@ -32,7 +46,7 @@ class BasePage:
         """
         timeout = timeout or self.DEFAULT_TIMEOUT
         try:
-            wait = WebDriverWait(self.driver, timeout)
+            wait = self._wait(timeout)
             element = wait.until(EC.presence_of_element_located(locator))
             self.logger.debug(f"Элемент найден: {locator}")
             return element
@@ -53,7 +67,7 @@ class BasePage:
         """
         timeout = timeout or self.DEFAULT_TIMEOUT
         try:
-            wait = WebDriverWait(self.driver, timeout)
+            wait = self._wait(timeout)
             element = wait.until(EC.visibility_of_element_located(locator))
             self.logger.debug(f"Элемент виден: {locator}")
             return element
@@ -74,7 +88,7 @@ class BasePage:
         """
         timeout = timeout or self.DEFAULT_TIMEOUT
         try:
-            wait = WebDriverWait(self.driver, timeout)
+            wait = self._wait(timeout)
             element = wait.until(EC.element_to_be_clickable(locator))
             self.logger.debug(f"Элемент кликабелен: {locator}")
             return element
@@ -110,7 +124,7 @@ class BasePage:
         """
         timeout = timeout or self.DEFAULT_TIMEOUT
         try:
-            wait = WebDriverWait(self.driver, timeout)
+            wait = self._wait(timeout)
             elements = wait.until(EC.presence_of_all_elements_located((by, value)))
             self.logger.debug(f"Найдено {len(elements)} элементов: {by}={value}")
             return elements
@@ -254,7 +268,7 @@ class BasePage:
         """
         timeout = timeout or self.DEFAULT_TIMEOUT
         try:
-            WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
+            self._wait(timeout).until(EC.presence_of_element_located(locator))
             return True
         except TimeoutException:
             return False
@@ -272,7 +286,7 @@ class BasePage:
         """
         timeout = timeout or self.DEFAULT_TIMEOUT
         try:
-            WebDriverWait(self.driver, timeout).until(EC.visibility_of_element_located(locator))
+            self._wait(timeout).until(EC.visibility_of_element_located(locator))
             return True
         except TimeoutException:
             return False
@@ -290,7 +304,7 @@ class BasePage:
         """
         timeout = timeout or self.DEFAULT_TIMEOUT
         try:
-            WebDriverWait(self.driver, timeout).until(EC.element_to_be_clickable(locator))
+            self._wait(timeout).until(EC.element_to_be_clickable(locator))
             return True
         except TimeoutException:
             return False
@@ -312,7 +326,7 @@ class BasePage:
         """
         timeout = timeout or self.DEFAULT_TIMEOUT
         try:
-            WebDriverWait(self.driver, timeout).until(EC.url_to_be(url))
+            self._wait(timeout).until(EC.url_to_be(url))
             self.logger.debug(f"URL соответствует: {url}")
             return True
         except TimeoutException:
@@ -333,7 +347,7 @@ class BasePage:
         """
         timeout = timeout or self.DEFAULT_TIMEOUT
         try:
-            WebDriverWait(self.driver, timeout).until(EC.url_contains(url_part))
+            self._wait(timeout).until(EC.url_contains(url_part))
             self.logger.debug(f"URL содержит: {url_part}")
             return True
         except TimeoutException:
@@ -368,7 +382,7 @@ class BasePage:
         element = self.wait_for_element_visible(locator, timeout)
         if element:
             try:
-                ActionChains(self.driver).move_to_element(element).perform()
+                self._actions().move_to_element(element).perform()
                 self.logger.debug(f"Наведение на элемент: {locator}")
                 return True
             except Exception as e:
@@ -389,7 +403,7 @@ class BasePage:
         element = self.wait_for_element_clickable(locator, timeout)
         if element:
             try:
-                ActionChains(self.driver).double_click(element).perform()
+                self._actions().double_click(element).perform()
                 self.logger.debug(f"Двойной клик по элементу: {locator}")
                 return True
             except Exception as e:
@@ -410,7 +424,7 @@ class BasePage:
         element = self.wait_for_element_clickable(locator, timeout)
         if element:
             try:
-                ActionChains(self.driver).context_click(element).perform()
+                self._actions().context_click(element).perform()
                 self.logger.debug(f"Правый клик по элементу: {locator}")
                 return True
             except Exception as e:

@@ -65,8 +65,6 @@ class ProcessManager:
         if process:
             self.logger.info(f"{self.process_name} уже запущен. Завершаем процесс...")
             self.kill_process()
-            # Даем время для корректного завершения
-            time.sleep(5)
 
         # Затем удаляем конфигурационный файл
         if not self.delete_config_file():
@@ -74,12 +72,35 @@ class ProcessManager:
 
         # Запускаем процесс
         try:
-            subprocess.Popen(self.process_path)  # Запускаем процесс напрямую
-            time.sleep(15)  # Задержка для ожидания запуска процесса
+            process = subprocess.Popen(self.process_path)  # Запускаем процесс напрямую
+            self.wait_for_process_ready(process.pid)
             self.logger.info(f"{self.process_name} был запущен.")
         except Exception as e:
             self.logger.error(f"Ошибка при запуске процесса: {e}")
             raise  # Поднимаем исключение, чтобы остановить тест
+
+    def wait_for_process_ready(self, pid, timeout=20, poll_interval=0.1):
+        """Wait until VT owns a visible window instead of sleeping a fixed 15 seconds."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            # VT uses a short-lived launcher process and creates its UI in a
+            # second VT_Publisher process, so the Popen PID is not necessarily
+            # the PID that owns the main window.
+            for process in list(self.iter_processes()):
+                try:
+                    window_handle = self.get_window_handle(process.pid)
+                    if window_handle and win32gui.IsWindowVisible(window_handle):
+                        window_title = win32gui.GetWindowText(window_handle)
+                        if "VT Publisher" in window_title:
+                            return window_handle
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            time.sleep(poll_interval)
+
+        raise TimeoutError(
+            f"{self.process_name} (launcher PID {pid}) did not expose a responsive "
+            f"window within {timeout} seconds."
+        )
 
     def kill_process(self):
         """Завершает все инстансы процесса. Мягко (WM_CLOSE/terminate), затем форс-килл (taskkill)."""

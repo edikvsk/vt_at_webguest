@@ -208,10 +208,10 @@ class DesktopAppPage:
         the item is actually visible and enabled instead of sampling once
         immediately after the right-click.
         """
-        deadline = time.time() + timeout
+        deadline = time.monotonic() + timeout
         last_error = None
 
-        while time.time() < deadline:
+        while time.monotonic() < deadline:
             roots = [self.main_window]
             try:
                 roots.extend(self.main_window.app.windows())
@@ -270,7 +270,7 @@ class DesktopAppPage:
                     except Exception as error:
                         last_error = error
 
-            time.sleep(0.1)
+            time.sleep(self.POLL_INTERVAL)
 
         detail = f": {last_error}" if last_error else ""
         raise RuntimeError(
