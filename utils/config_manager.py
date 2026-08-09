@@ -103,6 +103,52 @@ class ConfigManager:
         """Локальный кэш для VT сборок."""
         return self._repo_root() / ".tools" / "VT"
 
+    def _detect_installed_vt_root(self) -> Optional[Path]:
+        """Find a usable workstation VT installation without downloading it.
+
+        TestBot installs Video Transport into ``C:\\VT`` by default. Keep the
+        environment override first, then inspect the supported installation
+        roots. A candidate is usable only when the publisher and its XML
+        configuration are both present.
+        """
+        roots = []
+        configured_root = os.getenv("VT_INSTALL_ROOT")
+        if configured_root:
+            roots.append(Path(configured_root))
+
+        roots.extend([
+            Path("C:/VT"),
+            Path("C:/Program Files/Medialooks/Video Transport"),
+            Path("C:/Program Files (x86)/Medialooks/Video Transport"),
+        ])
+
+        candidates = []
+        for root in roots:
+            candidates.append(root)
+            try:
+                candidates.extend(root.glob("Video Transport *(x64)"))
+            except OSError:
+                continue
+
+        usable = []
+        for candidate in candidates:
+            publisher = candidate / "VT_Publisher.exe"
+            publisher_xml = candidate / "DLL" / "publisher.xml"
+            if publisher.is_file() and publisher_xml.is_file():
+                try:
+                    modified = publisher.stat().st_mtime
+                except OSError:
+                    modified = 0.0
+                usable.append((modified, candidate))
+
+        if not usable:
+            return None
+
+        usable.sort(key=lambda item: item[0], reverse=True)
+        detected = usable[0][1]
+        self.logger.info(f"Using installed Video Transport from: {detected}")
+        return detected
+
     def _fetch_url_text(self, url: str) -> str:
         """Скачивает содержимое URL как текст (utf-8)."""
         with urllib.request.urlopen(url) as resp:
@@ -293,15 +339,17 @@ class ConfigManager:
 
             auto_root = None
             if not env_process_path or not env_xml_path:
-                auto_root = self._ensure_latest_vt_downloaded()
+                auto_root = self._detect_installed_vt_root()
+                if auto_root is None:
+                    auto_root = self._ensure_latest_vt_downloaded()
 
             if auto_root is not None:
                 default_process = str(auto_root / "VT_Publisher.exe")
                 default_xml = str(auto_root / "DLL" / "publisher.xml")
             else:
                 # fallback на прежние дефолты, если автозагрузка не удалась
-                default_process = "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/VT_Publisher.exe"
-                default_xml = "C:/Users/edwar/Desktop/VT/Video Transport 1.9.5.1179(x64)/DLL/publisher.xml"
+                default_process = "C:/VT/VT_Publisher.exe"
+                default_xml = "C:/VT/DLL/publisher.xml"
 
             # Загружаем конфигурацию десктопного приложения
             self._desktop_config = DesktopAppConfig(
