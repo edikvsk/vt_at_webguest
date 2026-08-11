@@ -65,8 +65,8 @@ class ProcessManager:
         if process:
             self.logger.info(f"{self.process_name} уже запущен. Завершаем процесс...")
             self.kill_process()
-            # Даем время для корректного завершения
-            time.sleep(5)
+            # Даем время для корректного завершения и освобождения ресурсов OS
+            time.sleep(8)
 
         # Затем удаляем конфигурационный файл
         if not self.delete_config_file():

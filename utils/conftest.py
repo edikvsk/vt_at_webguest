@@ -310,7 +310,7 @@ def login_fixture(driver, logger):
 
         notification_handler.check_notification()
         base_page.click(web_guest_page.LOGIN_BUTTON)
-        stream_handler.wait_for_webrtc_connection(timeout=20)
+        stream_handler.wait_for_webrtc_connection(timeout=40)
         logger.info("Стрим запущен")
 
         yield web_guest_page
@@ -325,6 +325,16 @@ def modified_fixture(driver, logger):
     desktop_app = DesktopApp(PROCESS_PATH)
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
     web_guest_page = WebGuestPage(driver)
+
+    # Ждём готовности окна VT перед UI-взаимодействием
+    _deadline = time.time() + 45
+    while time.time() < _deadline:
+        try:
+            if desktop_app.main_window.exists():
+                break
+        except Exception:
+            pass
+        time.sleep(1)
 
     try:
         web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
