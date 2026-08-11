@@ -34,9 +34,13 @@ def ensure_vt_killed_before_test():
     """Гарантированно закрывает VT перед каждым тестом, чтобы избежать зависаний на открытой вкладке."""
     pm = ProcessManager(PROCESS_PATH, PROCESS_NAME, PUBLISHER_XML_PATH)
     pm.kill_process()
-    # небольшая пауза, чтобы ОС пересобрала дескрипторы окон
+    # пауза, чтобы ОС пересобрала дескрипторы окон и освободила ресурсы
     import time as _t
-    _t.sleep(1)
+    _t.sleep(3)
+    # Дополнительная проверка: если процессы всё ещё живы — ждём ещё
+    if pm.is_process_running():
+        logger.warning("Процесс VT всё ещё запущен после kill_process, ожидаем завершения...")
+        _t.sleep(5)
 
 
 @pytest.fixture(scope="function")
@@ -49,6 +53,25 @@ def driver():
     
     process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME, PUBLISHER_XML_PATH)
     process_manager.start_process()
+
+    # Ждём готовности окна VT — если не появится за 30 сек, логируем предупреждение
+    try:
+        from utils.desktop_app import DesktopApp
+        _deadline = time.time() + 30
+        _vt_ready = False
+        while time.time() < _deadline:
+            try:
+                _app = DesktopApp(PROCESS_PATH)
+                if _app.main_window.exists():
+                    _vt_ready = True
+                    break
+            except Exception:
+                pass
+            time.sleep(1)
+        if not _vt_ready:
+            logger.warning("Окно VT Publisher не появилось за 30 секунд после запуска.")
+    except Exception as _e:
+        logger.warning(f"Проверка готовности VT завершилась с ошибкой: {_e}")
 
     chrome_options = Options()
     
@@ -178,28 +201,39 @@ def get_web_url(desktop_app_page: DesktopAppPage, logger: logging.Logger, copy_c
 
     Всегда выполняет только "Start Publishing" (без логики переключения) и копирует URL
     через контекстное меню. Используется там, где требуется именно путь через UI.
+    Поддерживает до 3 попыток при неудачном UI-взаимодействии.
     """
-    try:
-        desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        try:
+            desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
 
-        # Всегда пытаемся нажать только Start Publishing (приложение запускается с нуля)
-        if desktop_app_page.check_element_enabled_by_title_part("Start Publishing"):
-            desktop_app_page.click_button_by_name("Start Publishing")
-            time.sleep(1)
+            # Всегда пытаемся нажать только Start Publishing (приложение запускается с нуля)
+            if desktop_app_page.check_element_enabled_by_title_part("Start Publishing"):
+                desktop_app_page.click_button_by_name("Start Publishing")
+                time.sleep(1)
 
-        # Правый клик и ожидание появления контекстного меню
-        desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-        time.sleep(0.5)
+            # Правый клик и ожидание появления контекстного меню
+            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
+            time.sleep(0.5)
 
-        desktop_app_page.click_vt_source_item(copy_command)
-        time.sleep(0.3)
+            desktop_app_page.click_vt_source_item(copy_command)
+            time.sleep(0.3)
 
-        url = pyperclip.paste()
-        logger.info(f"Получен URL: {url}")
-        return url
-    except Exception as e:
-        logger.error(f"Ошибка при получении URL: {e}")
-        return None
+            url = pyperclip.paste()
+            logger.info(f"Получен URL (попытка {attempt}): {url}")
+            if url and url.startswith("http"):
+                return url
+            logger.warning(f"Получен некорректный URL: {url}")
+        except Exception as e:
+            logger.warning(f"Попытка {attempt}/{max_attempts} получения URL не удалась: {e}")
+
+        if attempt < max_attempts:
+            logger.info(f"Повторная попытка получения URL через 3 сек...")
+            time.sleep(3)
+
+    logger.error("Не удалось получить URL после всех попыток.")
+    return None
 
 
 def _read_web_guest_url_from_config(config_path: str) -> Optional[str]:
@@ -265,7 +299,10 @@ def login_fixture(driver, logger):
         # 1) Получаем актуальный URL через копирование из UI
         web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
         if not web_guest_url:
-            logger.error("Не удалось получить Web Guest URL через UI.")
+            logger.warning("Не удалось получить URL через UI, читаем из конфига...")
+            web_guest_url = _read_web_guest_url_from_config(CONFIG_INI)
+        if not web_guest_url:
+            logger.error("Не удалось получить Web Guest URL.")
             raise ValueError("Web Guest URL не был инициализирован.")
 
         logger.info("Переходим на страницу Web Guest")
@@ -345,7 +382,10 @@ def open_web_preview_fixture(driver, logger):
 
         preview_url = get_web_url(desktop_app_page, logger, "Copy Preview URL")
         if not preview_url:
-            logger.error("Не удалось получить Preview URL через UI.")
+            logger.warning("Не удалось получить Preview URL через UI, читаем из конфига...")
+            preview_url = _read_web_guest_url_from_config(CONFIG_INI)
+        if not preview_url:
+            logger.error("Не удалось получить Preview URL.")
             raise ValueError("Preview URL не был инициализирован.")
 
         logger.info("Переходим на страницу Web Preview")
