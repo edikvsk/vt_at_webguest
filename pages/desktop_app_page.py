@@ -1,4 +1,3 @@
-import re
 import time
 
 from pywinauto.findwindows import ElementNotFoundError
@@ -16,6 +15,87 @@ class DesktopAppPage:
 
     def __init__(self, main_window):
         self.main_window = main_window
+
+    @staticmethod
+    def _element_state(element):
+        """Return UIA state without allowing a stale element to break discovery."""
+        try:
+            visible = bool(element.is_visible())
+        except Exception:
+            visible = False
+        try:
+            enabled = bool(element.is_enabled())
+        except Exception:
+            enabled = False
+        try:
+            rectangle = element.rectangle()
+            has_size = rectangle.width() > 0 and rectangle.height() > 0
+        except Exception:
+            rectangle = None
+            has_size = False
+        return visible, enabled, has_size, rectangle
+
+    def _matching_text_elements(self, title_part):
+        """Find every text control containing title_part without assuming uniqueness."""
+        needle = title_part.strip().casefold()
+        matches = []
+        for element in self.main_window.descendants(control_type="Text"):
+            try:
+                title = element.window_text().strip()
+            except Exception:
+                continue
+            if needle in title.casefold():
+                matches.append((element, title))
+        return matches
+
+    def _find_text_element(self, title_part, enabled_only=False):
+        """Resolve duplicate WPF text controls to the visible actionable instance."""
+        matches = self._matching_text_elements(title_part)
+        if not matches:
+            raise ElementNotFoundError(
+                f"No text element containing '{title_part}' was found in VT Publisher."
+            )
+
+        needle = title_part.strip().casefold()
+        ranked = []
+        for index, (element, title) in enumerate(matches):
+            visible, enabled, has_size, rectangle = self._element_state(element)
+            if enabled_only and not enabled:
+                continue
+
+            parent_actionable = False
+            try:
+                parent = element.parent()
+                parent_visible, parent_enabled, parent_has_size, _ = self._element_state(parent)
+                parent_actionable = parent_visible and parent_enabled and parent_has_size
+            except Exception:
+                pass
+
+            # Visible, enabled controls with an actionable parent beat WPF template
+            # duplicates. Among them, exact labels beat status/detail labels.
+            score = (
+                visible,
+                enabled,
+                has_size,
+                parent_actionable,
+                title.casefold() == needle,
+                -index,
+            )
+            ranked.append((score, element, title, rectangle))
+
+        if not ranked:
+            raise ElementNotFoundError(
+                f"Text element containing '{title_part}' exists but is not enabled."
+            )
+
+        ranked.sort(key=lambda candidate: candidate[0], reverse=True)
+        _, selected, selected_title, selected_rectangle = ranked[0]
+        if len(matches) > 1:
+            print(
+                f"Resolved {len(matches)} VT controls containing '{title_part}' to "
+                f"'{selected_title}' at {selected_rectangle}."
+            )
+        return selected
 
     # Методы:
 
@@ -66,22 +146,17 @@ class DesktopAppPage:
     def check_element_enabled_by_title_part(self, title_part):
         """Проверяет, доступен ли элемент с заданной частью заголовка."""
         try:
-            text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*', control_type="Text")
-            if text_element.exists() and text_element.is_enabled():
-                return True
-            else:
-                return False
+            return any(
+                self._element_state(element)[1]
+                for element, _ in self._matching_text_elements(title_part)
+            )
         except Exception as e:
             raise RuntimeError(f"Ошибка при проверке доступности элемента: {e}")
 
     def check_element_exists_by_title_part(self, title_part):
         """Проверяет наличие элемента с заданной частью заголовка."""
         try:
-            text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*', control_type="Text")
-            if text_element.exists():
-                return True
-            else:
-                return False
+            return bool(self._matching_text_elements(title_part))
         except Exception as e:
             raise RuntimeError(f"Ошибка при проверке наличия элемента: {e}")
 
@@ -91,21 +166,18 @@ class DesktopAppPage:
 
         while attempts < max_attempts:
             try:
-                text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*',
-                                                             control_type="Text")
-                if text_element.exists() and text_element.is_enabled():
-                    parent = text_element.parent()  # Получаем родительский элемент
-                    parent.set_focus()
-                    text_element.click_input()
-                    text_element.click_input(button='right')
-                    return  # Успешный клик, выходим из метода
-                else:
-                    raise ElementNotFoundError(f"Элемент с частью заголовка '{title_part}' не доступен для клика.")
+                text_element = self._find_text_element(title_part, enabled_only=True)
+                parent = text_element.parent()  # Получаем родительский элемент
+                parent.set_focus()
+                text_element.click_input()
+                text_element.click_input(button='right')
+                return  # Успешный клик, выходим из метода
             except Exception as e:
                 attempts += 1
                 if attempts >= max_attempts:
                     raise RuntimeError(
                         f"Ошибка при выполнении правого клика на элементе после {max_attempts} попыток: {e}")
+                time.sleep(0.5)
 
     def focus_click_vt_source_item(self, title_part, max_attempts=2):
         """Выполняет клик на элементе с заданной частью заголовка."""
@@ -113,33 +185,98 @@ class DesktopAppPage:
 
         while attempts < max_attempts:
             try:
-                text_element = self.main_window.child_window(title_re=f'.*{re.escape(title_part)}.*',
-                                                             control_type="Text")
-                if text_element.exists() and text_element.is_enabled():
-                    # Прокручиваем к элементу
-                    parent = text_element.parent()  # Получаем родительский элемент
-                    parent.set_focus()  # Устанавливаем фокус на родительский элемент
+                text_element = self._find_text_element(title_part, enabled_only=True)
+                # Прокручиваем к элементу
+                parent = text_element.parent()  # Получаем родительский элемент
+                parent.set_focus()  # Устанавливаем фокус на родительский элемент
 
-                    # Выполняем клик на элементе
-                    text_element.click_input()
-                    return  # Успешный клик, выходим из метода
-                else:
-                    raise ElementNotFoundError(f"Элемент с частью заголовка '{title_part}' не доступен для клика.")
+                # Выполняем клик на элементе
+                text_element.click_input()
+                return  # Успешный клик, выходим из метода
             except Exception as e:
                 attempts += 1
                 if attempts >= max_attempts:
                     raise RuntimeError(f"Ошибка при выполнении клика на элементе после {max_attempts} попыток: {e}")
+                time.sleep(0.5)
 
-    def click_vt_source_item(self, menu_item_title):
-        """Кликает по элементу меню с заданным заголовком."""
-        try:
-            menu_item = self.main_window.child_window(title=menu_item_title, control_type="MenuItem")
-            if menu_item.exists() and menu_item.is_enabled():
-                menu_item.click_input()
-            else:
-                raise ElementNotFoundError(f"Элемент '{menu_item_title}' не доступен для клика.")
-        except Exception as e:
-            raise RuntimeError(f"Ошибка при клике на элемент меню '{menu_item_title}': {e}")
+    def click_vt_source_item(self, menu_item_title, timeout=10):
+        """Wait for and click a VT context-menu item.
+
+        WPF context menus are separate popup windows. Depending on timing,
+        pywinauto may expose the popup under the main window or as another
+        top-level window owned by the VT process. Search both locations until
+        the item is actually visible and enabled instead of sampling once
+        immediately after the right-click.
+        """
+        deadline = time.monotonic() + timeout
+        last_error = None
+
+        while time.monotonic() < deadline:
+            roots = [self.main_window]
+            try:
+                roots.extend(self.main_window.app.windows())
+            except Exception as error:
+                last_error = error
+
+            seen_handles = set()
+            for root in roots:
+                # WindowSpecification objects support child_window(), while
+                # Application.windows() returns UIAWrapper objects that only
+                # support descendants(). Handle both pywinauto types instead
+                # of calling child_window() blindly on every top-level window.
+                candidates = []
+
+                child_window = getattr(root, "child_window", None)
+                if callable(child_window):
+                    try:
+                        candidates.append(
+                            child_window(
+                                title=menu_item_title,
+                                control_type="MenuItem",
+                            )
+                        )
+                    except Exception as error:
+                        last_error = error
+
+                descendants = getattr(root, "descendants", None)
+                if callable(descendants):
+                    try:
+                        for item in descendants(control_type="MenuItem"):
+                            try:
+                                if (
+                                    item.window_text().strip().casefold()
+                                    == menu_item_title.strip().casefold()
+                                ):
+                                    candidates.append(item)
+                            except Exception as error:
+                                last_error = error
+                    except Exception as error:
+                        last_error = error
+
+                for menu_item in candidates:
+                    try:
+                        handle = getattr(menu_item, "handle", None)
+                        if handle and handle in seen_handles:
+                            continue
+                        if handle:
+                            seen_handles.add(handle)
+
+                        exists = getattr(menu_item, "exists", None)
+                        if callable(exists) and not exists(timeout=0.2):
+                            continue
+                        if menu_item.is_visible() and menu_item.is_enabled():
+                            menu_item.click_input()
+                            return
+                    except Exception as error:
+                        last_error = error
+
+            time.sleep(self.POLL_INTERVAL)
+
+        detail = f": {last_error}" if last_error else ""
+        raise RuntimeError(
+            f"Menu item '{menu_item_title}' did not become visible and "
+            f"enabled within {timeout}s{detail}"
+        )
 
     def click_button_by_name(self, button_name, timeout=10):
         """Кликает по кнопке с заданным именем, ожидая её доступности."""

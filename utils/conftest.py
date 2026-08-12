@@ -23,6 +23,10 @@ from utils.desktop_app import DesktopApp
 from utils.notificaton_handler import NotificationHandler
 from utils.process_handler import ProcessManager
 from utils.webrtc_stream_handler import StreamHandler
+from utils.web_url import (
+    DesktopUrlAcquisitionError,
+    acquire_desktop_url,
+)
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -36,15 +40,15 @@ def ensure_vt_killed_before_test():
     pm.kill_process()
     # пауза, чтобы ОС пересобрала дескрипторы окон и освободила ресурсы
     import time as _t
-    _t.sleep(3)
-    # Дополнительная проверка: если процессы всё ещё живы — ждём ещё
-    if pm.is_process_running():
-        logger.warning("Процесс VT всё ещё запущен после kill_process, ожидаем завершения...")
-        _t.sleep(5)
+    _t.sleep(1)
+    try:
+        yield
+    finally:
+        pm.kill_process()
 
 
 @pytest.fixture(scope="function")
-def driver():
+def driver(ensure_vt_killed_before_test, request):
     """Основная фикстура для создания WebDriver с настройкой браузера и запуском процесса."""
     # Подавляем WebRTC логи
     import os
@@ -53,25 +57,6 @@ def driver():
     
     process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME, PUBLISHER_XML_PATH)
     process_manager.start_process()
-
-    # Ждём готовности окна VT — если не появится за 30 сек, логируем предупреждение
-    try:
-        from utils.desktop_app import DesktopApp
-        _deadline = time.time() + 30
-        _vt_ready = False
-        while time.time() < _deadline:
-            try:
-                _app = DesktopApp(PROCESS_PATH)
-                if _app.main_window.exists():
-                    _vt_ready = True
-                    break
-            except Exception:
-                pass
-            time.sleep(1)
-        if not _vt_ready:
-            logger.warning("Окно VT Publisher не появилось за 30 секунд после запуска.")
-    except Exception as _e:
-        logger.warning(f"Проверка готовности VT завершилась с ошибкой: {_e}")
 
     chrome_options = Options()
     
@@ -103,13 +88,15 @@ def driver():
 
     # Глушим лог-файл chromedriver
     service = Service(CHROME_DRIVER_PATH, log_path=os.devnull)
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    web_driver = webdriver.Chrome(service=service, options=chrome_options)
+    # Register cleanup immediately so setup failures cannot leak Chrome.
+    request.addfinalizer(web_driver.quit)
     
     # Максимизируем окно для более стабильной работы
-    driver.maximize_window()
+    web_driver.maximize_window()
     
     # Устанавливаем медиа-ограничения через JavaScript после загрузки страницы
-    driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+    web_driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
         'source': f'''
             // Переопределяем getUserMedia для автоматического выбора устройств
             const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
@@ -154,7 +141,12 @@ def driver():
                         if (videoDeviceId) {{
                             modifiedConstraints.video = {{ ...constraints.video, deviceId: {{ exact: videoDeviceId }} }};
                         }} else {{
-                            modifiedConstraints.video = true;
+                            // Preserve requested resolution/framerate when a
+                            // workstation-specific camera label is absent.
+                            // Replacing the object with `true` silently drops
+                            // URL constraints and makes the default 640x480
+                            // look like a product failure.
+                            modifiedConstraints.video = constraints.video;
                         }}
                     }}
 
@@ -162,7 +154,7 @@ def driver():
                         if (audioDeviceId) {{
                             modifiedConstraints.audio = {{ ...constraints.audio, deviceId: {{ exact: audioDeviceId }} }};
                         }} else {{
-                            modifiedConstraints.audio = true;
+                            modifiedConstraints.audio = constraints.audio;
                         }}
                     }}
                     
@@ -173,8 +165,7 @@ def driver():
         '''
     })
     
-    yield driver
-    driver.quit()
+    return web_driver
 
 
 @pytest.fixture(scope="function")
@@ -195,56 +186,54 @@ def web_guest_page_setup(driver):
     return web_guest_page, base_page, notification_handler, stream_handler
 
 
-def get_web_url(desktop_app_page: DesktopAppPage, logger: logging.Logger, copy_command: str) -> Optional[str]:
+def get_web_url(
+    desktop_app_page: DesktopAppPage,
+    logger: logging.Logger,
+    copy_command: str,
+) -> str:
     """
-    Упрощённый и быстрый способ получить URL из десктопного приложения.
+    Надёжно получает динамический URL из десктопного приложения.
 
-    Всегда выполняет только "Start Publishing" (без логики переключения) и копирует URL
-    через контекстное меню. Используется там, где требуется именно путь через UI.
-    Поддерживает до 3 попыток при неудачном UI-взаимодействии.
+    Запускает публикацию при необходимости и повторяет копирование через
+    контекстное меню, пока VT не создаст корректный URL или не истечёт таймаут.
     """
-    max_attempts = 3
-    for attempt in range(1, max_attempts + 1):
-        try:
-            desktop_app_page.focus_click_vt_source_item(SOURCE_TO_PUBLISHING)
-
-            # Всегда пытаемся нажать только Start Publishing (приложение запускается с нуля)
-            if desktop_app_page.check_element_enabled_by_title_part("Start Publishing"):
-                desktop_app_page.click_button_by_name("Start Publishing")
-                time.sleep(1)
-
-            # Правый клик и ожидание появления контекстного меню
-            desktop_app_page.right_click_vt_source_item(SOURCE_TO_PUBLISHING)
-            time.sleep(0.5)
-
-            desktop_app_page.click_vt_source_item(copy_command)
-            time.sleep(0.3)
-
-            url = pyperclip.paste()
-            logger.info(f"Получен URL (попытка {attempt}): {url}")
-            if url and url.startswith("http"):
-                return url
-            logger.warning(f"Получен некорректный URL: {url}")
-        except Exception as e:
-            logger.warning(f"Попытка {attempt}/{max_attempts} получения URL не удалась: {e}")
-
-        if attempt < max_attempts:
-            logger.info(f"Повторная попытка получения URL через 3 сек...")
-            time.sleep(3)
-
-    logger.error("Не удалось получить URL после всех попыток.")
-    return None
+    return acquire_desktop_url(
+        desktop_app_page=desktop_app_page,
+        logger=logger,
+        source_title=SOURCE_TO_PUBLISHING,
+        copy_command=copy_command,
+        clipboard_read=pyperclip.paste,
+        clipboard_clear=lambda: pyperclip.copy(""),
+    )
 
 
-def _read_web_guest_url_from_config(config_path: str) -> Optional[str]:
-    """Быстро читает web_guest_page_url из utils/config.ini (без UI)."""
+def _resolve_web_guest_url(
+    desktop_app_page: DesktopAppPage,
+    logger: logging.Logger,
+) -> str:
+    """Resolve the room created by the VT process running for this test.
+
+    WebGuest room IDs are process-scoped. A URL left in config.ini by an
+    earlier test can be syntactically valid but already revoked after VT is
+    restarted, so it must never be used as a fallback here.
+    """
     try:
-        parser = configparser.ConfigParser()
-        parser.read(config_path, encoding="utf-8")
-        url = parser.get("DEFAULT", "web_guest_page_url", fallback=None)
-        return url
-    except Exception:
-        return None
+        return get_web_url(
+            desktop_app_page,
+            logger,
+            "Copy Web Guest URL",
+        )
+    except DesktopUrlAcquisitionError as ui_error:
+        logger.error(
+            "Could not acquire a current WebGuest URL from VT; a cached "
+            "config URL was intentionally ignored because room IDs expire "
+            "when VT restarts. UI failure: %s",
+            ui_error,
+        )
+        raise DesktopUrlAcquisitionError(
+            f"{ui_error} Cached config URLs are not valid fallbacks after "
+            "VT restarts."
+        ) from ui_error
 
 
 def update_config(config_file_path: str, section: str, key: str, value: str) -> bool:
@@ -297,13 +286,7 @@ def login_fixture(driver, logger):
 
     try:
         # 1) Получаем актуальный URL через копирование из UI
-        web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
-        if not web_guest_url:
-            logger.warning("Не удалось получить URL через UI, читаем из конфига...")
-            web_guest_url = _read_web_guest_url_from_config(CONFIG_INI)
-        if not web_guest_url:
-            logger.error("Не удалось получить Web Guest URL.")
-            raise ValueError("Web Guest URL не был инициализирован.")
+        web_guest_url = _resolve_web_guest_url(desktop_app_page, logger)
 
         logger.info("Переходим на страницу Web Guest")
         driver.get(web_guest_url)
@@ -326,24 +309,8 @@ def modified_fixture(driver, logger):
     desktop_app_page = DesktopAppPage(desktop_app.main_window)
     web_guest_page = WebGuestPage(driver)
 
-    # Ждём готовности окна VT перед UI-взаимодействием
-    _deadline = time.time() + 45
-    while time.time() < _deadline:
-        try:
-            if desktop_app.main_window.exists():
-                break
-        except Exception:
-            pass
-        time.sleep(1)
-
     try:
-        web_guest_url = get_web_url(desktop_app_page, logger, "Copy Web Guest URL")
-        if not web_guest_url:
-            logger.warning("Не удалось получить URL через UI, читаем из конфига...")
-            web_guest_url = _read_web_guest_url_from_config(CONFIG_INI)
-        if not web_guest_url:
-            logger.error("Не удалось получить Web Guest URL.")
-            raise ValueError("Web Guest URL не был инициализирован.")
+        web_guest_url = _resolve_web_guest_url(desktop_app_page, logger)
 
         update_config(CONFIG_INI, 'DEFAULT', 'WEB_GUEST_PAGE_URL', web_guest_url)
         yield web_guest_page

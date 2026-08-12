@@ -1,11 +1,9 @@
 from datetime import datetime, timedelta
-from time import sleep
 
 from selenium.common import TimeoutException, NoSuchElementException, WebDriverException
-from selenium.webdriver import ActionChains, Keys
+from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
 
 from pages.base_page import BasePage
 
@@ -87,21 +85,53 @@ class WebGuestPage(BasePage):
         """
         try:
             # Ожидаем, пока элемент станет кликабельным
-            element = WebDriverWait(self.driver, timeout).until(
+            element = self._wait(timeout).until(
                 EC.element_to_be_clickable(element_locator)
             )
 
             # Прокручиваем к элементу, если он не виден
-            self.driver.execute_script("arguments[0].scrollIntoView();", element)
+            self.driver.execute_script(
+                "arguments[0].scrollIntoView({block: 'center', inline: 'center'});",
+                element,
+            )
 
-            # Используем ActionChains для клика
-            actions = ActionChains(self.driver)
-            actions.move_to_element(element).click().perform()
-
+            # A DOM click avoids Selenium's default human-like pointer travel.
+            # Keep a zero-duration pointer action as a fallback for controls that
+            # explicitly depend on mouse events.
+            try:
+                element.click()
+            except WebDriverException:
+                self._actions().move_to_element(element).click().perform()
+            return
         except TimeoutException:
-            print(f"Элемент {element_locator} не доступен для клика в течение {timeout} секунд.")
-        except Exception as e:
-            print(f"Ошибка при клике на элемент {element_locator}: {e}")
+            # The responsive bottom toolbar can overlap an otherwise visible
+            # button. Selenium then rejects a real user click even though the
+            # React control is present and enabled. Dispatch the button's DOM
+            # click as the bounded fallback instead of silently continuing
+            # with a closed settings modal.
+            try:
+                element = self._wait(timeout).until(
+                    EC.presence_of_element_located(element_locator)
+                )
+                if element.get_attribute("disabled") is not None:
+                    raise RuntimeError(
+                        f"Element is disabled and cannot be clicked: {element_locator}"
+                    )
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView({block: 'center', inline: 'center'});"
+                    "arguments[0].click();",
+                    element,
+                )
+                return
+            except Exception as error:
+                raise RuntimeError(
+                    f"Element could not be clicked within {timeout}s: "
+                    f"{element_locator}"
+                ) from error
+        except Exception as error:
+            raise RuntimeError(
+                f"Element click failed: {element_locator}"
+            ) from error
 
     def wait_for_element(self, locator, timeout=10):
         """
@@ -112,7 +142,7 @@ class WebGuestPage(BasePage):
         :return: WebElement - найденный элемент
         :raises TimeoutException: Если элемент не найден за указанное время
         """
-        return WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
+        return self._wait(timeout).until(EC.presence_of_element_located(locator))
 
     def hover_element(self, element):
         """
@@ -121,7 +151,8 @@ class WebGuestPage(BasePage):
         :param element: Локатор элемента для наведения
         :return: None
         """
-        ActionChains(self.driver).move_to_element(self.wait_for_element(element)).perform()
+        target = self._wait().until(EC.visibility_of_element_located(element))
+        self._actions().move_to_element(target).perform()
 
     def get_tooltip_text(self, element, tooltip_locator):
         """
@@ -133,11 +164,39 @@ class WebGuestPage(BasePage):
         """
         try:
             self.hover_element(element)
-            tooltip_element = self.wait_for_element(tooltip_locator)
-            return tooltip_element.text
-        except (TimeoutException, NoSuchElementException) as e:
-            print(f"Ошибка при получении текста tooltip: {e}")
-            return None
+            tooltip_element = self._wait(10).until(
+                lambda driver: self._element_with_text(
+                    driver,
+                    tooltip_locator,
+                )
+            )
+            return self._element_text(tooltip_element)
+        except (TimeoutException, NoSuchElementException) as error:
+            raise RuntimeError(
+                f"Tooltip label did not become available: {tooltip_locator}"
+            ) from error
+
+    @staticmethod
+    def _element_with_text(driver, locator):
+        element = driver.find_element(*locator)
+        return element if WebGuestPage._element_text(element) else False
+
+    @staticmethod
+    def _element_text(element):
+        # Bootstrap keeps tooltip content mounted while Popper transitions its
+        # visibility. Selenium's ``text`` is empty during that transition even
+        # though the label is already populated. Read textContent as the stable
+        # fallback so the test validates the tooltip label, not animation
+        # timing.
+        visible_text = element.text.strip()
+        if visible_text:
+            return visible_text
+
+        text_content = (element.get_attribute("textContent") or "").strip()
+        classes = (element.get_attribute("class") or "").split()
+        if "text-uppercase" in classes:
+            return text_content.upper()
+        return text_content
 
     def is_button_pressed(self, button_locator):
         """
@@ -163,11 +222,12 @@ class WebGuestPage(BasePage):
         :raises RuntimeError: При ошибках ввода
         """
         try:
-            text_field = self.wait_for_element(field_locator)
+            text_field = self._wait().until(EC.element_to_be_clickable(field_locator))
             text_field.clear()
-            for letter in text:
-                text_field.send_keys(letter)
-                sleep(0.5)
+            text_field.send_keys(text)
+            self._wait(2).until(
+                lambda _driver: text_field.get_attribute('value') == str(text)
+            )
         except Exception as e:
             raise RuntimeError(f"Ошибка при вводе текста: {e}")
 
@@ -181,12 +241,14 @@ class WebGuestPage(BasePage):
         :raises RuntimeError: При ошибках удаления
         """
         try:
-            text_field = WebDriverWait(self.driver, timeout).until(
+            text_field = self._wait(timeout).until(
                 EC.visibility_of_element_located(field_locator)
             )
-            while text_field.get_attribute('value'):  # Проверяем, есть ли текст в поле
-                text_field.send_keys(Keys.BACKSPACE)  # Удаляем последнюю букву
-                sleep(0.5)  # Задержка для наглядности
+            text_field.send_keys(Keys.CONTROL, 'a')
+            text_field.send_keys(Keys.BACKSPACE)
+            self._wait(2).until(
+                lambda _driver: not text_field.get_attribute('value')
+            )
         except Exception as e:
             raise RuntimeError(f"Ошибка при удалении текста: {e}")
 
@@ -285,15 +347,14 @@ class WebGuestPage(BasePage):
                 return value
 
             # Fallback: классический Selenium путь
-            volume_fader = WebDriverWait(self.driver, 10).until(
+            volume_fader = self._wait(10).until(
                 EC.presence_of_element_located(fader_locator)
             )
 
             if not volume_fader.is_displayed():
                 self.hover_element(self.MUTE_BUTTON)
-                sleep(1)
 
-            thumb_element = WebDriverWait(self.driver, 10).until(
+            thumb_element = self._wait(10).until(
                 EC.visibility_of_element_located(
                     (fader_locator[0], fader_locator[1] + "//div[contains(@class, 'thumb')]")
                 )
@@ -369,7 +430,7 @@ class WebGuestPage(BasePage):
         :raises RuntimeError: Если элемент не найден
         """
         try:
-            element = WebDriverWait(self.driver, timeout).until(
+            element = self._wait(timeout).until(
                 EC.visibility_of_element_located(element_locator)
             )
             return element.text
@@ -388,13 +449,13 @@ class WebGuestPage(BasePage):
         try:
             # Ожидание, пока комбобокс станет кликабельным
             combobox = self.wait_for_element(combobox_locator)
-            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(combobox))
+            self._wait(10).until(EC.element_to_be_clickable(combobox))
 
             combobox.click()  # Открываем выпадающий список
 
             # Ожидание появления всех опций в выпадающем списке
             options_locator = (By.XPATH, "//span[contains(@class, 'menu-item-title')]")
-            options = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located(options_locator))
+            options = self._wait(10).until(EC.presence_of_all_elements_located(options_locator))
 
             # Извлекаем текст из всех опций
             options_text = [option.text for option in options if option.is_displayed()]
@@ -415,7 +476,7 @@ class WebGuestPage(BasePage):
         try:
             # Ожидание, пока элемент станет видимым
             element = self.wait_for_element(element_locator)
-            WebDriverWait(self.driver, 10).until(EC.visibility_of(element))
+            self._wait(10).until(EC.visibility_of(element))
 
             # Используем JavaScript для проверки наличия вертикального скроллбара
             script = """
@@ -441,7 +502,7 @@ class WebGuestPage(BasePage):
         try:
             combobox = self.wait_for_element(combobox_locator)
 
-            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(combobox))
+            self._wait(10).until(EC.element_to_be_clickable(combobox))
 
             combobox.click()
 
@@ -454,7 +515,7 @@ class WebGuestPage(BasePage):
             text_lower = text.lower()
             option_locator = (By.XPATH, f"//span[contains(@class, 'menu-item-title')]")
 
-            options = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located(option_locator))
+            options = self._wait(10).until(EC.presence_of_all_elements_located(option_locator))
 
             option_to_select = None
             for option in options:
@@ -464,8 +525,7 @@ class WebGuestPage(BasePage):
 
             if option_to_select and option_to_select.is_enabled():
                 self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", option_to_select)
-                sleep(0.3)
-                ActionChains(self.driver).move_to_element(option_to_select).click().perform()
+                self._wait(2).until(EC.element_to_be_clickable(option_to_select)).click()
             else:
                 print("Элемент не доступен для клика или не найден.")
 
@@ -637,6 +697,6 @@ class WebGuestPage(BasePage):
 
             # Наводим на body (гарантированно в границах окна)
             body = self.wait_for_element((By.TAG_NAME, 'body'))
-            ActionChains(self.driver).move_to_element(body).perform()
+            self._actions().move_to_element(body).perform()
         except Exception as e:
             print(f"Ошибка при наведении на окно браузера: {e}")

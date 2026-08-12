@@ -1,5 +1,23 @@
 # VT WebGuest Autotests
 
+## Test Bot integration
+
+The Test Bot prepares this repository with the self-contained environment
+bootstrap:
+
+```powershell
+powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass `
+  -File .\scripts\ensure_environment.ps1
+```
+
+For Video Transport, `run=all project=vt` runs both the VT wrapper tests and
+all WebGuest pytest tests. Use `type=webguest` to run only this repository.
+
+Every collected pytest node ID must contain a `VT####` YouTrack identity.
+Smoke tests that do not belong to another issue must use `VT1626` in both the
+test file and test function name. The Test Bot rejects unnumbered nodes during
+discovery.
+
 Автотесты для VT WebGuest с поддержкой автоматического определения медиа-устройств и конфигурации по машинам.
 
 ## Быстрый старт
