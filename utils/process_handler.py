@@ -155,12 +155,12 @@ class ProcessManager:
                     close_process(child)
                 close_process(process)
 
-            # Ждем до 5 секунд, чтобы мягкое закрытие сработало
-            deadline = time.time() + 5
+            # Ждем до 10 секунд, чтобы мягкое закрытие сработало
+            deadline = time.time() + 10
             while time.time() < deadline:
                 if not any(True for _ in self.iter_processes()):
                     break
-                time.sleep(0.2)
+                time.sleep(0.5)
 
             # Если что-то осталось — форс-киллим через taskkill
             if any(True for _ in self.iter_processes()):
@@ -171,6 +171,13 @@ class ProcessManager:
                     ], check=False, capture_output=True, text=True)
                 except Exception as e:
                     self.logger.error(f"Ошибка при вызове taskkill: {e}")
+
+                # Ждём до 5 секунд после форс-килла
+                deadline_post = time.time() + 5
+                while time.time() < deadline_post:
+                    if not any(True for _ in self.iter_processes()):
+                        break
+                    time.sleep(0.5)
 
             if any(True for _ in self.iter_processes()):
                 self.logger.warning(f"Некоторые процессы '{self.process_name}' все еще живы после форс-килла.")

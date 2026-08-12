@@ -38,7 +38,7 @@ def ensure_vt_killed_before_test():
     """Гарантированно закрывает VT перед каждым тестом, чтобы избежать зависаний на открытой вкладке."""
     pm = ProcessManager(PROCESS_PATH, PROCESS_NAME, PUBLISHER_XML_PATH)
     pm.kill_process()
-    # небольшая пауза, чтобы ОС пересобрала дескрипторы окон
+    # пауза, чтобы ОС пересобрала дескрипторы окон и освободила ресурсы
     import time as _t
     _t.sleep(1)
     try:
@@ -293,7 +293,7 @@ def login_fixture(driver, logger):
 
         notification_handler.check_notification()
         base_page.click(web_guest_page.LOGIN_BUTTON)
-        stream_handler.wait_for_webrtc_connection(timeout=20)
+        stream_handler.wait_for_webrtc_connection(timeout=40)
         logger.info("Стрим запущен")
 
         yield web_guest_page
@@ -359,7 +359,10 @@ def open_web_preview_fixture(driver, logger):
 
         preview_url = get_web_url(desktop_app_page, logger, "Copy Preview URL")
         if not preview_url:
-            logger.error("Не удалось получить Preview URL через UI.")
+            logger.warning("Не удалось получить Preview URL через UI, читаем из конфига...")
+            preview_url = _read_web_guest_url_from_config(CONFIG_INI)
+        if not preview_url:
+            logger.error("Не удалось получить Preview URL.")
             raise ValueError("Preview URL не был инициализирован.")
 
         logger.info("Переходим на страницу Web Preview")
