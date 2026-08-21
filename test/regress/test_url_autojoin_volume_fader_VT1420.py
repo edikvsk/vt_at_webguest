@@ -47,7 +47,8 @@ def test_url_autojoin_volume_fader_vt1420(driver, logger):
 
     @log_step(logger, "Проверка что Volume Fader не отображается при autojoin")
     def check_volume_fader_not_visible():
-        assert not base_page.is_element_visible(wg_page.VOLUME_FADER), "Volume Fader не должен отображаться при autojoin"
+        assert not base_page.is_element_visible(wg_page.VOLUME_FADER_PREVIEW), \
+            "Volume Fader не должен отображаться при autojoin"
 
     @log_step(logger, "Клик по MUTE/UNMUTE и проверка появления Volume Fader")
     def toggle_mute_unmute_and_check_fader_visible():
@@ -59,10 +60,11 @@ def test_url_autojoin_volume_fader_vt1420(driver, logger):
         assert base_page.click(wg_page.MUTE_BUTTON), "Не удалось кликнуть по кнопке MUTE"
 
         # Проверяем появление фейдера; если не появился, кликаем повторно (unmute/mute)
-        if not base_page.is_element_visible(wg_page.VOLUME_FADER):
+        if not base_page.is_element_visible(wg_page.VOLUME_FADER_PREVIEW):
             assert base_page.click(wg_page.MUTE_BUTTON), "Не удалось повторно кликнуть по кнопке MUTE"
 
-        assert base_page.is_element_visible(wg_page.VOLUME_FADER), "Ожидалось появление Volume Fader"
+        assert base_page.is_element_visible(wg_page.VOLUME_FADER_PREVIEW), \
+            "Ожидалось появление Volume Fader"
 
     try:
         check_url(driver)

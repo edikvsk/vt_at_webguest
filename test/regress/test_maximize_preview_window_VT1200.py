@@ -43,12 +43,12 @@ def test_maximize_preview_window_vt1200(driver, logger):
     @log_step(logger, "Проверка отображения кнопки Maximize Preview")
     def check_maximize_preview_button():
         wg_page.hover_element(wg_page.PREVIEW_WINDOW)
-        assert wg_page.is_element_visible(wg_page.PREVIEW_MINIMIZE_BUTTON), "Кнопка Maximize Preview НЕ отображается"
+        assert wg_page.is_element_visible(wg_page.PREVIEW_MAXIMIZE_BUTTON), "Кнопка Maximize Preview НЕ отображается"
 
     @log_step(logger, "Нажатие кнопки Maximize Preview")
     def click_maximize_preview_button_after_maximize():
         wg_page.hover_element(wg_page.PREVIEW_WINDOW)
-        base_page.click(wg_page.PREVIEW_MINIMIZE_BUTTON)
+        base_page.click(wg_page.PREVIEW_MAXIMIZE_BUTTON)
 
     @log_step(logger, "Проверка отображения окна Preview - состояние: ВКЛ")
     def check_preview_window_state_on_after_maximize():

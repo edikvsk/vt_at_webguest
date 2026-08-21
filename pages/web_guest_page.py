@@ -60,6 +60,7 @@ class WebGuestPage(BasePage):
     AUDIO_ENHANCEMENTS_SWITCHER = (By.XPATH, "//div[@data-cy='audioEnhancements']//div[contains(@class, "
                                              "'custom-switcher')]")
     PREVIEW_MINIMIZE_BUTTON = (By.XPATH, "//button[contains(@class, 'overflow-minimize-button') and @type='button']")
+    PREVIEW_MAXIMIZE_BUTTON = (By.XPATH, "//button[contains(@class, 'overflow-maximize-button') and @type='button']")
     PREVIEW_CHANGE_BUTTON = (By.XPATH, "//div[@class='d-flex align-items-center justify-content-center flex-shrink-1 "
                                        "flex-grow-1 position-relative']//button")
     PREVIEW_VOLUME_FADER = (
@@ -534,6 +535,7 @@ class WebGuestPage(BasePage):
         value_locator=None,
         expected_value=None,
         attempts=3,
+        wait_for_menu_to_close=True,
     ):
         """
         Выбирает опцию в выпадающем списке по точному совпадению текста.
@@ -594,7 +596,8 @@ class WebGuestPage(BasePage):
                             continue
                     return True
 
-                self._wait(5).until(menu_is_closed)
+                if wait_for_menu_to_close:
+                    self._wait(5).until(menu_is_closed)
 
                 if value_locator and wanted_value:
                     stable_samples = {"count": 0}
@@ -641,7 +644,12 @@ class WebGuestPage(BasePage):
             expected_value=resolution_text,
         )
 
-    def select_framerate(self, framerate_text, expected_value=None):
+    def select_framerate(
+        self,
+        framerate_text,
+        expected_value=None,
+        wait_for_menu_to_close=True,
+    ):
         """
         Выбирает частоту кадров в соответствующем выпадающем списке.
 
@@ -654,6 +662,7 @@ class WebGuestPage(BasePage):
             framerate_text.replace("FPS", "fps"),
             value_locator=self.FRAMERATE_VALUE,
             expected_value=expected_value or framerate_text,
+            wait_for_menu_to_close=wait_for_menu_to_close,
         )
 
     def select_audio_bitrate(self, audio_bitrate_text):

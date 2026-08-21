@@ -66,6 +66,31 @@ def test_combobox_selection_does_not_hide_failures():
             )
 
 
+def test_combobox_selection_can_keep_rejected_option_menu_open():
+    driver = Mock()
+    page = WebGuestPage(driver)
+    combobox = Mock()
+    option = Mock()
+    waits = [Mock(), Mock(), Mock()]
+    waits[0].until.return_value = combobox
+    waits[1].until.return_value = option
+    waits[2].until.return_value = True
+    page._wait = Mock(side_effect=waits)
+
+    with patch("pages.web_guest_page.ActionChains", FakeActions):
+        page.select_from_combobox(
+            ("xpath", "combobox"),
+            "60 fps",
+            value_locator=("xpath", "value"),
+            expected_value="30 FPS",
+            attempts=1,
+            wait_for_menu_to_close=False,
+        )
+
+    assert page._wait.call_count == 3
+    driver.execute_script.assert_called_once()
+
+
 def test_combobox_text_normalization_ignores_case_and_layout_whitespace():
     assert (
         WebGuestPage._normalized_text("AUDIO BITRATE\n  10K")
