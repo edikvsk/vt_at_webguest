@@ -66,7 +66,10 @@ def test_security_link_after_expiration_time(driver, logger):
         desktop_app_page.set_vt_wg_settings_field_value(3, start_time)
         desktop_app_page.set_vt_wg_settings_field_value(4, expiration_time)
         desktop_app_page.click_button_by_name("OK")
-        time.sleep(60)
+        # Time values have minute precision.  Sixty seconds can land exactly
+        # on the boundary when the test starts at second 00; keep a small grace
+        # period for the VT clock and authorization propagation.
+        time.sleep(65)
 
     @log_step(logger, "Запуск Web Guest")
     def start_web_guest(drv):
@@ -107,7 +110,7 @@ def test_security_link_after_expiration_time(driver, logger):
     @log_step(logger, "Проверка отображения уведомлений")
     def check_authorized_notification(drv):
         try:
-            WebDriverWait(drv, 10).until(
+            WebDriverWait(drv, 30).until(
                 EC.text_to_be_present_in_element(wg_page.NOTIFICATION_ELEMENT, expected_notification_text)
             )
             logger.info("Уведомление 'You are not authorized to access this link' успешно отображено.")

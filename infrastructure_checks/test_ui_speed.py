@@ -26,7 +26,7 @@ class FakeInput:
         self.sent_keys.append(keys)
         if keys == (Keys.BACKSPACE,):
             self.value = ""
-        elif keys != (Keys.CONTROL, "a"):
+        elif keys not in ((Keys.CONTROL, "a"), (Keys.TAB,)):
             self.value += "".join(keys)
 
     def get_attribute(self, name):
@@ -51,7 +51,7 @@ class ResponsiveUiTests(unittest.TestCase):
         page.input_text(self.LOCATOR, "example")
 
         self.assertEqual("example", element.value)
-        self.assertEqual([("example",)], element.sent_keys)
+        self.assertEqual([("example",), (Keys.TAB,)], element.sent_keys)
 
     def test_text_is_deleted_without_per_character_delays(self):
         element = FakeInput("example")

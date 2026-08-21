@@ -71,8 +71,7 @@ def test_start_stream(driver, logger):
 
     @log_step(logger, "Проверка отображения WebGuest в VT  - состояние: ВЫКЛ.")
     def check_vt_webguest_state_off():
-        time.sleep(10)
-        assert not desktop_app_page.check_element_exists_by_title_part(vt_web_guest_source_name), \
+        assert desktop_app_page.wait_for_text_element_absent(vt_web_guest_source_name), \
             f"Источник WebGuest отображается в VT"
 
     steps = [

@@ -38,11 +38,10 @@ def test_empty_framerate_field_vt1539(driver, logger):
 
     @log_step(logger, "Проверка отображения установленного Framerate")
     def select_framerate():
-        wg_page.select_framerate(framerate)
+        wg_page.select_framerate(framerate, expected_value="30 FPS")
         notification_handler.check_notification()
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)
         expected_value = "30 FPS"
-        time.sleep(1.5)
         actual_value = wg_page.get_settings_item_value_text(wg_page.FRAMERATE_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 

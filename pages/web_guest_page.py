@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from selenium.common import TimeoutException, NoSuchElementException, WebDriverException
-from selenium.webdriver import Keys
+from selenium.webdriver import ActionChains, Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -42,7 +42,11 @@ class WebGuestPage(BasePage):
     START_BUTTON = (By.XPATH, "//button[.//span[text()='Start']]")
     RESOLUTION_COMBOBOX = (By.XPATH, "//span[text()='Resolution']")
     RESOLUTION_VALUE = (By.XPATH, "//div[@data-cy='resolution']//span[contains(@class, 'text-ellipsis')]")
-    RESOLUTION_COMBOBOX_BACK_BUTTON = (By.XPATH, "//div[@class='mr-1']")
+    RESOLUTION_COMBOBOX_BACK_BUTTON = (
+        By.XPATH,
+        "//div[@data-cy='general-settings']"
+        "//div[contains(concat(' ', normalize-space(@class), ' '), ' mr-1 ')]",
+    )
     FRAMERATE_COMBOBOX = (By.XPATH, "//span[text()='Frame Rate']")
     FRAMERATE_VALUE = (By.XPATH, "//div[@data-cy='frameRate']//span[contains(@class, 'text-ellipsis')]")
     AUDIO_BITRATE_COMBOBOX = (By.XPATH, "//span[text()='Audio Bitrate']")
@@ -51,14 +55,17 @@ class WebGuestPage(BasePage):
     VIDEO_BITRATE_VALUE = (By.XPATH, "//div[@data-cy='videoBitrate']")
     VIDEO_ENCODER_COMBOBOX = (By.XPATH, "//span[text()='Video Encoder']")
     VIDEO_ENCODER_VALUE = (By.XPATH, "//div[@data-cy='encoder']//span[contains(@class, 'text-ellipsis')]")
-    COMBOBOX_BACK_BUTTON = (By.XPATH, "//div[@class='mr-1']")
+    COMBOBOX_BACK_BUTTON = RESOLUTION_COMBOBOX_BACK_BUTTON
     MIRRORING_SWITCHER = (By.XPATH, "//div[@data-cy='mirroring']//div[contains(@class, 'custom-switcher')]")
     AUDIO_ENHANCEMENTS_SWITCHER = (By.XPATH, "//div[@data-cy='audioEnhancements']//div[contains(@class, "
                                              "'custom-switcher')]")
     PREVIEW_MINIMIZE_BUTTON = (By.XPATH, "//button[contains(@class, 'overflow-minimize-button') and @type='button']")
     PREVIEW_CHANGE_BUTTON = (By.XPATH, "//div[@class='d-flex align-items-center justify-content-center flex-shrink-1 "
                                        "flex-grow-1 position-relative']//button")
-    PREVIEW_VOLUME_FADER = (By.XPATH, "//span[@class='control-title' and text()='Volume']")
+    PREVIEW_VOLUME_FADER = (
+        By.XPATH,
+        "//span[contains(@class, 'control-title') and normalize-space()='Volume']",
+    )
     PREVIEW_REMOTE_WINDOW = (By.XPATH, "//video[@data-cy='remote-video']")
     PREVIEW_MUTE_BUTTON = (By.XPATH, "//div[contains(@class, 'mute-button')]//button[@id='PlayButtonId']")
     INPUT_CAMERA_VALUE = (By.XPATH, "//div[@data-cy='videoInput']//span[contains(@class, 'text-ellipsis')]")
@@ -68,11 +75,18 @@ class WebGuestPage(BasePage):
     VOLUME_FADER_PREVIEW = (
         By.XPATH, "//div[contains(@class, 'friend-sound-control')]//div[contains(@class, 'react-slider')]")
     AUDIO_CHANNELS_COMBOBOX = (By.XPATH, "//span[text()='Audio Channels']")
-    AUDIO_CHANNELS_VALUE = (By.XPATH, "//div[@data-cy='audioChannels']//span[@class='text-uppercase "
-                                      "font-weight-semi-bold text-ellipsis text-white']")
-    INPUT_FIELD_OTHER_CHANNELS = (By.XPATH, "//div[@class='px-3 pt-4']//input[@class='border-0 outline-none "
-                                            "overflow-hidden px-3 text-white input']")
-    SCROLLBAR_SELECT_DEVICE = (By.XPATH, "//div[@class='d-flex hidden-scrollbar flex-column overflow-x-hidden']")
+    AUDIO_CHANNELS_VALUE = (
+        By.XPATH,
+        "//div[@data-cy='audioChannels']//*[contains(@class, 'text-ellipsis')]",
+    )
+    INPUT_FIELD_OTHER_CHANNELS = (
+        By.XPATH,
+        "//div[contains(@class, 'pt-4')]//input[contains(@class, 'outline-none')]",
+    )
+    SCROLLBAR_SELECT_DEVICE = (
+        By.XPATH,
+        "//div[contains(@class, 'hidden-scrollbar') and contains(@class, 'flex-column')]",
+    )
 
     # Методы:
     def click_element_with_scroll(self, element_locator, timeout=10):
@@ -151,6 +165,21 @@ class WebGuestPage(BasePage):
         :param element: Локатор элемента для наведения
         :return: None
         """
+        # Stream controls auto-hide after pointer inactivity.  Moving the
+        # pointer inside the document first makes the toolbar visible; waiting
+        # for the hidden target before doing that creates a circular timeout.
+        try:
+            self.driver.switch_to.window(self.driver.current_window_handle)
+            self.driver.execute_script("window.focus();")
+            body = self._wait(2).until(
+                EC.visibility_of_element_located((By.TAG_NAME, "body"))
+            )
+            self._actions().move_to_element(body).perform()
+        except WebDriverException:
+            # The target wait below retains the useful Selenium error if the
+            # window really is unavailable.
+            pass
+
         target = self._wait().until(EC.visibility_of_element_located(element))
         self._actions().move_to_element(target).perform()
 
@@ -228,6 +257,9 @@ class WebGuestPage(BasePage):
             self._wait(2).until(
                 lambda _driver: text_field.get_attribute('value') == str(text)
             )
+            # Some settings are propagated to VT on blur.  Reading the DOM
+            # value alone is not proof that the application accepted it.
+            text_field.send_keys(Keys.TAB)
         except Exception as e:
             raise RuntimeError(f"Ошибка при вводе текста: {e}")
 
@@ -490,7 +522,19 @@ class WebGuestPage(BasePage):
             print(f"Произошла ошибка: {e}")
             return False
 
-    def select_from_combobox(self, combobox_locator, text, replacements=None):
+    @staticmethod
+    def _normalized_text(value):
+        return " ".join((value or "").split()).casefold()
+
+    def select_from_combobox(
+        self,
+        combobox_locator,
+        text,
+        replacements=None,
+        value_locator=None,
+        expected_value=None,
+        attempts=3,
+    ):
         """
         Выбирает опцию в выпадающем списке по точному совпадению текста.
 
@@ -499,38 +543,88 @@ class WebGuestPage(BasePage):
         :param replacements: Словарь замен для текста опции
         :return: None
         """
-        try:
-            combobox = self.wait_for_element(combobox_locator)
-
-            self._wait(10).until(EC.element_to_be_clickable(combobox))
-
-            combobox.click()
-
-            if replacements:
-                for original, replacement in replacements.items():
-                    if original in text:
-                        text = text.replace(original, replacement)
-                        break
-
-            text_lower = text.lower()
-            option_locator = (By.XPATH, f"//span[contains(@class, 'menu-item-title')]")
-
-            options = self._wait(10).until(EC.presence_of_all_elements_located(option_locator))
-
-            option_to_select = None
-            for option in options:
-                if option.is_displayed() and option.text.lower() == text_lower:
-                    option_to_select = option
+        option_text = text
+        if replacements:
+            for original, replacement in replacements.items():
+                if original in option_text:
+                    option_text = option_text.replace(original, replacement)
                     break
 
-            if option_to_select and option_to_select.is_enabled():
-                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", option_to_select)
-                self._wait(2).until(EC.element_to_be_clickable(option_to_select)).click()
-            else:
-                print("Элемент не доступен для клика или не найден.")
+        wanted_option = self._normalized_text(option_text)
+        wanted_value = self._normalized_text(expected_value)
+        option_locator = (By.XPATH, "//span[contains(@class, 'menu-item-title')]")
+        last_error = None
 
-        except Exception as e:
-            print(f"Произошла ошибка: {e}")
+        for attempt in range(1, attempts + 1):
+            try:
+                combobox = self._wait(10).until(
+                    EC.element_to_be_clickable(combobox_locator)
+                )
+                ActionChains(self.driver, duration=200).move_to_element(
+                    combobox
+                ).pause(0.15).click().perform()
+
+                def find_visible_option(driver):
+                    for option in driver.find_elements(*option_locator):
+                        try:
+                            if (
+                                option.is_displayed()
+                                and option.is_enabled()
+                                and self._normalized_text(option.text) == wanted_option
+                            ):
+                                return option
+                        except WebDriverException:
+                            continue
+                    return False
+
+                option = self._wait(10).until(find_visible_option)
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView({block: 'center'});", option
+                )
+                ActionChains(self.driver, duration=200).move_to_element(
+                    option
+                ).pause(0.2).click().perform()
+
+                def menu_is_closed(driver):
+                    for item in driver.find_elements(*option_locator):
+                        try:
+                            if item.is_displayed():
+                                return False
+                        except WebDriverException:
+                            continue
+                    return True
+
+                self._wait(5).until(menu_is_closed)
+
+                if value_locator and wanted_value:
+                    stable_samples = {"count": 0}
+
+                    def expected_value_is_stable(driver):
+                        actual = self._normalized_text(
+                            driver.find_element(*value_locator).text
+                        )
+                        if actual == wanted_value:
+                            stable_samples["count"] += 1
+                        else:
+                            stable_samples["count"] = 0
+                        return stable_samples["count"] >= 3
+
+                    self._wait(10).until(
+                        expected_value_is_stable
+                    )
+                return
+            except Exception as error:
+                last_error = error
+                # Close a half-open menu before the bounded retry.
+                try:
+                    self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+                except Exception:
+                    pass
+
+        raise RuntimeError(
+            f"Не удалось выбрать '{option_text}' в комбобоксе после "
+            f"{attempts} попыток."
+        ) from last_error
 
     def select_resolution(self, resolution_text):
         """
@@ -540,9 +634,14 @@ class WebGuestPage(BasePage):
         :return: None
         """
         self.hover_element(self.RESOLUTION_COMBOBOX)
-        self.select_from_combobox(self.RESOLUTION_COMBOBOX, resolution_text.replace("X", " × "))
+        self.select_from_combobox(
+            self.RESOLUTION_COMBOBOX,
+            resolution_text.replace("X", " × "),
+            value_locator=self.RESOLUTION_VALUE,
+            expected_value=resolution_text,
+        )
 
-    def select_framerate(self, framerate_text):
+    def select_framerate(self, framerate_text, expected_value=None):
         """
         Выбирает частоту кадров в соответствующем выпадающем списке.
 
@@ -550,7 +649,12 @@ class WebGuestPage(BasePage):
         :return: None
         """
         self.hover_element(self.FRAMERATE_COMBOBOX)
-        self.select_from_combobox(self.FRAMERATE_COMBOBOX, framerate_text.replace("FPS", "fps"))
+        self.select_from_combobox(
+            self.FRAMERATE_COMBOBOX,
+            framerate_text.replace("FPS", "fps"),
+            value_locator=self.FRAMERATE_VALUE,
+            expected_value=expected_value or framerate_text,
+        )
 
     def select_audio_bitrate(self, audio_bitrate_text):
         """
@@ -570,7 +674,13 @@ class WebGuestPage(BasePage):
         }
 
         self.hover_element(self.AUDIO_BITRATE_COMBOBOX)
-        self.select_from_combobox(self.AUDIO_BITRATE_COMBOBOX, audio_bitrate_text, replacements)
+        self.select_from_combobox(
+            self.AUDIO_BITRATE_COMBOBOX,
+            audio_bitrate_text,
+            replacements,
+            self.AUDIO_BITRATE_VALUE,
+            audio_bitrate_text,
+        )
 
     def select_video_bitrate(self, video_bitrate_text):
         """
@@ -594,7 +704,13 @@ class WebGuestPage(BasePage):
         }
 
         self.hover_element(self.VIDEO_BITRATE_COMBOBOX)
-        self.select_from_combobox(self.VIDEO_BITRATE_COMBOBOX, video_bitrate_text, replacements)
+        self.select_from_combobox(
+            self.VIDEO_BITRATE_COMBOBOX,
+            video_bitrate_text,
+            replacements,
+            self.VIDEO_BITRATE_VALUE,
+            video_bitrate_text,
+        )
 
     def select_video_encoder(self, video_encoder_text):
         """
@@ -604,7 +720,12 @@ class WebGuestPage(BasePage):
         :return: None
         """
         self.hover_element(self.VIDEO_ENCODER_COMBOBOX)
-        self.select_from_combobox(self.VIDEO_ENCODER_COMBOBOX, video_encoder_text)
+        self.select_from_combobox(
+            self.VIDEO_ENCODER_COMBOBOX,
+            video_encoder_text,
+            value_locator=self.VIDEO_ENCODER_VALUE,
+            expected_value=video_encoder_text,
+        )
 
     def select_camera(self, input_camera_text):
         """
@@ -634,7 +755,12 @@ class WebGuestPage(BasePage):
         :return: None
         """
         self.hover_element(self.AUDIO_CHANNELS_COMBOBOX)
-        self.select_from_combobox(self.AUDIO_CHANNELS_COMBOBOX, audio_channels_text)
+        self.select_from_combobox(
+            self.AUDIO_CHANNELS_COMBOBOX,
+            audio_channels_text,
+            value_locator=self.AUDIO_CHANNELS_VALUE,
+            expected_value=audio_channels_text,
+        )
 
     def is_switcher_active(self, switcher_locator):
         """
@@ -700,3 +826,43 @@ class WebGuestPage(BasePage):
             self._actions().move_to_element(body).perform()
         except Exception as e:
             print(f"Ошибка при наведении на окно браузера: {e}")
+
+    def release_local_media_tracks(self):
+        """Release camera/microphone without closing the active WG session.
+
+        This is useful in tests whose subject is server-side identity or access
+        control rather than media capture.  It prevents a second tab from
+        failing on an occupied virtual device before reaching the assertion the
+        test actually intends to make.
+        """
+        self.driver.execute_script(
+            """
+            const tracks = new Set();
+            for (const media of document.querySelectorAll(
+                'video[data-cy="local-video"], audio[data-cy="local-audio"]'
+            )) {
+                const stream = media.srcObject;
+                if (stream && stream.getTracks) {
+                    for (const track of stream.getTracks()) tracks.add(track);
+                }
+            }
+            for (const track of tracks) track.stop();
+            return tracks.size;
+            """
+        )
+
+    def open_new_tab(self, timeout=10):
+        """Open and switch to the tab created by this call.
+
+        Indexing ``window_handles[1]`` is order-dependent and a delayed popup
+        can make it select the wrong window.  Resolve the new handle by set
+        difference instead.
+        """
+        existing_handles = set(self.driver.window_handles)
+        self.driver.execute_script("window.open('about:blank', '_blank');")
+        new_handles = self._wait(timeout).until(
+            lambda driver: set(driver.window_handles) - existing_handles
+        )
+        new_handle = next(iter(new_handles))
+        self.driver.switch_to.window(new_handle)
+        return new_handle

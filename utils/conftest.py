@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 
 import pyperclip
+import psutil
 import pytest
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -31,6 +32,42 @@ from utils.web_url import (
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _cleanup_web_driver(web_driver, service, timeout=5):
+    """Quit Chrome and reap only the process tree created by this fixture.
+
+    ``driver.quit()`` can return while Chrome's media utility process is still
+    shutting down.  Starting the next test at that point intermittently leaves
+    the virtual camera busy.  Capturing the service tree before quit lets us
+    wait for (and, if necessary, terminate) only this test's Chrome processes.
+    """
+    processes = []
+    service_process = getattr(service, "process", None)
+    service_pid = getattr(service_process, "pid", None)
+    if service_pid:
+        try:
+            root = psutil.Process(service_pid)
+            processes = root.children(recursive=True) + [root]
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+    try:
+        web_driver.quit()
+    finally:
+        if processes:
+            _, alive = psutil.wait_procs(processes, timeout=timeout)
+            for process in alive:
+                try:
+                    process.terminate()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+            _, alive = psutil.wait_procs(alive, timeout=2)
+            for process in alive:
+                try:
+                    process.kill()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -90,7 +127,7 @@ def driver(ensure_vt_killed_before_test, request):
     service = Service(CHROME_DRIVER_PATH, log_path=os.devnull)
     web_driver = webdriver.Chrome(service=service, options=chrome_options)
     # Register cleanup immediately so setup failures cannot leak Chrome.
-    request.addfinalizer(web_driver.quit)
+    request.addfinalizer(lambda: _cleanup_web_driver(web_driver, service))
     
     # Максимизируем окно для более стабильной работы
     web_driver.maximize_window()
@@ -359,16 +396,13 @@ def open_web_preview_fixture(driver, logger):
 
         preview_url = get_web_url(desktop_app_page, logger, "Copy Preview URL")
         if not preview_url:
-            logger.warning("Не удалось получить Preview URL через UI, читаем из конфига...")
-            preview_url = _read_web_guest_url_from_config(CONFIG_INI)
-        if not preview_url:
-            logger.error("Не удалось получить Preview URL.")
-            raise ValueError("Preview URL не был инициализирован.")
+            raise ValueError("Актуальный Preview URL не был получен из VT.")
 
         logger.info("Переходим на страницу Web Preview")
         driver.get(preview_url)
         notification_handler.check_notification()
         base_page.click(web_guest_page.LOGIN_BUTTON)
+        StreamHandler(driver).wait_for_webrtc_connection(timeout=40)
 
         yield web_guest_page
     except (NoSuchElementException, TimeoutException) as e:

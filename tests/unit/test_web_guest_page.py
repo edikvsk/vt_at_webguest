@@ -1,0 +1,73 @@
+from unittest.mock import Mock, patch
+
+import pytest
+from selenium.common.exceptions import TimeoutException
+
+from pages.web_guest_page import WebGuestPage
+
+
+class FakeActions:
+    def __init__(self, *_args, **_kwargs):
+        self.perform_count = 0
+
+    def move_to_element(self, _element):
+        return self
+
+    def pause(self, _seconds):
+        return self
+
+    def click(self):
+        return self
+
+    def perform(self):
+        self.perform_count += 1
+        return self
+
+
+def test_combobox_selection_waits_for_confirmed_value():
+    driver = Mock()
+    page = WebGuestPage(driver)
+    combobox = Mock()
+    option = Mock()
+    waits = [Mock(), Mock(), Mock(), Mock()]
+    waits[0].until.return_value = combobox
+    waits[1].until.return_value = option
+    waits[2].until.return_value = True
+    waits[3].until.return_value = True
+    page._wait = Mock(side_effect=waits)
+
+    with patch("pages.web_guest_page.ActionChains", FakeActions):
+        page.select_from_combobox(
+            ("xpath", "combobox"),
+            "15 fps",
+            value_locator=("xpath", "value"),
+            expected_value="15 FPS",
+            attempts=1,
+        )
+
+    assert page._wait.call_count == 4
+    driver.execute_script.assert_called_once()
+
+
+def test_combobox_selection_does_not_hide_failures():
+    driver = Mock()
+    driver.find_element.side_effect = RuntimeError("no body")
+    page = WebGuestPage(driver)
+    wait = Mock()
+    wait.until.side_effect = TimeoutException("menu did not open")
+    page._wait = Mock(return_value=wait)
+
+    with patch("pages.web_guest_page.ActionChains", FakeActions):
+        with pytest.raises(RuntimeError, match="после 2 попыток"):
+            page.select_from_combobox(
+                ("xpath", "combobox"),
+                "H264",
+                attempts=2,
+            )
+
+
+def test_combobox_text_normalization_ignores_case_and_layout_whitespace():
+    assert (
+        WebGuestPage._normalized_text("AUDIO BITRATE\n  10K")
+        == WebGuestPage._normalized_text("audio bitrate 10k")
+    )

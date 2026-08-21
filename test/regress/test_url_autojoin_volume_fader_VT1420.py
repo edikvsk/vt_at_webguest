@@ -35,6 +35,8 @@ def test_url_autojoin_volume_fader_vt1420(driver, logger):
         logger.info(f"Ожидаемый URL: {expected_url}, текущий URL: {current_url}")
 
         assert current_url == expected_url, f"Ожидался URL: {expected_url}, но был: {current_url}"
+        assert base_page.is_element_visible(wg_page.STOP_BUTTON, timeout=40), \
+            "Autojoin не завершился за 40 секунд"
 
     base_page = BasePage(driver)
     wg_page = WebGuestPage(driver)

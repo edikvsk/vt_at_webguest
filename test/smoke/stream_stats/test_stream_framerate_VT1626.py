@@ -44,10 +44,9 @@ def test_stream_framerate(driver, logger):
 
     @log_step(logger, "Проверка FPS")
     def check_fps():
-        time.sleep(5)
-        print(stream_handler.is_video_stream_active())
+        assert stream_handler.is_video_stream_active(), "Видеопоток не активен"
         fps = stream_handler.calculate_average_stream_fps()
-        print(fps)
+        assert fps is not None and fps > 0, f"Некорректное значение FPS: {fps}"
 
     try:
         check_authorization_form(),

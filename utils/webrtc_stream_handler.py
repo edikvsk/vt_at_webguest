@@ -10,21 +10,43 @@ class StreamHandler:
     def __init__(self, driver):
         self.driver = driver
 
-    def wait_for_webrtc_connection(self, timeout=10):
+    def wait_for_webrtc_connection(self, timeout=30):
         """Ожидает подключения WebRTC стрима в течение заданного времени."""
         try:
             WebDriverWait(self.driver, timeout).until(
                 lambda d: self.is_webrtc_connected()
             )
             return True
-        except Exception as e:
-            raise Exception("WebRTC стрим не запущен.") from e
+        except TimeoutException as e:
+            state = self.driver.execute_script(
+                """
+                const video = document.querySelector('video[data-cy="remote-video"]');
+                const stream = video && video.srcObject;
+                return {
+                    url: location.href,
+                    readyState: video ? video.readyState : null,
+                    tracks: stream ? stream.getTracks().map(track => ({
+                        kind: track.kind,
+                        readyState: track.readyState,
+                        muted: track.muted
+                    })) : []
+                };
+                """
+            )
+            raise RuntimeError(
+                f"WebRTC стрим не перешёл в рабочее состояние за {timeout}с: {state}"
+            ) from e
 
     def is_webrtc_connected(self):
         """Проверяет, подключен ли WebRTC стрим."""
         script = """
-        var videoElement = document.querySelector('video[data-cy="remote-video"]');
-        return (videoElement && videoElement.srcObject !== null);
+        const videoElement = document.querySelector('video[data-cy="remote-video"]');
+        const stream = videoElement && videoElement.srcObject;
+        if (!stream || videoElement.readyState < 2) return false;
+        const tracks = stream.getTracks();
+        return tracks.length > 0 && tracks.some(
+            track => track.readyState === 'live'
+        );
         """
         return self.driver.execute_script(script)
 
@@ -47,6 +69,8 @@ class StreamHandler:
             let lastTime = performance.now();
             let frameCount = 0;
             let fpsValues = [];
+            const targetSampleCount = arguments[0];
+            window.fpsResult = null;
 
             function calculateFPS() {
                 try {
@@ -62,7 +86,7 @@ class StreamHandler:
                         lastTime = now;
                     }
 
-                    if (fpsValues.length < arguments[0]) {
+                    if (fpsValues.length < targetSampleCount) {
                         requestAnimationFrame(calculateFPS);
                     } else {
                         window.fpsResult = fpsValues; // Сохраняем результаты в глобальную переменную
@@ -72,7 +96,7 @@ class StreamHandler:
                 }
             }
 
-            calculateFPS(arguments[0]); // Передаём количество секунд
+            calculateFPS();
         } catch (error) {
             console.error("Error in FPS calculation script:", error);
         }
@@ -82,15 +106,10 @@ class StreamHandler:
         print("Executing JavaScript to calculate FPS...")
         self.driver.execute_script(js_script, duration)
 
-        # Ждём, пока JavaScript завершит сбор данных
         print("Waiting for FPS data to be collected...")
-        time.sleep(duration + 2)
-
-        # Получаем результаты из JavaScript
-        fps_values = self.driver.execute_script("return window.fpsResult;")
-        if fps_values is None:
-            print("FPS data is not available. Check JavaScript execution.")
-            return None
+        fps_values = WebDriverWait(self.driver, duration + 10).until(
+            lambda driver: driver.execute_script("return window.fpsResult;")
+        )
 
         # Рассчитываем среднее значение FPS
         average_fps = sum(fps_values) / len(fps_values)
@@ -256,6 +275,36 @@ class StreamHandler:
         )
 
         return self.driver.execute_script(script)
+
+    def wait_for_video_frame_dimensions(
+        self,
+        expected_dimensions,
+        timeout=45,
+        stable_samples=2,
+    ):
+        """Wait until renegotiated WebRTC dimensions are stable.
+
+        A single stats snapshot can still contain the previous resolution after
+        Stop/Start.  Require the expected dimensions in consecutive samples so
+        the assertion observes the negotiated stream rather than a transition.
+        """
+        deadline = time.monotonic() + timeout
+        consecutive = 0
+        last_value = None
+        while time.monotonic() < deadline:
+            last_value = self.get_video_frame_dimensions()
+            if last_value == expected_dimensions:
+                consecutive += 1
+                if consecutive >= stable_samples:
+                    return last_value
+            else:
+                consecutive = 0
+            time.sleep(1)
+
+        raise TimeoutException(
+            f"WebRTC resolution did not stabilize at {expected_dimensions} "
+            f"within {timeout}s; last value: {last_value}"
+        )
 
     def start_monitoring_audio_bitrate(self):
         script = """

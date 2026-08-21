@@ -84,8 +84,11 @@ class NotificationHandler:
             self.logger.warning("Уведомление не найдено, продолжаем тест.")
             return None
         except Exception as e:
-            self.logger.error(f"Произошла ошибка при проверке уведомления: {str(e)}")
-            return None
+            # A WebDriver/session error is not equivalent to "notification is
+            # absent".  Hiding it here produces false-positive tests and makes
+            # the next test inherit a broken browser session.
+            self.logger.exception("Ошибка при проверке уведомления")
+            raise RuntimeError("Не удалось проверить уведомление") from e
 
     def get_notification_text(self, timeout=10):
         base_page = BasePage(self.driver)

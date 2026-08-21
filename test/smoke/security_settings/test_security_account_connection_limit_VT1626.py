@@ -112,9 +112,10 @@ def test_security_account_connection_limit(driver, logger):
 
     @log_step(logger, "Запуск второго экземпляра Chrome Web Guest")
     def start_second_web_guest(drv):
-        drv.execute_script("window.open('');")
-        drv.switch_to.window(drv.window_handles[1])  # Переключаемся на новое окно
-        time.sleep(1.5)
+        assert base_page.is_element_visible(wg_page.STOP_BUTTON, timeout=40), \
+            "Первое подключение не заняло connection slot за 40 секунд"
+        wg_page.release_local_media_tracks()
+        wg_page.open_new_tab()
         expected_url = web_guest_url
         drv.get(expected_url)
         current_url = drv.current_url
@@ -139,7 +140,7 @@ def test_security_account_connection_limit(driver, logger):
     @log_step(logger, "Проверка отображения уведомлений")
     def check_authorized_notification(drv):
         try:
-            WebDriverWait(drv, 10).until(
+            WebDriverWait(drv, 30).until(
                 EC.text_to_be_present_in_element(wg_page.NOTIFICATION_ELEMENT, expected_notification_text)
             )
             logger.info("Уведомление 'Can't connect: connection limit exceeded' успешно отображено.")

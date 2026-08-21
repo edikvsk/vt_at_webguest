@@ -160,11 +160,26 @@ class DesktopAppPage:
         except Exception as e:
             raise RuntimeError(f"Ошибка при проверке наличия элемента: {e}")
 
-    def right_click_vt_source_item(self, title_part, max_attempts=2):
-        """Выполняет правый клик на элементе с заданной частью заголовка."""
-        attempts = 0
+    def wait_for_text_element_absent(self, title_part, timeout=20):
+        """Wait until no visible VT text element contains ``title_part``."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            visible_matches = []
+            for element, _ in self._matching_text_elements(title_part):
+                visible, _, has_size, _ = self._element_state(element)
+                if visible and has_size:
+                    visible_matches.append(element)
+            if not visible_matches:
+                return True
+            time.sleep(0.2)
+        return False
 
-        while attempts < max_attempts:
+    def right_click_vt_source_item(self, title_part, timeout=15):
+        """Wait for a dynamically updated VT source and right-click it."""
+        deadline = time.monotonic() + timeout
+        last_error = None
+
+        while time.monotonic() < deadline:
             try:
                 text_element = self._find_text_element(title_part, enabled_only=True)
                 parent = text_element.parent()  # Получаем родительский элемент
@@ -173,17 +188,19 @@ class DesktopAppPage:
                 text_element.click_input(button='right')
                 return  # Успешный клик, выходим из метода
             except Exception as e:
-                attempts += 1
-                if attempts >= max_attempts:
-                    raise RuntimeError(
-                        f"Ошибка при выполнении правого клика на элементе после {max_attempts} попыток: {e}")
+                last_error = e
                 time.sleep(0.5)
+        raise RuntimeError(
+            f"Не удалось выполнить правый клик по источнику '{title_part}' "
+            f"за {timeout} секунд: {last_error}"
+        ) from last_error
 
-    def focus_click_vt_source_item(self, title_part, max_attempts=2):
-        """Выполняет клик на элементе с заданной частью заголовка."""
-        attempts = 0
+    def focus_click_vt_source_item(self, title_part, timeout=15):
+        """Wait for a dynamically rendered VT source and click it."""
+        deadline = time.monotonic() + timeout
+        last_error = None
 
-        while attempts < max_attempts:
+        while time.monotonic() < deadline:
             try:
                 text_element = self._find_text_element(title_part, enabled_only=True)
                 # Прокручиваем к элементу
@@ -194,10 +211,12 @@ class DesktopAppPage:
                 text_element.click_input()
                 return  # Успешный клик, выходим из метода
             except Exception as e:
-                attempts += 1
-                if attempts >= max_attempts:
-                    raise RuntimeError(f"Ошибка при выполнении клика на элементе после {max_attempts} попыток: {e}")
+                last_error = e
                 time.sleep(0.5)
+        raise RuntimeError(
+            f"Не удалось выполнить клик по источнику '{title_part}' "
+            f"за {timeout} секунд: {last_error}"
+        ) from last_error
 
     def click_vt_source_item(self, menu_item_title, timeout=10):
         """Wait for and click a VT context-menu item.
@@ -305,6 +324,7 @@ class DesktopAppPage:
             window = self.main_window.child_window(title_re=f".*{title_substring}.*", control_type="Window")
             if window.exists():
                 return window
+            time.sleep(0.1)
         raise ElementNotFoundError(
             f"Окно, содержащее '{title_substring}' в названии, не найдено в течение {timeout} секунд.")
 
@@ -347,46 +367,113 @@ class DesktopAppPage:
         except Exception as e:
             raise RuntimeError(f"Ошибка при заполнении поля с индексом {index}: {e}")
 
+    def _wait_for_combobox(self, combo_index, timeout=10):
+        deadline = time.monotonic() + timeout
+        last_error = None
+        while time.monotonic() < deadline:
+            try:
+                combo = self.main_window.child_window(
+                    control_type="ComboBox",
+                    found_index=combo_index,
+                )
+                if combo.exists() and combo.is_enabled():
+                    return combo
+            except Exception as error:
+                last_error = error
+            time.sleep(0.2)
+        raise ElementNotFoundError(
+            f"ComboBox с индексом {combo_index} не найден за {timeout} секунд: "
+            f"{last_error}"
+        )
+
+    def _wait_for_combobox_items(self, combo, minimum_count, timeout=10):
+        """Wait for WPF list items in either the ComboBox or popup window."""
+        combo.click_input()
+        deadline = time.monotonic() + timeout
+        last_error = None
+        while time.monotonic() < deadline:
+            roots = [combo]
+            try:
+                roots.extend(self.main_window.app.windows())
+            except Exception as error:
+                last_error = error
+
+            for root in roots:
+                try:
+                    items = root.descendants(control_type="ListItem")
+                    if len(items) >= minimum_count:
+                        return items
+                except Exception as error:
+                    last_error = error
+            time.sleep(0.2)
+
+        raise ElementNotFoundError(
+            f"В ComboBox не появилось {minimum_count} элементов за "
+            f"{timeout} секунд: {last_error}"
+        )
+
     def get_combobox_item_name_by_index(self, combo_index, item_index):
         """Возвращает текст элемента в ComboBox по заданным индексам."""
         try:
-            # Находим ComboBox по индексу
-            combo_box = self.main_window.child_window(control_type="ComboBox", found_index=combo_index)
-            if combo_box.exists() and combo_box.is_enabled():
-                # Открываем ComboBox
-                combo_box.click_input()
-
-                # Получаем элемент списка по индексу
-                list_item = combo_box.child_window(control_type="ListItem", found_index=item_index)
-
-                if list_item.exists():
-                    # Возвращаем текст элемента
-                    return list_item.texts()
-                else:
-                    raise ElementNotFoundError(
-                        f"Элемент с индексом {item_index} не найден в ComboBox с индексом {combo_index}.")
-            else:
-                raise ElementNotFoundError(f"ComboBox с индексом {combo_index} не найден или недоступен.")
+            combo_box = self._wait_for_combobox(combo_index)
+            items = self._wait_for_combobox_items(combo_box, item_index + 1)
+            return items[item_index].texts()
         except Exception as e:
             raise RuntimeError(
                 f"Ошибка при получении текста в ComboBox с индексом {combo_index} и элементом {item_index}: {e}")
 
+    def get_combobox_selected_text(self, combo_index, timeout=10):
+        """Read the selected ComboBox value without leaving its popup open."""
+        deadline = time.monotonic() + timeout
+        last_error = None
+        while time.monotonic() < deadline:
+            try:
+                combo = self.main_window.child_window(
+                    control_type="ComboBox",
+                    found_index=combo_index,
+                )
+                if not (combo.exists() and combo.is_enabled()):
+                    time.sleep(0.2)
+                    continue
+
+                wrapper = combo.wrapper_object()
+                try:
+                    value = wrapper.iface_value.CurrentValue
+                    if value and value.strip():
+                        return value.strip()
+                except Exception:
+                    pass
+                selected_item = getattr(wrapper, "selected_item", None)
+                if callable(selected_item):
+                    item = selected_item()
+                    texts = item.texts() if item is not None else []
+                    for text in texts or []:
+                        if text.strip():
+                            return text.strip()
+
+                for text in (wrapper.texts() or []):
+                    if text.strip():
+                        return text.strip()
+            except Exception as error:
+                last_error = error
+            time.sleep(0.2)
+
+        raise RuntimeError(
+            f"Не удалось получить выбранное значение ComboBox {combo_index} "
+            f"за {timeout} секунд: {last_error}"
+        ) from last_error
+
     def select_combobox_item_by_index(self, combo_index, item_index):
         """Выбирает элемент в ComboBox по заданным индексам."""
         try:
-            # Находим ComboBox по индексу
-            combo_box = self.main_window.child_window(control_type="ComboBox", found_index=combo_index)
-            if combo_box.exists() and combo_box.is_enabled():
-                # Открываем ComboBox
-                combo_box.click_input()
-
-                # Получаем список элементов
-                list_items = combo_box.child_window(control_type="ListItem", found_index=item_index)
-
-                # Нажимаем на элемент
-                list_items.click_input()
-            else:
-                raise ElementNotFoundError(f"ComboBox с индексом {combo_index} не найден или недоступен.")
+            combo_box = self._wait_for_combobox(combo_index)
+            items = self._wait_for_combobox_items(combo_box, item_index + 1)
+            item = items[item_index]
+            if not item.is_enabled():
+                raise ElementNotFoundError(
+                    f"Элемент {item_index} ComboBox {combo_index} недоступен."
+                )
+            item.click_input()
         except Exception as e:
             raise RuntimeError(
                 f"Ошибка при выборе элемента в ComboBox с индексом {combo_index} и элементом {item_index}: {e}")
@@ -430,47 +517,10 @@ class DesktopAppPage:
             raise RuntimeError(f"Ошибка при переключении состояния кнопки с индексом {index}: {e}")
 
     def select_combobox_item_by_numeric(self, combo_index, item_index):
-        try:
-            # Находим ComboBox по индексу
-            combo_box = self.main_window.child_window(control_type="ComboBox", found_index=combo_index)
-            if combo_box.exists() and combo_box.is_enabled():
-                # Открываем ComboBox
-                combo_box.click_input()
-
-                # Получаем список элементов
-                list_items = combo_box.child_window(control_type="ListItem", found_index=item_index)
-
-                # Нажимаем на элемент
-                list_items.click_input()
-            else:
-                raise ElementNotFoundError(f"ComboBox с индексом {combo_index} не найден или недоступен.")
-        except Exception as e:
-            raise RuntimeError(
-                f"Ошибка при выборе элемента в ComboBox с индексом {combo_index} и элементом {item_index}: {e}")
+        return self.select_combobox_item_by_index(combo_index, item_index)
 
     def get_combobox_item_text_by_index(self, combo_index, item_index):
-        """Возвращает текст элемента в ComboBox по заданным индексам."""
-        try:
-            # Находим ComboBox по индексу
-            combo_box = self.main_window.child_window(control_type="ComboBox", found_index=combo_index)
-            if combo_box.exists() and combo_box.is_enabled():
-                # Открываем ComboBox
-                combo_box.click_input()
-
-                # Получаем элемент списка по индексу
-                list_item = combo_box.child_window(control_type="ListItem", found_index=item_index)
-
-                if list_item.exists():
-                    # Возвращаем текст элемента
-                    return list_item.texts()
-                else:
-                    raise ElementNotFoundError(
-                        f"Элемент с индексом {item_index} не найден в ComboBox с индексом {combo_index}.")
-            else:
-                raise ElementNotFoundError(f"ComboBox с индексом {combo_index} не найден или недоступен.")
-        except Exception as e:
-            raise RuntimeError(
-                f"Ошибка при получении текста в ComboBox с индексом {combo_index} и элементом {item_index}: {e}")
+        return self.get_combobox_item_name_by_index(combo_index, item_index)
 
     def select_combobox_item_by_name(self, combo_index, item_text, exact_match=True, timeout=10):
         """Выбирает элемент в ComboBox по названию (тексту).
@@ -480,28 +530,9 @@ class DesktopAppPage:
         :param exact_match: Если True — ищет точное совпадение; иначе допускает частичное
         :param timeout: Время ожидания
         """
-        start_time = time.time()
         try:
-            combo_box = self.main_window.child_window(control_type="ComboBox", found_index=combo_index)
-            if not (combo_box.exists() and combo_box.is_enabled()):
-                raise ElementNotFoundError(f"ComboBox с индексом {combo_index} не найден или недоступен.")
-
-            combo_box.click_input()
-
-            # Собираем все элементы списка
-            items = []
-            while time.time() - start_time < timeout:
-                try:
-                    # pywinauto: получить все ListItem под комбобоксом
-                    items = combo_box.descendants(control_type="ListItem")
-                    if items:
-                        break
-                except Exception:
-                    pass
-                time.sleep(0.2)
-
-            if not items:
-                raise ElementNotFoundError("Элементы списка в ComboBox не найдены.")
+            combo_box = self._wait_for_combobox(combo_index, timeout)
+            items = self._wait_for_combobox_items(combo_box, 1, timeout)
 
             target = None
             text_lower = item_text.lower()

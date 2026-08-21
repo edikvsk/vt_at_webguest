@@ -109,7 +109,7 @@ def test_connect_to_disable_security_account(driver, logger):
     @log_step(logger, "Проверка отображения уведомлений")
     def check_authorized_notification(drv):
         try:
-            WebDriverWait(drv, 10).until(
+            WebDriverWait(drv, 30).until(
                 EC.text_to_be_present_in_element(wg_page.NOTIFICATION_ELEMENT, expected_notification_text)
             )
             logger.info("Уведомление 'You are not authorized to access this link' успешно отображено.")

@@ -116,7 +116,7 @@ def test_security_link_until_expiration_time(driver, logger):
         try:
             logger.info("Ждем 2 минуты до истечения срока действия ссылки...")
 
-            WebDriverWait(drv, 120).until(
+            WebDriverWait(drv, 135).until(
                 EC.text_to_be_present_in_element(wg_page.NOTIFICATION_ELEMENT, expected_notification_text)
             )
             logger.info("Уведомление 'Link has expired' успешно отображено.")

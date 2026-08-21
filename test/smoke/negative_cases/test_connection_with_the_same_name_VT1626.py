@@ -74,15 +74,18 @@ def test_connection_with_the_same_name(driver, logger):
     def login_first_web_guest():
         base_page.click(wg_page.LOGIN_BUTTON)
         assert base_page.is_element_visible(wg_page.STOP_BUTTON), "Логин НЕ выполнен"
+        # The scenario validates duplicate-name rejection, not whether one
+        # physical/virtual camera can be opened by two tabs simultaneously.
+        # Keep the first signalling session alive but release its media tracks
+        # so the second tab reaches the expected Connectivity Error.
+        wg_page.release_local_media_tracks()
 
     first_window = driver.current_window_handle
     logger.info(f"Дескриптор второго окна: {first_window}")
 
     @log_step(logger, "Запуск второго экземпляра Chrome Web Guest")
     def start_second_web_guest(drv):
-        drv.execute_script("window.open('');")
-        drv.switch_to.window(drv.window_handles[1])  # Переключаемся на новое окно
-        time.sleep(1.5)
+        wg_page.open_new_tab()
         expected_url = web_guest_url
         drv.get(expected_url)
         current_url = drv.current_url

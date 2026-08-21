@@ -45,8 +45,7 @@ def test_audio_channels(driver, logger):
     def check_audio_channels_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
-        value_list = desktop_app_page.get_combobox_item_name_by_index(7, 0)
-        actual_value = value_list[0] if value_list else None  # звлекаем строку из списка
+        actual_value = desktop_app_page.get_combobox_selected_text(7)
         expected_value = audio_channels_value
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)

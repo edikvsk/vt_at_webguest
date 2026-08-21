@@ -15,7 +15,10 @@ class BasePage:
     DEFAULT_TIMEOUT = 10
     LONG_TIMEOUT = 20
     POLL_FREQUENCY = 0.1
-    ACTION_DURATION_MS = 0
+    # Zero-duration pointer actions are fast, but React/Popper controls can miss
+    # the event while their transition is still settling.  A short real pointer
+    # movement is still much faster than a fixed sleep and is deterministic.
+    ACTION_DURATION_MS = 200
     
     def __init__(self, driver):
         self.driver = driver

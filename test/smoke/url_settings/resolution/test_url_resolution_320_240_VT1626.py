@@ -95,13 +95,12 @@ def test_url_resolution_320_240(driver, logger):
     def restart_streaming():
         base_page.click(wg_page.STOP_BUTTON)
         base_page.click(wg_page.START_BUTTON)
-        assert wg_page.is_button_pressed(wg_page.STOP_BUTTON), "Кнопка STOP не отображается"
+        stream_handler.wait_for_webrtc_connection(timeout=40)
 
     @log_step(logger, "Проверка значения Resolution в WebRTC")
     def check_webrtc_frame_dimensions():
-        time.sleep(25)
         expected_value = resolution
-        actual_value = stream_handler.get_video_frame_dimensions()
+        actual_value = stream_handler.wait_for_video_frame_dimensions(expected_value)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
     try:
