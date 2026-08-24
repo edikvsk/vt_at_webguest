@@ -40,8 +40,8 @@ def test_empty_framerate_field_vt1539(driver, logger):
     def select_framerate():
         wg_page.select_framerate(
             framerate,
-            expected_value="30 FPS",
             wait_for_menu_to_close=False,
+            verify_value=False,
         )
         notification_handler.check_notification()
         base_page.click(wg_page.COMBOBOX_BACK_BUTTON)

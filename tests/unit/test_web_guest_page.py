@@ -43,6 +43,7 @@ def test_combobox_selection_waits_for_confirmed_value():
             value_locator=("xpath", "value"),
             expected_value="15 FPS",
             attempts=1,
+            wait_for_menu_to_close=True,
         )
 
     assert page._wait.call_count == 4
@@ -87,8 +88,46 @@ def test_combobox_selection_can_keep_rejected_option_menu_open():
             wait_for_menu_to_close=False,
         )
 
-    assert page._wait.call_count == 3
+    assert page._wait.call_count == 2
     driver.execute_script.assert_called_once()
+
+
+def test_rejected_framerate_selection_can_skip_value_confirmation():
+    page = WebGuestPage(Mock())
+    page.hover_element = Mock()
+    page.select_from_combobox = Mock()
+
+    page.select_framerate(
+        "60 FPS",
+        wait_for_menu_to_close=False,
+        verify_value=False,
+    )
+
+    page.select_from_combobox.assert_called_once_with(
+        page.FRAMERATE_COMBOBOX,
+        "60 fps",
+        value_locator=None,
+        expected_value="60 FPS",
+        wait_for_menu_to_close=False,
+    )
+
+
+def test_preview_controls_dispatch_hover_on_transparent_overlay():
+    driver = Mock()
+    page = WebGuestPage(driver)
+    overlay = Mock()
+    wait = Mock()
+    wait.until.return_value = [overlay]
+    page._wait = Mock(return_value=wait)
+    actions = Mock()
+    actions.move_to_element.return_value.perform.return_value = None
+    page._actions = Mock(return_value=actions)
+
+    page.reveal_preview_controls()
+
+    actions.move_to_element.assert_called_once_with(overlay)
+    driver.execute_script.assert_called_once()
+    assert driver.execute_script.call_args.args[-1] is overlay
 
 
 def test_combobox_text_normalization_ignores_case_and_layout_whitespace():

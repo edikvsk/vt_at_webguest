@@ -79,9 +79,10 @@ class ProcessManager:
             self.logger.error(f"Ошибка при запуске процесса: {e}")
             raise  # Поднимаем исключение, чтобы остановить тест
 
-    def wait_for_process_ready(self, pid, timeout=20, poll_interval=0.1):
+    def wait_for_process_ready(self, pid, timeout=45, poll_interval=0.1):
         """Wait until VT owns a visible window instead of sleeping a fixed 15 seconds."""
         deadline = time.monotonic() + timeout
+        last_error = None
         while time.monotonic() < deadline:
             # VT uses a short-lived launcher process and creates its UI in a
             # second VT_Publisher process, so the Popen PID is not necessarily
@@ -93,13 +94,18 @@ class ProcessManager:
                         window_title = win32gui.GetWindowText(window_handle)
                         if "VT Publisher" in window_title:
                             return window_handle
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                except Exception as error:
+                    # VT replaces its launcher with worker/UI processes. A
+                    # process can disappear between psutil enumeration and
+                    # EnumWindows, which is a normal startup race on Windows.
+                    last_error = error
                     continue
             time.sleep(poll_interval)
 
+        detail = f" Last window-enumeration error: {last_error}" if last_error else ""
         raise TimeoutError(
             f"{self.process_name} (launcher PID {pid}) did not expose a responsive "
-            f"window within {timeout} seconds."
+            f"window within {timeout} seconds.{detail}"
         )
 
     def kill_process(self):

@@ -35,6 +35,17 @@ class WebGuestPage(BasePage):
     VOLUME_FADER = (By.XPATH, "//div[@data-cy='sound-settings']")
     MINIMIZE_PREVIEW_BUTTON = (By.XPATH, "//button[contains(@class, 'overflow-minimize-button')]")
     PREVIEW_WINDOW = (By.XPATH, "//video[@data-cy='local-video']")
+    PREVIEW_WINDOW_WRAPPER = (
+        By.XPATH,
+        "//video[@data-cy='local-video']"
+        "/ancestor::div[contains(@class, 'video-wrapper')]",
+    )
+    PREVIEW_WINDOW_OVERLAY = (
+        By.XPATH,
+        "//video[@data-cy='local-video']"
+        "/ancestor::div[contains(@class, 'video-wrapper')]"
+        "//div[contains(concat(' ', normalize-space(@class), ' '), ' video-overflow ')]",
+    )
     CAMERA_TOOLTIP = (By.XPATH, "//div[@id='CameraTooltipId']//span[contains(@class, 'tooltip-title')]")
     MICROPHONE_TOOLTIP = (By.XPATH, "//div[@id='MicTooltipId']//span[contains(@class, 'tooltip-title')]")
     NOTIFICATION_ELEMENT = (By.XPATH, "//div[contains(@class, 'notification-parent')]")
@@ -75,6 +86,12 @@ class WebGuestPage(BasePage):
     INPUT_MICROPHONE_COMBOBOX = (By.XPATH, "//span[text()='Select a mic']")
     VOLUME_FADER_PREVIEW = (
         By.XPATH, "//div[contains(@class, 'friend-sound-control')]//div[contains(@class, 'react-slider')]")
+    VISIBLE_VOLUME_FADER = (
+        By.XPATH,
+        "//div[@data-cy='sound-settings' and "
+        "contains(concat(' ', normalize-space(@class), ' '), ' active ')]"
+        "//div[contains(concat(' ', normalize-space(@class), ' '), ' react-slider ')]",
+    )
     AUDIO_CHANNELS_COMBOBOX = (By.XPATH, "//span[text()='Audio Channels']")
     AUDIO_CHANNELS_VALUE = (
         By.XPATH,
@@ -99,10 +116,18 @@ class WebGuestPage(BasePage):
         :return: None
         """
         try:
-            # Ожидаем, пока элемент станет кликабельным
+            # Presence is sufficient here. Responsive toolbar controls are
+            # frequently covered by an animated preview layer, making
+            # Selenium's clickable predicate wait for the full timeout even
+            # though a DOM click is already safe.
             element = self._wait(timeout).until(
-                EC.element_to_be_clickable(element_locator)
+                EC.presence_of_element_located(element_locator)
             )
+
+            if element.get_attribute("disabled") is not None:
+                raise RuntimeError(
+                    f"Element is disabled and cannot be clicked: {element_locator}"
+                )
 
             # Прокручиваем к элементу, если он не виден
             self.driver.execute_script(
@@ -117,13 +142,14 @@ class WebGuestPage(BasePage):
                 element.click()
             except WebDriverException:
                 self._actions().move_to_element(element).click().perform()
+            if element_locator == self.SETTINGS_BUTTON:
+                self._ensure_settings_open(timeout)
             return
-        except TimeoutException:
-            # The responsive bottom toolbar can overlap an otherwise visible
-            # button. Selenium then rejects a real user click even though the
-            # React control is present and enabled. Dispatch the button's DOM
-            # click as the bounded fallback instead of silently continuing
-            # with a closed settings modal.
+        except Exception as error:
+            # A visible toolbar button can still be intercepted by the local
+            # preview overlay while its animation settles.  Native click is
+            # preferable, but a DOM click is the same action for these React
+            # buttons and avoids treating the transient overlap as a failure.
             try:
                 element = self._wait(timeout).until(
                     EC.presence_of_element_located(element_locator)
@@ -137,16 +163,31 @@ class WebGuestPage(BasePage):
                     "arguments[0].click();",
                     element,
                 )
+                if element_locator == self.SETTINGS_BUTTON:
+                    self._ensure_settings_open(timeout)
                 return
-            except Exception as error:
+            except Exception as fallback_error:
                 raise RuntimeError(
-                    f"Element could not be clicked within {timeout}s: "
-                    f"{element_locator}"
-                ) from error
-        except Exception as error:
-            raise RuntimeError(
-                f"Element click failed: {element_locator}"
-            ) from error
+                    f"Element click failed: {element_locator}"
+                ) from fallback_error
+
+    def _ensure_settings_open(self, timeout=10):
+        """Confirm that Settings opened and retry transiently ignored clicks."""
+        short_wait = min(2.0, max(0.5, timeout / 3))
+        for attempt in range(3):
+            try:
+                self._wait(short_wait).until(
+                    EC.visibility_of_element_located(self.WG_SETTINGS_WINDOW)
+                )
+                return
+            except TimeoutException:
+                if attempt == 2:
+                    break
+                button = self._wait(timeout).until(
+                    EC.presence_of_element_located(self.SETTINGS_BUTTON)
+                )
+                self.driver.execute_script("arguments[0].click();", button)
+        raise RuntimeError("Settings panel did not open after 3 confirmed clicks.")
 
     def wait_for_element(self, locator, timeout=10):
         """
@@ -181,8 +222,61 @@ class WebGuestPage(BasePage):
             # window really is unavailable.
             pass
 
+        if element == self.VOLUME_FADER:
+            # This fader is permanently mounted but visible only while the
+            # remote-audio control group is active.
+            mute = self._wait().until(
+                EC.presence_of_element_located(self.MUTE_BUTTON)
+            )
+            self._actions().move_to_element(mute).perform()
+
+        preview_controls = {
+            self.PREVIEW_MINIMIZE_BUTTON,
+            self.PREVIEW_MAXIMIZE_BUTTON,
+            self.PREVIEW_CHANGE_BUTTON,
+            self.PREVIEW_VOLUME_FADER,
+            self.PREVIEW_MUTE_BUTTON,
+            self.VOLUME_FADER_PREVIEW,
+        }
+        if element in preview_controls:
+            self.reveal_preview_controls()
+
         target = self._wait().until(EC.visibility_of_element_located(element))
         self._actions().move_to_element(target).perform()
+
+    def reveal_preview_controls(self):
+        """Reveal controls over the draggable local-preview layer.
+
+        The minimized preview is intentionally transparent until hover. Chrome
+        can move the synthetic pointer to that layer without firing the React
+        mouse transition, so dispatch the same bubbling pointer events after
+        the real pointer movement.
+        """
+        overlays = self._wait().until(
+            lambda driver: driver.find_elements(
+                By.XPATH,
+                "//div[contains(concat(' ', normalize-space(@class), ' '), "
+                "' video-overflow ')]",
+            )
+        )
+        overlay = next(
+            (candidate for candidate in overlays if candidate.is_displayed()),
+            overlays[0],
+        )
+        self._actions().move_to_element(overlay).perform()
+        self.driver.execute_script(
+            """
+            const target = arguments[0];
+            for (const type of ['mouseenter', 'mouseover', 'mousemove']) {
+                target.dispatchEvent(new MouseEvent(type, {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                }));
+            }
+            """,
+            overlay,
+        )
 
     def get_tooltip_text(self, element, tooltip_locator):
         """
@@ -412,11 +506,7 @@ class WebGuestPage(BasePage):
             volume_fader = self.wait_for_element(fader_locator)
             thumb_element = volume_fader.find_element(By.XPATH, ".//div[contains(@class, 'thumb')]")
 
-            thumb_element.click()
-
-            steps = int(value / 1)
-            for _ in range(steps):
-                thumb_element.send_keys(Keys.ARROW_RIGHT)
+            self._set_slider_value(thumb_element, value)
 
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при установке значения слайдера: {e}")
@@ -443,15 +533,29 @@ class WebGuestPage(BasePage):
             if value < min_value or value > max_value:
                 raise ValueError(f"Значение должно быть в пределах от {min_value} до {max_value}.")
 
-            # Устанавливаем значение с помощью JavaScript
-            self.driver.execute_script(f"arguments[0].setAttribute('aria-valuenow', {value});", thumb_element)
-
-            # Вызываем события, если это необходимо
-            self.driver.execute_script("arguments[0].dispatchEvent(new Event('input'));", thumb_element)
-            self.driver.execute_script("arguments[0].dispatchEvent(new Event('change'));", thumb_element)
+            self._set_slider_value(thumb_element, value)
 
         except NoSuchElementException as e:
             raise RuntimeError(f"Ошибка при установке значения слайдера с событиями: {e}")
+
+    def _set_slider_value(self, thumb_element, value):
+        """Change a React slider through real keyboard events and verify it."""
+        minimum = int(thumb_element.get_attribute("aria-valuemin"))
+        maximum = int(thumb_element.get_attribute("aria-valuemax"))
+        target = int(value)
+        if target < minimum or target > maximum:
+            raise ValueError(
+                f"Значение должно быть в пределах от {minimum} до {maximum}."
+            )
+
+        self.driver.execute_script("arguments[0].focus();", thumb_element)
+        thumb_element.send_keys(Keys.HOME)
+        if target > minimum:
+            thumb_element.send_keys(Keys.ARROW_RIGHT * (target - minimum))
+        self._wait(5).until(
+            lambda _driver: int(thumb_element.get_attribute("aria-valuenow"))
+            == target
+        )
 
     def get_settings_item_value_text(self, element_locator, timeout=10):
         """
@@ -535,7 +639,8 @@ class WebGuestPage(BasePage):
         value_locator=None,
         expected_value=None,
         attempts=3,
-        wait_for_menu_to_close=True,
+        wait_for_menu_to_close=False,
+        partial_match=False,
     ):
         """
         Выбирает опцию в выпадающем списке по точному совпадению текста.
@@ -569,11 +674,13 @@ class WebGuestPage(BasePage):
                 def find_visible_option(driver):
                     for option in driver.find_elements(*option_locator):
                         try:
-                            if (
-                                option.is_displayed()
-                                and option.is_enabled()
-                                and self._normalized_text(option.text) == wanted_option
-                            ):
+                            actual_option = self._normalized_text(option.text)
+                            matches = (
+                                wanted_option in actual_option
+                                if partial_match
+                                else actual_option == wanted_option
+                            )
+                            if option.is_displayed() and option.is_enabled() and matches:
                                 return option
                         except WebDriverException:
                             continue
@@ -587,19 +694,25 @@ class WebGuestPage(BasePage):
                     option
                 ).pause(0.2).click().perform()
 
-                def menu_is_closed(driver):
+                def selected_option_menu_is_closed(driver):
                     for item in driver.find_elements(*option_locator):
                         try:
-                            if item.is_displayed():
+                            if (
+                                item.is_displayed()
+                                and self._normalized_text(item.text) == wanted_option
+                            ):
                                 return False
                         except WebDriverException:
                             continue
                     return True
 
                 if wait_for_menu_to_close:
-                    self._wait(5).until(menu_is_closed)
+                    # The parent settings page also contains elements with the
+                    # menu-item-title class. Waiting for *all* such elements to
+                    # disappear can never succeed after a valid selection.
+                    self._wait(5).until(selected_option_menu_is_closed)
 
-                if value_locator and wanted_value:
+                if wait_for_menu_to_close and value_locator and wanted_value:
                     stable_samples = {"count": 0}
 
                     def expected_value_is_stable(driver):
@@ -648,7 +761,8 @@ class WebGuestPage(BasePage):
         self,
         framerate_text,
         expected_value=None,
-        wait_for_menu_to_close=True,
+        wait_for_menu_to_close=False,
+        verify_value=True,
     ):
         """
         Выбирает частоту кадров в соответствующем выпадающем списке.
@@ -660,7 +774,7 @@ class WebGuestPage(BasePage):
         self.select_from_combobox(
             self.FRAMERATE_COMBOBOX,
             framerate_text.replace("FPS", "fps"),
-            value_locator=self.FRAMERATE_VALUE,
+            value_locator=self.FRAMERATE_VALUE if verify_value else None,
             expected_value=expected_value or framerate_text,
             wait_for_menu_to_close=wait_for_menu_to_close,
         )
@@ -744,7 +858,11 @@ class WebGuestPage(BasePage):
         :return: None
         """
         self.hover_element(self.INPUT_CAMERA_COMBOBOX)
-        self.select_from_combobox(self.INPUT_CAMERA_COMBOBOX, input_camera_text)
+        self.select_from_combobox(
+            self.INPUT_CAMERA_COMBOBOX,
+            input_camera_text,
+            partial_match=True,
+        )
 
     def select_microphone(self, input_microphone_text):
         """
@@ -754,7 +872,11 @@ class WebGuestPage(BasePage):
         :return: None
         """
         self.hover_element(self.INPUT_MICROPHONE_COMBOBOX)
-        self.select_from_combobox(self.INPUT_MICROPHONE_COMBOBOX, input_microphone_text)
+        self.select_from_combobox(
+            self.INPUT_MICROPHONE_COMBOBOX,
+            input_microphone_text,
+            partial_match=True,
+        )
 
     def select_audio_channels(self, audio_channels_text):
         """
@@ -847,6 +969,11 @@ class WebGuestPage(BasePage):
         self.driver.execute_script(
             """
             const tracks = new Set();
+            for (const stream of (window.__vtActiveMediaStreams || [])) {
+                if (stream && stream.getTracks) {
+                    for (const track of stream.getTracks()) tracks.add(track);
+                }
+            }
             for (const media of document.querySelectorAll(
                 'video[data-cy="local-video"], audio[data-cy="local-audio"]'
             )) {

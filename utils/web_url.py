@@ -61,7 +61,7 @@ def acquire_desktop_url(
     copy_command: str,
     clipboard_read: Callable[[], object],
     clipboard_clear: Optional[Callable[[], None]] = None,
-    timeout: float = 30.0,
+    timeout: float = 60.0,
     retry_interval: float = 1.0,
 ) -> str:
     """Start publishing when needed and retry the context-menu copy action.
@@ -83,7 +83,11 @@ def acquire_desktop_url(
     while time.monotonic() < deadline:
         attempt += 1
         try:
-            desktop_app_page.focus_click_vt_source_item(source_title)
+            remaining = max(0.5, deadline - time.monotonic())
+            desktop_app_page.focus_click_vt_source_item(
+                source_title,
+                timeout=min(5.0, remaining),
+            )
 
             if (
                 not publishing_started
@@ -107,9 +111,17 @@ def acquire_desktop_url(
                         f"{type(clear_error).__name__}: {clear_error}"
                     )
 
-            desktop_app_page.right_click_vt_source_item(source_title)
+            remaining = max(0.5, deadline - time.monotonic())
+            desktop_app_page.right_click_vt_source_item(
+                source_title,
+                timeout=min(5.0, remaining),
+            )
             time.sleep(0.4)
-            desktop_app_page.click_vt_source_item(copy_command)
+            remaining = max(0.5, deadline - time.monotonic())
+            desktop_app_page.click_vt_source_item(
+                copy_command,
+                timeout=min(5.0, remaining),
+            )
 
             clipboard_deadline = min(deadline, time.monotonic() + 2.5)
             while time.monotonic() < clipboard_deadline:

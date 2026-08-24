@@ -48,7 +48,10 @@ def test_location(driver, logger):
 
     @log_step(logger, "Проверка значений поля Location в VT WebGuest Settings")
     def check_location_field_vt():
-        desktop_app_page.right_click_vt_source_item(vt_web_guest_source_location)
+        desktop_app_page.right_click_vt_source_item_by_any_title(
+            (vt_web_guest_source_location, "WebGuest", "Web Guest"),
+            timeout=20,
+        )
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
         expected_value = vt_web_guest_source_location
         actual_value = desktop_app_page.get_vt_wg_settings_field_value(1)

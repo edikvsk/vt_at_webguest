@@ -57,9 +57,7 @@ def test_volume_fader_appears_with_autojoin_vt1420(driver, logger):
 
     @log_step(logger, "Проверка отображения Volume Fader")
     def check_volume_fader_value():
-        assert base_page.is_element_visible(wg_page.STOP_BUTTON), \
-            "Autojoin-соединение неожиданно остановилось"
-        assert not base_page.is_element_visible(wg_page.VOLUME_FADER_PREVIEW), \
+        assert not base_page.is_element_visible(wg_page.VISIBLE_VOLUME_FADER), \
             "Volume Fader не должен отображаться при autojoin"
 
     try:

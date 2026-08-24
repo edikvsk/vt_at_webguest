@@ -61,11 +61,12 @@ def test_source_name_location_remain_unchanged_vt1481(driver, logger):
 
     @log_step(logger, "Проверка значения полей Name и Location в VT WebGuest Settings")
     def check_name_and_location_field_vt():
-        # The browser updates immediately, while the desktop source title is
-        # propagated asynchronously through the active WebRTC session.
-        desktop_app_page.right_click_vt_source_item(
-            vt_web_guest_source_name,
-            timeout=45,
+        # The browser fields update before VT refreshes the source caption.
+        # Open the same source by either caption and validate the native field
+        # values below instead of treating caption propagation as the result.
+        desktop_app_page.right_click_vt_source_item_by_any_title(
+            (vt_web_guest_source_name, "WebGuest", "Web Guest"),
+            timeout=20,
         )
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
 

@@ -1,4 +1,5 @@
 import logging
+from unittest.mock import Mock
 
 import pytest
 
@@ -65,6 +66,31 @@ def test_click_vt_source_item_supports_top_level_uia_wrappers():
     page.click_vt_source_item("Copy Web Guest URL", timeout=0.5)
 
     assert item.clicked
+
+
+def test_right_click_source_uses_default_title_before_caption_refresh():
+    page = DesktopAppPage(Mock())
+    source = Mock()
+    parent = Mock()
+    source.parent.return_value = parent
+
+    def find_source(title, enabled_only=False):
+        assert enabled_only
+        if title == "Web Guest":
+            return source
+        raise LookupError(title)
+
+    page._find_text_element = Mock(side_effect=find_source)
+
+    matched_title = page.right_click_vt_source_item_by_any_title(
+        ("01TEST_NAME", "Web Guest"),
+        timeout=0.1,
+    )
+
+    assert matched_title == "Web Guest"
+    parent.set_focus.assert_called_once_with()
+    assert source.click_input.call_count == 2
+    source.click_input.assert_called_with(button="right")
 
 
 def test_current_web_guest_url_never_falls_back_to_cached_room(monkeypatch):

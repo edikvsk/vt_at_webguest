@@ -196,7 +196,11 @@ def driver(ensure_vt_killed_before_test, request):
                     }}
                     
                     console.log('Modified constraints:', modifiedConstraints);
-                    return originalGetUserMedia.call(this, modifiedConstraints);
+                    return originalGetUserMedia.call(this, modifiedConstraints).then(stream => {{
+                        window.__vtActiveMediaStreams = window.__vtActiveMediaStreams || new Set();
+                        window.__vtActiveMediaStreams.add(stream);
+                        return stream;
+                    }});
                 }});
             }};
         '''

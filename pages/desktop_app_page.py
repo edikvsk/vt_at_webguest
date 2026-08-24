@@ -5,6 +5,8 @@ from pywinauto.mouse import click
 
 
 class DesktopAppPage:
+    POLL_INTERVAL = 0.1
+
     # Локаторы:
 
     VT_WEB_GUEST_SETTINGS = "Web Guest Settings"
@@ -38,13 +40,21 @@ class DesktopAppPage:
     def _matching_text_elements(self, title_part):
         """Find every text control containing title_part without assuming uniqueness."""
         needle = title_part.strip().casefold()
+        compact_needle = "".join(needle.split())
         matches = []
         for element in self.main_window.descendants(control_type="Text"):
             try:
                 title = element.window_text().strip()
             except Exception:
                 continue
-            if needle in title.casefold():
+            folded_title = title.casefold()
+            if (
+                needle in folded_title
+                or (
+                    compact_needle == "webguest"
+                    and compact_needle in "".join(folded_title.split())
+                )
+            ):
                 matches.append((element, title))
         return matches
 
@@ -194,6 +204,44 @@ class DesktopAppPage:
             f"Не удалось выполнить правый клик по источнику '{title_part}' "
             f"за {timeout} секунд: {last_error}"
         ) from last_error
+
+    def right_click_vt_source_item_by_any_title(self, title_parts, timeout=15):
+        """Right-click a source found by any of its current or previous titles.
+
+        Web Guest updates its browser fields before VT refreshes the source
+        caption.  Callers that subsequently verify the native settings may use
+        both the requested title and the stable default caption for discovery;
+        the settings values remain the source of truth.
+        """
+        candidates = tuple(dict.fromkeys(title_parts))
+        if not candidates:
+            raise ValueError("At least one source title must be provided.")
+
+        deadline = time.monotonic() + timeout
+        last_errors = {}
+        while time.monotonic() < deadline:
+            for title_part in candidates:
+                try:
+                    text_element = self._find_text_element(
+                        title_part,
+                        enabled_only=True,
+                    )
+                    parent = text_element.parent()
+                    parent.set_focus()
+                    text_element.click_input()
+                    text_element.click_input(button='right')
+                    return title_part
+                except Exception as error:
+                    last_errors[title_part] = error
+            time.sleep(0.5)
+
+        details = "; ".join(
+            f"{title}: {error}" for title, error in last_errors.items()
+        )
+        raise RuntimeError(
+            f"Не удалось выполнить правый клик по источнику с заголовками "
+            f"{candidates} за {timeout} секунд: {details}"
+        )
 
     def focus_click_vt_source_item(self, title_part, timeout=15):
         """Wait for a dynamically rendered VT source and click it."""
