@@ -106,6 +106,44 @@ class NotificationHandler:
             self.logger.info(message)
             return message  # Возвращаем сообщение вместо None
 
+    def wait_for_notification_text(self, expected_text, timeout=10):
+        """Wait until any visible notification contains ``expected_text``.
+
+        The page can retain several notification containers in the DOM.
+        Selenium's standard text condition checks only the first matching
+        element, which can be a hidden stale notification while the current
+        one is already visible.  Scan every container on each poll instead.
+        """
+        expected = str(expected_text).strip().casefold()
+        if not expected:
+            raise ValueError("expected_text must not be empty")
+
+        def visible_matching_text(driver):
+            for element in driver.find_elements(*self.notification_element):
+                try:
+                    text = element.text.strip()
+                    if element.is_displayed() and expected in text.casefold():
+                        return text
+                except Exception:
+                    # Notifications are short-lived and may go stale between
+                    # discovery and reading; continue scanning current ones.
+                    continue
+            return False
+
+        text = WebDriverWait(
+            self.driver,
+            timeout,
+            poll_frequency=self.POLL_FREQUENCY,
+        ).until(
+            visible_matching_text,
+            message=(
+                f"Видимое уведомление с текстом "
+                f"'{expected_text}' не появилось."
+            ),
+        )
+        self.logger.info("Найдено ожидаемое уведомление: %s", text)
+        return text
+
     class CustomErrorFilter():
         def filter(self, record):
             if record.levelname == "ERROR":

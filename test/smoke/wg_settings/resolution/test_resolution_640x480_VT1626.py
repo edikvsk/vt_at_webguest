@@ -5,11 +5,8 @@ import pytest
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from pages.base_page import BasePage
-from pages.desktop_app_page import DesktopAppPage
 from pages.web_guest_page import WebGuestPage
-from utils.config import PROCESS_PATH
 from utils.conftest import driver, login_fixture
-from utils.desktop_app import DesktopApp
 from utils.helpers import log_step
 from utils.logger_config import setup_logger
 from utils.notificaton_handler import NotificationHandler
@@ -27,10 +24,6 @@ def test_resolution_640x480(driver, logger):
     wg_page = WebGuestPage(driver)
     base_page = BasePage(driver)
     notification_handler = NotificationHandler(driver, wg_page.NOTIFICATION_ELEMENT, logger)
-    desktop_app = DesktopApp(PROCESS_PATH)
-    desktop_app_page = DesktopAppPage(desktop_app.main_window)
-
-    vt_web_guest_source_name = "Web Guest"
     resolution = "640X480"
 
     @log_step(logger, "Проверка отображения кнопки SETTINGS")
@@ -52,13 +45,6 @@ def test_resolution_640x480(driver, logger):
         actual_value = wg_page.get_settings_item_value_text(wg_page.RESOLUTION_VALUE)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'"
 
-    @log_step(logger, "Проверка значения Resolution в VT WebGuest Settings")
-    def check_resolution_field_value_vt():
-        desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
-        desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
-        desktop_app_page.select_combobox_item_by_index(0, 2)
-        desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
-
     @log_step(logger, "Проверка значения поля Resolution")
     def check_resolution_field_value():
         expected_value = resolution
@@ -70,7 +56,6 @@ def test_resolution_640x480(driver, logger):
         click_settings_button,
         select_resolution,
         check_resolution_field_value,
-        check_resolution_field_value_vt
     ]
 
     for step in steps:

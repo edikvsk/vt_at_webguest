@@ -58,6 +58,16 @@ class MissingMenuItem:
         return False
 
 
+class FakeSourceWindow:
+    def __init__(self, source):
+        self.source = source
+
+    def descendants(self, control_type=None):
+        if control_type == "Text":
+            return []
+        return [self.source]
+
+
 def test_click_vt_source_item_supports_top_level_uia_wrappers():
     item = FakeMenuItem("Copy Web Guest URL")
     popup = FakeWrapper([item])
@@ -91,6 +101,17 @@ def test_right_click_source_uses_default_title_before_caption_refresh():
     parent.set_focus.assert_called_once_with()
     assert source.click_input.call_count == 2
     source.click_input.assert_called_with(button="right")
+
+
+def test_source_discovery_falls_back_to_non_text_uia_row():
+    source = Mock()
+    source.window_text.return_value = "Guest2189"
+    source.element_info.runtime_id = [1, 2, 3]
+    page = DesktopAppPage(FakeSourceWindow(source))
+
+    matches = page._matching_text_elements("Guest2189")
+
+    assert matches == [(source, "Guest2189")]
 
 
 def test_current_web_guest_url_never_falls_back_to_cached_room(monkeypatch):

@@ -29,6 +29,7 @@ def test_location(driver, logger):
 
     location_value = "01TEST_LOCATION"
     vt_web_guest_source_location = "01TEST_LOCATION"
+    source_title_before_update = None
 
     @log_step(logger, "Проверка отображения кнопки SETTINGS")
     def check_settings_button():
@@ -49,7 +50,12 @@ def test_location(driver, logger):
     @log_step(logger, "Проверка значений поля Location в VT WebGuest Settings")
     def check_location_field_vt():
         desktop_app_page.right_click_vt_source_item_by_any_title(
-            (vt_web_guest_source_location, "WebGuest", "Web Guest"),
+            (
+                source_title_before_update,
+                vt_web_guest_source_location,
+                "WebGuest",
+                "Web Guest",
+            ),
             timeout=20,
         )
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
@@ -61,8 +67,12 @@ def test_location(driver, logger):
 
     @log_step(logger, "Нажатие кнопки SETTINGS")
     def click_settings_button():
+        nonlocal source_title_before_update
         wg_page.click_element_with_scroll(wg_page.SETTINGS_BUTTON)
         assert wg_page.is_element_visible(wg_page.WG_SETTINGS_WINDOW), "Settings не открыты"
+        source_title_before_update = wg_page.get_input_value(
+            wg_page.NAME_FIELD_SETTINGS
+        )
 
     steps = [
         check_settings_button,

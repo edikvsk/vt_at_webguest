@@ -2,6 +2,7 @@ import time
 
 from pywinauto.findwindows import ElementNotFoundError
 from pywinauto.mouse import click
+from pywinauto import Desktop
 
 
 class DesktopAppPage:
@@ -38,25 +39,51 @@ class DesktopAppPage:
         return visible, enabled, has_size, rectangle
 
     def _matching_text_elements(self, title_part):
-        """Find every text control containing title_part without assuming uniqueness."""
+        """Find controls containing ``title_part`` without assuming uniqueness.
+
+        Connected Web Guest rows are sometimes exposed by WPF as a DataItem
+        or Custom control with no child Text node, especially immediately
+        after the guest changes its name.  Prefer the cheap Text lookup, then
+        fall back to all UIA descendants when the row has no Text wrapper.
+        """
         needle = title_part.strip().casefold()
         compact_needle = "".join(needle.split())
-        matches = []
-        for element in self.main_window.descendants(control_type="Text"):
-            try:
-                title = element.window_text().strip()
-            except Exception:
-                continue
-            folded_title = title.casefold()
-            if (
-                needle in folded_title
-                or (
-                    compact_needle == "webguest"
-                    and compact_needle in "".join(folded_title.split())
-                )
-            ):
+
+        def collect(elements):
+            matches = []
+            seen = set()
+            for element in elements:
+                try:
+                    title = element.window_text().strip()
+                except Exception:
+                    continue
+                folded_title = title.casefold()
+                if not (
+                    needle in folded_title
+                    or (
+                        compact_needle == "webguest"
+                        and compact_needle in "".join(folded_title.split())
+                    )
+                ):
+                    continue
+
+                try:
+                    identity = element.element_info.runtime_id
+                except Exception:
+                    identity = getattr(element, "handle", None) or id(element)
+                identity = tuple(identity) if isinstance(identity, list) else identity
+                if identity in seen:
+                    continue
+                seen.add(identity)
                 matches.append((element, title))
-        return matches
+            return matches
+
+        matches = collect(
+            self.main_window.descendants(control_type="Text")
+        )
+        if matches:
+            return matches
+        return collect(self.main_window.descendants())
 
     def _find_text_element(self, title_part, enabled_only=False):
         """Resolve duplicate WPF text controls to the visible actionable instance."""
@@ -282,6 +309,19 @@ class DesktopAppPage:
             roots = [self.main_window]
             try:
                 roots.extend(self.main_window.app.windows())
+            except Exception as error:
+                last_error = error
+
+            # WPF context menus are top-level popup windows.  Depending on
+            # the pywinauto connection state, Application.windows() may omit
+            # them even though UI Automation already exposes them.  Include
+            # every top-level window owned by the VT process, without ever
+            # matching popups from another application.
+            try:
+                process_id = self.main_window.process_id()
+                roots.extend(
+                    Desktop(backend="uia").windows(process=process_id)
+                )
             except Exception as error:
                 last_error = error
 
