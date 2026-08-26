@@ -135,3 +135,19 @@ def test_combobox_text_normalization_ignores_case_and_layout_whitespace():
         WebGuestPage._normalized_text("AUDIO BITRATE\n  10K")
         == WebGuestPage._normalized_text("audio bitrate 10k")
     )
+
+
+def test_numeric_audio_channels_fall_back_to_other_channels():
+    page = WebGuestPage(Mock())
+    page.hover_element = Mock()
+    page.click = Mock()
+    page.input_text = Mock()
+    page.select_from_combobox = Mock(
+        side_effect=[RuntimeError("preset is absent"), None]
+    )
+
+    page.select_audio_channels("1, 2")
+
+    assert page.select_from_combobox.call_count == 2
+    page.click.assert_called_once_with(page.COMBOBOX_BACK_BUTTON)
+    page.input_text.assert_called_once_with(page.INPUT_FIELD_OTHER_CHANNELS, "1, 2")

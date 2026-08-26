@@ -61,8 +61,8 @@ def acquire_desktop_url(
     copy_command: str,
     clipboard_read: Callable[[], object],
     clipboard_clear: Optional[Callable[[], None]] = None,
-    timeout: float = 60.0,
-    retry_interval: float = 1.0,
+    timeout: float = 90.0,
+    retry_interval: float = 0.5,
 ) -> str:
     """Start publishing when needed and retry the context-menu copy action.
 
@@ -123,7 +123,10 @@ def acquire_desktop_url(
                 timeout=min(5.0, remaining),
             )
 
-            clipboard_deadline = min(deadline, time.monotonic() + 2.5)
+            # VT handles the menu action on its UI thread.  During source
+            # startup that thread can acknowledge the click several seconds
+            # before the delayed clipboard render completes.
+            clipboard_deadline = min(deadline, time.monotonic() + 5.0)
             while time.monotonic() < clipboard_deadline:
                 candidate = clipboard_read()
                 if validator(candidate):

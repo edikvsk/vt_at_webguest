@@ -45,9 +45,10 @@ def test_audio_channels(driver, logger):
     def check_audio_channels_field_value_vt():
         desktop_app_page.right_click_vt_source_item(vt_web_guest_source_name)
         desktop_app_page.click_vt_source_item(DesktopAppPage.VT_WEB_GUEST_SETTINGS)
-        actual_value = desktop_app_page.get_combobox_selected_text(7)
+        # Numeric mappings are stored in VT's OtherChannels field. Reading a
+        # global ComboBox index is unstable as unrelated VT controls change.
+        actual_value = desktop_app_page.get_vt_wg_settings_field_value(3)
         expected_value = audio_channels_value
-        desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
         desktop_app_page.click_button_by_name(DesktopAppPage.VT_OK_BUTTON)
         assert actual_value == expected_value, f"Ожидалось значение '{expected_value}', но получено '{actual_value}'."
 

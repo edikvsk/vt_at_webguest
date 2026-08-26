@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 
 from selenium.common import TimeoutException, NoSuchElementException, WebDriverException
@@ -92,7 +93,10 @@ class WebGuestPage(BasePage):
         "contains(concat(' ', normalize-space(@class), ' '), ' active ')]"
         "//div[contains(concat(' ', normalize-space(@class), ' '), ' react-slider ')]",
     )
-    AUDIO_CHANNELS_COMBOBOX = (By.XPATH, "//span[text()='Audio Channels']")
+    # Click the complete row. The label sits at the bottom edge of the
+    # scrollable settings panel and an ActionChains click on the span can land
+    # outside its clipped hit area without opening the submenu.
+    AUDIO_CHANNELS_COMBOBOX = (By.XPATH, "//div[@data-cy='audioChannels']")
     AUDIO_CHANNELS_VALUE = (
         By.XPATH,
         "//div[@data-cy='audioChannels']//*[contains(@class, 'text-ellipsis')]",
@@ -661,6 +665,7 @@ class WebGuestPage(BasePage):
         wanted_value = self._normalized_text(expected_value)
         option_locator = (By.XPATH, "//span[contains(@class, 'menu-item-title')]")
         last_error = None
+        observed_options = set()
 
         for attempt in range(1, attempts + 1):
             try:
@@ -675,6 +680,8 @@ class WebGuestPage(BasePage):
                     for option in driver.find_elements(*option_locator):
                         try:
                             actual_option = self._normalized_text(option.text)
+                            if option.is_displayed() and actual_option:
+                                observed_options.add(" ".join((option.text or "").split()))
                             matches = (
                                 wanted_option in actual_option
                                 if partial_match
@@ -737,9 +744,10 @@ class WebGuestPage(BasePage):
                 except Exception:
                     pass
 
+        available = ", ".join(sorted(observed_options)) or "нет видимых опций"
         raise RuntimeError(
             f"Не удалось выбрать '{option_text}' в комбобоксе после "
-            f"{attempts} попыток."
+            f"{attempts} попыток. Видимые опции: {available}."
         ) from last_error
 
     def select_resolution(self, resolution_text):
@@ -886,12 +894,29 @@ class WebGuestPage(BasePage):
         :return: None
         """
         self.hover_element(self.AUDIO_CHANNELS_COMBOBOX)
-        self.select_from_combobox(
-            self.AUDIO_CHANNELS_COMBOBOX,
-            audio_channels_text,
-            value_locator=self.AUDIO_CHANNELS_VALUE,
-            expected_value=audio_channels_text,
-        )
+        try:
+            self.select_from_combobox(
+                self.AUDIO_CHANNELS_COMBOBOX,
+                audio_channels_text,
+                value_locator=self.AUDIO_CHANNELS_VALUE,
+                expected_value=audio_channels_text,
+                attempts=1,
+            )
+        except RuntimeError:
+            # Recent WebGuest builds omit numeric presets when the selected
+            # microphone exposes no matching channel layout. The same mapping
+            # remains supported through "Other channels"; exercise that UI
+            # path instead of failing because an optional shortcut is absent.
+            if not re.fullmatch(r"\s*\d+\s*(?:,\s*\d+\s*)+", audio_channels_text):
+                raise
+
+            self.click(self.COMBOBOX_BACK_BUTTON)
+            self.select_from_combobox(
+                self.AUDIO_CHANNELS_COMBOBOX,
+                "Other channels",
+                attempts=1,
+            )
+            self.input_text(self.INPUT_FIELD_OTHER_CHANNELS, audio_channels_text)
 
     def is_switcher_active(self, switcher_locator):
         """

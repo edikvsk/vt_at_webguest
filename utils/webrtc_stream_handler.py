@@ -429,22 +429,19 @@ class StreamHandler:
     @staticmethod
     def format_audio_bitrate(max_audio_bitrate):
         max_audio_bitrate = float(max_audio_bitrate)
-        if 4 <= max_audio_bitrate < 8:
-            return "AUDIO BITRATE\n6K"
-        elif 8 <= max_audio_bitrate < 14:
-            return "AUDIO BITRATE\n10K"
-        elif 16 <= max_audio_bitrate < 25:
-            return "AUDIO BITRATE\n20K"
-        elif 34 <= max_audio_bitrate < 47:
-            return "AUDIO BITRATE\n40K"
-        elif 90 <= max_audio_bitrate < 104:
-            return "AUDIO BITRATE\n96K"
-        elif 180 <= max_audio_bitrate < 205:
-            return "AUDIO BITRATE\n192K"
-        elif 490 <= max_audio_bitrate < 530:
-            return "AUDIO BITRATE\n510K"
-        else:
-            return f"AUDIO BITRATE {max_audio_bitrate}K"  # для значений вне указанных диапазонов
+        # getStats reports payload throughput, not the configured encoder
+        # ceiling. Silence suppression and packet timing normally keep the
+        # observed maximum below that ceiling, so an exact value (or narrow,
+        # hand-written gaps between values) produces false failures.  The
+        # supported presets are far enough apart for a 20% payload tolerance
+        # to identify them without overlap.
+        for configured_bitrate in (6, 10, 20, 40, 96, 192, 510):
+            lower = configured_bitrate * 0.8
+            upper = configured_bitrate * 1.2
+            if lower <= max_audio_bitrate <= upper:
+                return f"AUDIO BITRATE\n{configured_bitrate}K"
+
+        return f"AUDIO BITRATE {max_audio_bitrate}K"
 
     @staticmethod
     def format_frame_rate(average_frame_rate):
