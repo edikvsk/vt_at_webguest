@@ -46,7 +46,7 @@ def test_average_fps_waits_for_completed_browser_measurement():
 @pytest.mark.parametrize(
     ("measured", "expected"),
     [
-        (5.0, "AUDIO BITRATE\n6K"),
+        (4.75, "AUDIO BITRATE\n6K"),
         (8.0, "AUDIO BITRATE\n10K"),
         (16.0, "AUDIO BITRATE\n20K"),
         (33.36, "AUDIO BITRATE\n40K"),
@@ -61,3 +61,7 @@ def test_audio_bitrate_uses_payload_tolerance(measured, expected):
 
 def test_audio_bitrate_outside_supported_presets_is_not_hidden():
     assert StreamHandler.format_audio_bitrate(300) == "AUDIO BITRATE 300.0K"
+
+
+def test_audio_bitrate_below_meaningful_tolerance_is_not_hidden():
+    assert StreamHandler.format_audio_bitrate(4.1) == "AUDIO BITRATE 4.1K"

@@ -84,22 +84,24 @@ def ensure_vt_killed_before_test():
         pm.kill_process()
 
 
-@pytest.fixture(scope="function")
-def driver(ensure_vt_killed_before_test, request):
-    """Основная фикстура для создания WebDriver с настройкой браузера и запуском процесса."""
+def _create_configured_web_driver(
+    request,
+    extra_arguments=None,
+    relax_media_constraints=False,
+):
+    """Create an isolated Chrome profile with the suite's media setup."""
     # Подавляем WebRTC логи
     import os
     os.environ['WEBRTC_LOGGING'] = '0'
     os.environ['WEBRTC_DEBUG'] = '0'
     
-    process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME, PUBLISHER_XML_PATH)
-    process_manager.start_process()
-
     chrome_options = Options()
     
     # Получаем опции Chrome из конфигурационного менеджера
     chrome_options_list = config.get_chrome_options()
     for option in chrome_options_list:
+        chrome_options.add_argument(option)
+    for option in extra_arguments or ():
         chrome_options.add_argument(option)
     
     chrome_options.binary_location = CHROME_BROWSER_PATH
@@ -147,6 +149,7 @@ def driver(ensure_vt_killed_before_test, request):
                     // Ищем устройства по имени (частичное совпадение)
                     const cameraName = "{config.media.camera_for_selection}";
                     const micName = "{config.media.mic_for_selection}";
+                    const relaxMediaConstraints = {str(relax_media_constraints).lower()};
                     
                     let videoDeviceId = null;
                     let audioDeviceId = null;
@@ -175,7 +178,9 @@ def driver(ensure_vt_killed_before_test, request):
                     const modifiedConstraints = {{}};
 
                     if (constraints.video !== false) {{
-                        if (videoDeviceId) {{
+                        if (relaxMediaConstraints) {{
+                            modifiedConstraints.video = true;
+                        }} else if (videoDeviceId) {{
                             modifiedConstraints.video = {{ ...constraints.video, deviceId: {{ exact: videoDeviceId }} }};
                         }} else {{
                             // Preserve requested resolution/framerate when a
@@ -188,7 +193,9 @@ def driver(ensure_vt_killed_before_test, request):
                     }}
 
                     if (constraints.audio !== false) {{
-                        if (audioDeviceId) {{
+                        if (relaxMediaConstraints) {{
+                            modifiedConstraints.audio = true;
+                        }} else if (audioDeviceId) {{
                             modifiedConstraints.audio = {{ ...constraints.audio, deviceId: {{ exact: audioDeviceId }} }};
                         }} else {{
                             modifiedConstraints.audio = constraints.audio;
@@ -207,6 +214,35 @@ def driver(ensure_vt_killed_before_test, request):
     })
     
     return web_driver
+
+
+@pytest.fixture(scope="function")
+def driver(ensure_vt_killed_before_test, request):
+    """Основная фикстура для создания WebDriver с настройкой браузера и запуском процесса."""
+    process_manager = ProcessManager(PROCESS_PATH, PROCESS_NAME, PUBLISHER_XML_PATH)
+    process_manager.start_process()
+    return _create_configured_web_driver(request)
+
+
+@pytest.fixture(scope="function")
+def isolated_driver_factory(request):
+    """Create extra browsers with independent cookies and Web Storage.
+
+    A second tab shares localStorage with the first guest and may silently
+    reuse its identity. Each driver created here owns a separate temporary
+    Chrome profile while the common VT Publisher process stays alive.
+    """
+    def create(*, use_fake_media=False):
+        extra_arguments = (
+            ["--use-fake-device-for-media-stream"] if use_fake_media else []
+        )
+        return _create_configured_web_driver(
+            request,
+            extra_arguments=extra_arguments,
+            relax_media_constraints=use_fake_media,
+        )
+
+    return create
 
 
 @pytest.fixture(scope="function")

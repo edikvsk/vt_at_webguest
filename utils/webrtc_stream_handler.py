@@ -316,7 +316,9 @@ class StreamHandler:
 
             const pc = peers[0].pc;
             const audioBitrateValues = [];
-            const monitoringDuration = 15; // seconds
+            // Low Opus presets need a little longer to produce a representative
+            // peak, especially with silence suppression enabled.
+            const monitoringDuration = 20; // seconds
             const intervalDuration = 1000; // milliseconds
 
             let previousAudioBytesSent = 0;
@@ -433,13 +435,24 @@ class StreamHandler:
         # ceiling. Silence suppression and packet timing normally keep the
         # observed maximum below that ceiling, so an exact value (or narrow,
         # hand-written gaps between values) produces false failures.  The
-        # supported presets are far enough apart for a 20% payload tolerance
-        # to identify them without overlap.
-        for configured_bitrate in (6, 10, 20, 40, 96, 192, 510):
-            lower = configured_bitrate * 0.8
-            upper = configured_bitrate * 1.2
-            if lower <= max_audio_bitrate <= upper:
-                return f"AUDIO BITRATE\n{configured_bitrate}K"
+        # supported presets are far enough apart for a 30% payload tolerance.
+        # When tolerance bands touch, select the preset with the smallest
+        # relative error instead of relying on tuple order.
+        presets = (6, 10, 20, 40, 96, 192, 510)
+        candidates = [
+            configured_bitrate
+            for configured_bitrate in presets
+            if configured_bitrate * 0.7
+            <= max_audio_bitrate
+            <= configured_bitrate * 1.3
+        ]
+        if candidates:
+            closest = min(
+                candidates,
+                key=lambda configured: abs(max_audio_bitrate - configured)
+                / configured,
+            )
+            return f"AUDIO BITRATE\n{closest}K"
 
         return f"AUDIO BITRATE {max_audio_bitrate}K"
 
