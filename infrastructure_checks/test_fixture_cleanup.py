@@ -124,6 +124,47 @@ class FixtureCleanupTests(unittest.TestCase):
 
         process.terminate.assert_called_once_with()
 
+    def test_successful_wm_close_does_not_terminate_process(self):
+        process = Mock()
+        process.pid = 123
+        process.alive = True
+
+        manager = object.__new__(ProcessManager)
+        manager.process_name = "VT_Publisher.exe"
+        manager.logger = Mock()
+        manager.get_window_handle = Mock(return_value=456)
+        manager.iter_processes = lambda: iter([process] if process.alive else [])
+
+        def close_process(*_args):
+            process.alive = False
+
+        with patch(
+            "utils.process_handler.win32gui.PostMessage",
+            side_effect=close_process,
+        ):
+            manager.kill_process()
+
+        process.terminate.assert_not_called()
+
+    def test_windowless_process_uses_terminate_only_after_grace_period(self):
+        process = Mock()
+        process.pid = 123
+        process.alive = True
+        process.terminate.side_effect = lambda: setattr(process, "alive", False)
+
+        manager = object.__new__(ProcessManager)
+        manager.process_name = "VT_Publisher.exe"
+        manager.logger = Mock()
+        manager.get_window_handle = Mock(return_value=None)
+        manager.iter_processes = lambda: iter([process] if process.alive else [])
+
+        # The first value creates the deadline; the second expires the graceful
+        # stage immediately so the test does not really wait ten seconds.
+        with patch("utils.process_handler.time.time", side_effect=[0, 11]):
+            manager.kill_process()
+
+        process.terminate.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()

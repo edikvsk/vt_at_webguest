@@ -109,57 +109,35 @@ class ProcessManager:
         )
 
     def kill_process(self):
-        """Завершает все инстансы процесса. Мягко (WM_CLOSE/terminate), затем форс-килл (taskkill)."""
+        """Завершает все инстансы процесса: WM_CLOSE, terminate, затем taskkill.
+
+        Важно сначала дать главному процессу закрыть native media devices. Если
+        завершить дочерний процесс раньше окна приложения, драйвер BMD может
+        получить незавершенную capture/render session и перейти в Code 43.
+        """
         found_any = False
         try:
-            # Сначала мягко закрываем все найденные процессы и их потомков
+            # Сначала просим закрыться все окна приложения. Не завершаем
+            # безоконные дочерние процессы: родитель должен сам остановить их и
+            # освободить native media resources во время штатного shutdown.
             for process in list(self.iter_processes()):
                 found_any = True
-
-                def terminate_process(proc):
-                    try:
-                        proc.terminate()
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        pass
-
-                def close_process(proc):
-                    try:
-                        hwnd = self.get_window_handle(proc.pid)
-                        if hwnd:
-                            try:
-                                win32gui.PostMessage(
-                                    hwnd,
-                                    win32con.WM_CLOSE,
-                                    0,
-                                    0,
-                                )
-                            except Exception as error:
-                                self.logger.warning(
-                                    f"Could not send WM_CLOSE to "
-                                    f"{self.process_name} PID {proc.pid}: "
-                                    f"{error}. Falling back to terminate()."
-                                )
-                                terminate_process(proc)
-                        else:
-                            terminate_process(proc)
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        pass
-                    except Exception as error:
-                        self.logger.warning(
-                            f"Could not close {self.process_name} PID "
-                            f"{getattr(proc, 'pid', 'unknown')}: {error}. "
-                            "Falling back to terminate()."
-                        )
-                        terminate_process(proc)
-
                 try:
-                    children = process.children(recursive=True)
+                    hwnd = self.get_window_handle(process.pid)
+                    if hwnd:
+                        win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    children = []
-
-                for child in children:
-                    close_process(child)
-                close_process(process)
+                    pass
+                except Exception as error:
+                    self.logger.warning(
+                        f"Could not send WM_CLOSE to {self.process_name} PID "
+                        f"{getattr(process, 'pid', 'unknown')}: {error}. "
+                        "Falling back to terminate()."
+                    )
+                    try:
+                        process.terminate()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
 
             # Ждем до 10 секунд, чтобы мягкое закрытие сработало
             deadline = time.time() + 10
@@ -168,7 +146,23 @@ class ProcessManager:
                     break
                 time.sleep(0.5)
 
-            # Если что-то осталось — форс-киллим через taskkill
+            # Второй этап сохраняет прежнюю гарантию очистки, но выполняется
+            # только после полного grace period для штатного shutdown.
+            if any(True for _ in self.iter_processes()):
+                self.logger.info("Остались живые процессы, выполняем terminate после штатного таймаута...")
+                for process in list(self.iter_processes()):
+                    try:
+                        process.terminate()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+
+                deadline_terminate = time.time() + 5
+                while time.time() < deadline_terminate:
+                    if not any(True for _ in self.iter_processes()):
+                        break
+                    time.sleep(0.5)
+
+            # Последний fallback оставляем для действительно зависших процессов.
             if any(True for _ in self.iter_processes()):
                 self.logger.info("Остались живые процессы, выполняем форс-килл через taskkill /F /T ...")
                 try:
