@@ -28,7 +28,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
 
 ### 2. Настройка медиа-устройств
-Система автоматически определяет машину и загружает конфигурацию с `\\192.168.10.100\web\VT_WebGuest_config\appconfig.json`
+Система автоматически определяет машину и загружает конфигурацию с `\\web\VT_WebGuest_config\appconfig.json`
 
 - **EDWARD** - использует устройства "Logi" (Logitech)  
 - **DEMOSTAND** - использует устройства "A4"
